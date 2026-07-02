@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="GobchatEx/GobchatEx.csproj" />
+  <Folder Name="/tests/">
+    <Project Path="tests/GobchatEx.Core.Tests/GobchatEx.Core.Tests.csproj" />
+  </Folder>
+</Solution>

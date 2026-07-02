@@ -1,0 +1,5 @@
+[submodule ".references/FFXIVClientStructs"]
+	path = .references/FFXIVClientStructs
+	url = https://github.com/aers/FFXIVClientStructs.git
+	branch = main
+	shallow = true
