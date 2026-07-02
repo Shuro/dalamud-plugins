@@ -116,4 +116,25 @@ public sealed class MessageSegmenterTests
         DefaultSegmenter().Segment([]).Should().BeNull();
         DefaultSegmenter().Segment([""]).Should().BeNull();
     }
+
+    [Fact]
+    public void MentionRules_PartialAndFuzzyOverlay_SplitTheSpan()
+    {
+        var rules = new MentionRules(
+            WholeWords: [],
+            PartialWords: ["Sam"],
+            FuzzyWords: ["Elara"],
+            FuzzyMatchLevel.Conservative);
+        var segmenter = new MessageSegmenter(DefaultRules.All, rules);
+
+        SegmentSingleRun(segmenter, "\"hi Samantha and Elora\" bye", out var hasMention)
+            .Should().Equal(
+                ("\"hi ", SegmentType.Say),
+                ("Sam", SegmentType.Mention),
+                ("antha and ", SegmentType.Say),
+                ("Elora", SegmentType.Mention),
+                ("\"", SegmentType.Say),
+                (" bye", SegmentType.Undefined));
+        hasMention.Should().BeTrue();
+    }
 }

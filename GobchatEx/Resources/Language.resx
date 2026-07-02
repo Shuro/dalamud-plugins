@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+    <xsd:schema xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root">
+        <xsd:import namespace="http://www.w3.org/XML/1998/namespace"/>
+        <xsd:element name="root" msdata:IsDataSet="true">
+            <xsd:complexType>
+                <xsd:choice maxOccurs="unbounded">
+                    <xsd:element name="metadata">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="name" use="required" type="xsd:string"/>
+                            <xsd:attribute name="type" type="xsd:string"/>
+                            <xsd:attribute name="mimetype" type="xsd:string"/>
+                            <xsd:attribute ref="xml:space"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="assembly">
+                        <xsd:complexType>
+                            <xsd:attribute name="alias" type="xsd:string"/>
+                            <xsd:attribute name="name" type="xsd:string"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="data">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+                                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1"/>
+                            <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3"/>
+                            <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4"/>
+                            <xsd:attribute ref="xml:space"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="resheader">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="name" type="xsd:string" use="required"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:choice>
+            </xsd:complexType>
+        </xsd:element>
+    </xsd:schema>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>2.0</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral,
+            PublicKeyToken=b77a5c561934e089
+        </value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral,
+            PublicKeyToken=b77a5c561934e089
+        </value>
+    </resheader>
+    <data name="General_TabName"><value>General</value></data>
+    <data name="General_RpHighlighting_Name"><value>Enable RP highlighting</value></data>
+    <data name="General_RpHighlighting_Tooltip"><value>Colors quoted speech, emotes, OOC and mention words in the native chat log.</value></data>
+    <data name="General_MovableWindow_Name"><value>Movable Settings Window</value></data>
+    <data name="General_MovableWindow_Tooltip"><value>Takes effect after Save.</value></data>
+    <data name="General_Language_Name"><value>Language</value></data>
+    <data name="General_Language_Tooltip"><value>Changes the language of GobchatEx's own settings window. Does not translate in-game chat text.</value></data>
+    <data name="Language_Option_UseDalamudDefault"><value>Use Dalamud's default language</value></data>
+
+    <data name="Formatting_TabName"><value>Formatting</value></data>
+    <data name="Formatting_ColorSelection_Header"><value>Color selection for text types</value></data>
+    <data name="Formatting_ColorSelection_Tooltip"><value>Each enabled type recolors matching chat text: Color is the text color, Glow its outline. Right-click a swatch to clear it.</value></data>
+    <data name="Formatting_Column_Type"><value>Type</value></data>
+    <data name="Formatting_Column_Color"><value>Color</value></data>
+    <data name="Formatting_Column_Glow"><value>Glow</value></data>
+    <data name="Formatting_Column_Delimiters"><value>Delimiters</value></data>
+    <data name="Formatting_Segment_Say"><value>Say</value></data>
+    <data name="Formatting_Segment_Emote"><value>Emote</value></data>
+    <data name="Formatting_Segment_Ooc"><value>OOC</value></data>
+    <data name="Formatting_Segment_Mention"><value>Mention</value></data>
+    <data name="Formatting_Segment_Mention_Delimiters"><value>trigger words</value></data>
+    <data name="Formatting_Channels_Header"><value>Channels with RP formatting</value></data>
+    <data name="Formatting_Channels_Linkshells"><value>Linkshells</value></data>
+    <data name="Formatting_Channels_CrossworldLinkshells"><value>Cross-world Linkshells</value></data>
+    <data name="Formatting_Channels_ResetDefaults"><value>Reset to RP defaults</value></data>
+    <data name="Formatting_Channel_Say"><value>Say</value></data>
+    <data name="Formatting_Channel_Emote"><value>Emote</value></data>
+    <data name="Formatting_Channel_StandardEmote"><value>Standard Emote</value></data>
+    <data name="Formatting_Channel_Yell"><value>Yell</value></data>
+    <data name="Formatting_Channel_Shout"><value>Shout</value></data>
+    <data name="Formatting_Channel_Party"><value>Party</value></data>
+    <data name="Formatting_Channel_CrossParty"><value>Cross Party</value></data>
+    <data name="Formatting_Channel_Alliance"><value>Alliance</value></data>
+    <data name="Formatting_Channel_FreeCompany"><value>Free Company</value></data>
+    <data name="Formatting_Channel_TellIn"><value>Tell (in)</value></data>
+    <data name="Formatting_Channel_TellOut"><value>Tell (out)</value></data>
+    <data name="Formatting_Channel_NoviceNetwork"><value>Novice Network</value></data>
+    <data name="Formatting_Channel_Echo"><value>Echo</value></data>
+    <data name="Formatting_Channel_Linkshell1"><value>Linkshell 1</value></data>
+    <data name="Formatting_Channel_Linkshell2"><value>Linkshell 2</value></data>
+    <data name="Formatting_Channel_Linkshell3"><value>Linkshell 3</value></data>
+    <data name="Formatting_Channel_Linkshell4"><value>Linkshell 4</value></data>
+    <data name="Formatting_Channel_Linkshell5"><value>Linkshell 5</value></data>
+    <data name="Formatting_Channel_Linkshell6"><value>Linkshell 6</value></data>
+    <data name="Formatting_Channel_Linkshell7"><value>Linkshell 7</value></data>
+    <data name="Formatting_Channel_Linkshell8"><value>Linkshell 8</value></data>
+    <data name="Formatting_Channel_Cwls1"><value>CWLS 1</value></data>
+    <data name="Formatting_Channel_Cwls2"><value>CWLS 2</value></data>
+    <data name="Formatting_Channel_Cwls3"><value>CWLS 3</value></data>
+    <data name="Formatting_Channel_Cwls4"><value>CWLS 4</value></data>
+    <data name="Formatting_Channel_Cwls5"><value>CWLS 5</value></data>
+    <data name="Formatting_Channel_Cwls6"><value>CWLS 6</value></data>
+    <data name="Formatting_Channel_Cwls7"><value>CWLS 7</value></data>
+    <data name="Formatting_Channel_Cwls8"><value>CWLS 8</value></data>
+
+    <data name="Mentions_TabName"><value>Mentions</value></data>
+    <data name="Mentions_General_Header"><value>General Settings</value></data>
+    <data name="Mentions_Sound_PlayOnMatch"><value>Play a sound when a mention matches</value></data>
+    <data name="Mentions_Sound_PlayOnMatch_Tooltip"><value>Volume follows the game's sound-effects setting.</value></data>
+    <data name="Mentions_Sound_Cooldown"><value>Cooldown</value></data>
+    <data name="Mentions_Sound_SuppressSelf"><value>Don't play for my own messages</value></data>
+    <data name="Mentions_Global_Header"><value>Global Mentions</value></data>
+    <data name="Mentions_Global_Header_Tooltip"><value>Words and names that count as mentions (case-insensitive whole words).</value></data>
+    <data name="Mentions_Trigger_Hint"><value>add a word or name…</value></data>
+    <data name="Mentions_Trigger_Add"><value>Add</value></data>
+    <data name="Mentions_Trigger_Empty"><value>No trigger words yet.</value></data>
+    <data name="Mentions_Player_Header"><value>Player Mentions</value></data>
+    <data name="Mentions_Player_Header_Tooltip"><value>Match your character's name automatically. Characters are remembered the first time you log them in, but stay inactive until you turn them on below.</value></data>
+    <data name="Mentions_Player_MatchLoggedIn"><value>Match logged-in characters' names</value></data>
+    <data name="Mentions_Player_Empty"><value>No characters remembered yet. Log in with a character, or add the current one above.</value></data>
+    <data name="Mentions_Character_Inactive"><value>{0} (inactive)</value></data>
+    <data name="Mentions_Character_Active"><value>Active</value></data>
+    <data name="Mentions_Character_Remove"><value>Remove</value></data>
+    <data name="Mentions_Character_Remove_Tooltip"><value>Hold Ctrl+Shift and click to remove this character.</value></data>
+    <data name="Mentions_Character_AddCurrent"><value>Add current character</value></data>
+    <data name="Mentions_Character_LogInFirst"><value>(log in first)</value></data>
+    <data name="Mentions_Character_MatchLabel"><value>Match:</value></data>
+    <data name="Mentions_Character_FullName"><value>Full name</value></data>
+    <data name="Mentions_Character_FirstName"><value>First name</value></data>
+    <data name="Mentions_Character_LastName"><value>Last name</value></data>
+    <data name="Mentions_Character_FirstNamePartial"><value>Partial first name (substring)</value></data>
+    <data name="Mentions_Character_LastNamePartial"><value>Partial last name (substring)</value></data>
+    <data name="Mentions_Character_Miqote"><value>Miqo'te short name (e.g. A'nabelle → nabelle)</value></data>
+    <data name="Mentions_Character_Fuzzy"><value>Typo-tolerant (fuzzy) matching</value></data>
+    <data name="Mentions_Character_Fuzzy_Tooltip"><value>Also matches close misspellings of the names above, e.g. "Elora" for "Elara".</value></data>
+    <data name="Mentions_Character_CustomWords"><value>Custom words</value></data>
+    <data name="Mentions_Character_CustomWord_Hint"><value>add a custom word…</value></data>
+
+    <data name="About_TabName"><value>About</value></data>
+    <data name="About_Description"><value>GobchatEx highlights roleplay in the native chat log: quoted speech, emotes, OOC and mention trigger words each get their own colors.</value></data>
+    <data name="About_RepoLink"><value>Source code &amp; issues</value></data>
+    <data name="About_ByAuthor"><value>by {0}</value></data>
+
+    <data name="Settings_WindowTitle"><value>GobchatEx Settings</value></data>
+    <data name="Settings_Nav_General"><value>General</value></data>
+    <data name="Settings_Nav_Appearance"><value>Appearance</value></data>
+    <data name="Settings_Nav_Chat"><value>Chat</value></data>
+    <data name="Settings_Footer_Save"><value>Save</value></data>
+    <data name="Settings_Footer_Apply"><value>Apply</value></data>
+    <data name="Settings_Footer_Cancel"><value>Cancel</value></data>
+    <data name="Settings_KofiTooltip"><value>Support on Ko-fi</value></data>
+
+    <data name="Placeholder_Profiles_Name"><value>Profiles</value></data>
+    <data name="Placeholder_Profiles_Description"><value>Multiple settings profiles with import and export.</value></data>
+    <data name="Placeholder_Logs_Name"><value>Logs</value></data>
+    <data name="Placeholder_Logs_Description"><value>Writing chat to log files on disk.</value></data>
+    <data name="Placeholder_Groups_Name"><value>Groups</value></data>
+    <data name="Placeholder_Groups_Description"><value>Player groups that recolor matching senders in chat.</value></data>
+    <data name="Placeholder_RangeFilter_Name"><value>Range filter</value></data>
+    <data name="Placeholder_RangeFilter_Description"><value>Distance-based filtering of messages from far-away players.</value></data>
+    <data name="Placeholder_ComingSoon"><value>Planned for a future release.</value></data>
+
+    <data name="ColorPicker_NoRecolor_Tooltip"><value>No recolor. Click to choose a color.</value></data>
+    <data name="ColorPicker_Recolor_Tooltip"><value>UIColor row {0}. Right-click to clear.</value></data>
+    <data name="ColorPicker_Swatch_Tooltip"><value>UIColor row {0}</value></data>
+
+    <data name="Sound_EffectName"><value>Sound Effect {0}</value></data>
+
+    <data name="Commands_Primary_Help"><value>Open the GobchatEx settings window.</value></data>
+    <data name="Commands_Alias_Help"><value>Alias for /gobchat — open the GobchatEx settings window.</value></data>
+    <data name="Commands_ShortAlias_Help"><value>Alias for /gobchat.</value></data>
+</root>

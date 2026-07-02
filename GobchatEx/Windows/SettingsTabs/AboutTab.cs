@@ -6,15 +6,15 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using GobchatEx.Localization;
 
 namespace GobchatEx.Windows.SettingsTabs;
 
 internal sealed class AboutTab : ISettingsTab
 {
     private const string RepoUrl = "https://github.com/Shuro/GobchatEx-plugin";
-    private const string RepoLinkLabel = "Source code & issues";
 
-    public string Name => "About";
+    public string Name => Loc.Get("About_TabName");
     public FontAwesomeIcon Icon => FontAwesomeIcon.InfoCircle;
 
     private readonly string iconPath = Path.Combine(
@@ -35,18 +35,18 @@ internal sealed class AboutTab : ISettingsTab
         using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.ParsedGold))
             ImGuiHelpers.CenteredText(Plugin.PluginInterface.Manifest.Name);
         using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey))
-            ImGuiHelpers.CenteredText($"by {Plugin.PluginInterface.Manifest.Author}"
+            ImGuiHelpers.CenteredText(string.Format(Loc.Get("About_ByAuthor"), Plugin.PluginInterface.Manifest.Author)
                 + $" — v{Plugin.PluginInterface.Manifest.AssemblyVersion}");
 
         ImGuiHelpers.ScaledDummy(10f);
         using (ImRaii.TextWrapPos(0f))
-            ImGui.TextUnformatted("GobchatEx highlights roleplay in the native chat log: quoted speech, "
-                + "emotes, OOC and mention trigger words each get their own colors.");
+            ImGui.TextUnformatted(Loc.Get("About_Description"));
 
         ImGuiHelpers.ScaledDummy(10f);
+        var repoLinkLabel = Loc.Get("About_RepoLink");
         ImGuiHelpers.CenterCursorFor(
-            ImGuiComponents.GetIconButtonWithTextWidth(FontAwesomeIcon.ExternalLinkAlt, RepoLinkLabel));
-        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.ExternalLinkAlt, RepoLinkLabel))
+            ImGuiComponents.GetIconButtonWithTextWidth(FontAwesomeIcon.ExternalLinkAlt, repoLinkLabel));
+        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.ExternalLinkAlt, repoLinkLabel))
             Dalamud.Utility.Util.OpenLink(RepoUrl);
     }
 }

@@ -8,6 +8,7 @@ using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using GobchatEx.Localization;
 using GobchatEx.Windows.SettingsTabs;
 
 namespace GobchatEx.Windows;
@@ -23,7 +24,6 @@ namespace GobchatEx.Windows;
 /// </summary>
 public class SettingsWindow : Window
 {
-    private const string KofiLabel = "Support on Ko-fi";
     private const string KofiUrl = "https://ko-fi.com/shuro2005";
 
     // Ko-fi brand red (#FF5E5B) for the title bar heart.
@@ -31,9 +31,9 @@ public class SettingsWindow : Window
 
     /// <summary>
     /// One nav-rail section: a header above its pages, or a divider when
-    /// <paramref name="Header"/> is null (the app does this before About).
+    /// <paramref name="HeaderKey"/> is null (the app does this before About).
     /// </summary>
-    private sealed record NavSection(string? Header, ISettingsTab[] Tabs);
+    private sealed record NavSection(string? HeaderKey, ISettingsTab[] Tabs);
 
     private readonly Plugin plugin;
     private readonly Configuration mutable;
@@ -59,25 +59,25 @@ public class SettingsWindow : Window
 
         sections =
         [
-            new NavSection("General",
+            new NavSection("Settings_Nav_General",
             [
                 new GeneralTab(mutable),
-                new PlaceholderTab("Profiles", FontAwesomeIcon.Users,
-                    "Multiple settings profiles with import and export."),
-                new PlaceholderTab("Logs", FontAwesomeIcon.FileAlt,
-                    "Writing chat to log files on disk."),
+                new PlaceholderTab("Placeholder_Profiles_Name", FontAwesomeIcon.Users,
+                    "Placeholder_Profiles_Description"),
+                new PlaceholderTab("Placeholder_Logs_Name", FontAwesomeIcon.FileAlt,
+                    "Placeholder_Logs_Description"),
             ]),
-            new NavSection("Appearance",
+            new NavSection("Settings_Nav_Appearance",
             [
                 new FormattingTab(mutable),
             ]),
-            new NavSection("Chat",
+            new NavSection("Settings_Nav_Chat",
             [
                 new MentionsTab(mutable),
-                new PlaceholderTab("Groups", FontAwesomeIcon.Users,
-                    "Player groups that recolor matching senders in chat."),
-                new PlaceholderTab("Range filter", FontAwesomeIcon.Ruler,
-                    "Distance-based filtering of messages from far-away players."),
+                new PlaceholderTab("Placeholder_Groups_Name", FontAwesomeIcon.Users,
+                    "Placeholder_Groups_Description"),
+                new PlaceholderTab("Placeholder_RangeFilter_Name", FontAwesomeIcon.Ruler,
+                    "Placeholder_RangeFilter_Description"),
             ]),
             new NavSection(null, [new AboutTab()]),
         ];
@@ -92,13 +92,15 @@ public class SettingsWindow : Window
             ShowTooltip = () =>
             {
                 using (ImRaii.Tooltip())
-                    ImGui.TextUnformatted(KofiLabel);
+                    ImGui.TextUnformatted(Loc.Get("Settings_KofiTooltip"));
             },
         });
     }
 
     public override void PreDraw()
     {
+        WindowName = $"{Loc.Get("Settings_WindowTitle")}###GobchatExSettings";
+
         // Reads the saved value, not the staged copy: toggling "movable"
         // should only take effect once the user hits Save.
         if (plugin.Configuration.IsConfigWindowMovable)
@@ -172,23 +174,29 @@ public class SettingsWindow : Window
 
     private void DrawNavRail(float iconColumnWidth)
     {
-        foreach (var section in sections)
+        for (var sectionIndex = 0; sectionIndex < sections.Count; sectionIndex++)
         {
-            if (section.Header != null)
-                ImGui.TextDisabled(section.Header);
+            var section = sections[sectionIndex];
+
+            if (section.HeaderKey != null)
+                ImGui.TextDisabled(Loc.Get(section.HeaderKey));
             else
                 ImGui.Separator();
 
-            foreach (var tab in section.Tabs)
+            for (var tabIndex = 0; tabIndex < section.Tabs.Length; tabIndex++)
             {
+                var tab = section.Tabs[tabIndex];
+
                 // Not-yet-implemented pages stay visible but dimmed.
                 using var dim = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3,
                     tab is PlaceholderTab);
 
                 // Full-width invisible selectable, then icon + label drawn
-                // on top so the whole row is clickable.
+                // on top so the whole row is clickable. ID is index-based
+                // (not derived from tab.Name) so it stays stable across a
+                // language switch.
                 var cursor = ImGui.GetCursorPos();
-                if (ImGui.Selectable($"##tab-{tab.Name}", currentTab == tab))
+                if (ImGui.Selectable($"##tab-{sectionIndex}-{tabIndex}", currentTab == tab))
                     currentTab = tab;
 
                 using (ImRaii.PushFont(UiBuilder.IconFont))
@@ -212,18 +220,18 @@ public class SettingsWindow : Window
     {
         var persist = false;
 
-        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Save, "Save"))
+        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Save, Loc.Get("Settings_Footer_Save")))
         {
             persist = true;
             IsOpen = false;
         }
 
         ImGui.SameLine();
-        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Check, "Apply"))
+        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Check, Loc.Get("Settings_Footer_Apply")))
             persist = true;
 
         ImGui.SameLine();
-        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Times, "Cancel"))
+        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Times, Loc.Get("Settings_Footer_Cancel")))
             IsOpen = false; // IsWindowAppearing re-stages on next open
 
         if (!persist)
@@ -232,6 +240,7 @@ public class SettingsWindow : Window
         plugin.Configuration.UpdateFrom(mutable);
         plugin.Configuration.Save();
         plugin.ChatListener.SettingsChanged();
+        plugin.RefreshLanguage();
         mutable.UpdateFrom(plugin.Configuration);
     }
 }

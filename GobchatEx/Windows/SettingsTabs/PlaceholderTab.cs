@@ -3,6 +3,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using GobchatEx.Localization;
 
 namespace GobchatEx.Windows.SettingsTabs;
 
@@ -13,16 +14,17 @@ namespace GobchatEx.Windows.SettingsTabs;
 /// </summary>
 internal sealed class PlaceholderTab : ISettingsTab
 {
-    public string Name { get; }
+    public string Name => Loc.Get(nameKey);
     public FontAwesomeIcon Icon { get; }
 
-    private readonly string description;
+    private readonly string nameKey;
+    private readonly string descriptionKey;
 
-    public PlaceholderTab(string name, FontAwesomeIcon icon, string description)
+    public PlaceholderTab(string nameKey, FontAwesomeIcon icon, string descriptionKey)
     {
-        Name = name;
+        this.nameKey = nameKey;
         Icon = icon;
-        this.description = description;
+        this.descriptionKey = descriptionKey;
     }
 
     public void Draw()
@@ -41,10 +43,10 @@ internal sealed class PlaceholderTab : ISettingsTab
 
         ImGuiHelpers.ScaledDummy(10f);
         using (ImRaii.TextWrapPos(0f))
-            ImGui.TextUnformatted(description);
+            ImGui.TextUnformatted(Loc.Get(descriptionKey));
 
         ImGuiHelpers.ScaledDummy(10f);
         using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey))
-            ImGuiHelpers.CenteredText("Planned for a future release.");
+            ImGuiHelpers.CenteredText(Loc.Get("Placeholder_ComingSoon"));
     }
 }

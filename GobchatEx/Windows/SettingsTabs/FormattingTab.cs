@@ -4,6 +4,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using GobchatEx.Localization;
 
 namespace GobchatEx.Windows.SettingsTabs;
 
@@ -15,48 +16,48 @@ namespace GobchatEx.Windows.SettingsTabs;
 /// </summary>
 internal sealed class FormattingTab : ISettingsTab
 {
-    private static readonly (string Label, XivChatType Type)[] MainChannels =
+    private static readonly (string LabelKey, XivChatType Type)[] MainChannels =
     [
-        ("Say", XivChatType.Say),
-        ("Emote", XivChatType.CustomEmote),
-        ("Standard Emote", XivChatType.StandardEmote),
-        ("Yell", XivChatType.Yell),
-        ("Shout", XivChatType.Shout),
-        ("Party", XivChatType.Party),
-        ("Cross Party", XivChatType.CrossParty),
-        ("Alliance", XivChatType.Alliance),
-        ("Free Company", XivChatType.FreeCompany),
-        ("Tell (in)", XivChatType.TellIncoming),
-        ("Tell (out)", XivChatType.TellOutgoing),
-        ("Novice Network", XivChatType.NoviceNetwork),
-        ("Echo", XivChatType.Echo),
+        ("Formatting_Channel_Say", XivChatType.Say),
+        ("Formatting_Channel_Emote", XivChatType.CustomEmote),
+        ("Formatting_Channel_StandardEmote", XivChatType.StandardEmote),
+        ("Formatting_Channel_Yell", XivChatType.Yell),
+        ("Formatting_Channel_Shout", XivChatType.Shout),
+        ("Formatting_Channel_Party", XivChatType.Party),
+        ("Formatting_Channel_CrossParty", XivChatType.CrossParty),
+        ("Formatting_Channel_Alliance", XivChatType.Alliance),
+        ("Formatting_Channel_FreeCompany", XivChatType.FreeCompany),
+        ("Formatting_Channel_TellIn", XivChatType.TellIncoming),
+        ("Formatting_Channel_TellOut", XivChatType.TellOutgoing),
+        ("Formatting_Channel_NoviceNetwork", XivChatType.NoviceNetwork),
+        ("Formatting_Channel_Echo", XivChatType.Echo),
     ];
 
-    private static readonly (string Label, XivChatType Type)[] LinkshellChannels =
+    private static readonly (string LabelKey, XivChatType Type)[] LinkshellChannels =
     [
-        ("Linkshell 1", XivChatType.Ls1),
-        ("Linkshell 2", XivChatType.Ls2),
-        ("Linkshell 3", XivChatType.Ls3),
-        ("Linkshell 4", XivChatType.Ls4),
-        ("Linkshell 5", XivChatType.Ls5),
-        ("Linkshell 6", XivChatType.Ls6),
-        ("Linkshell 7", XivChatType.Ls7),
-        ("Linkshell 8", XivChatType.Ls8),
+        ("Formatting_Channel_Linkshell1", XivChatType.Ls1),
+        ("Formatting_Channel_Linkshell2", XivChatType.Ls2),
+        ("Formatting_Channel_Linkshell3", XivChatType.Ls3),
+        ("Formatting_Channel_Linkshell4", XivChatType.Ls4),
+        ("Formatting_Channel_Linkshell5", XivChatType.Ls5),
+        ("Formatting_Channel_Linkshell6", XivChatType.Ls6),
+        ("Formatting_Channel_Linkshell7", XivChatType.Ls7),
+        ("Formatting_Channel_Linkshell8", XivChatType.Ls8),
     ];
 
-    private static readonly (string Label, XivChatType Type)[] CrossworldLinkshellChannels =
+    private static readonly (string LabelKey, XivChatType Type)[] CrossworldLinkshellChannels =
     [
-        ("CWLS 1", XivChatType.CrossLinkShell1),
-        ("CWLS 2", XivChatType.CrossLinkShell2),
-        ("CWLS 3", XivChatType.CrossLinkShell3),
-        ("CWLS 4", XivChatType.CrossLinkShell4),
-        ("CWLS 5", XivChatType.CrossLinkShell5),
-        ("CWLS 6", XivChatType.CrossLinkShell6),
-        ("CWLS 7", XivChatType.CrossLinkShell7),
-        ("CWLS 8", XivChatType.CrossLinkShell8),
+        ("Formatting_Channel_Cwls1", XivChatType.CrossLinkShell1),
+        ("Formatting_Channel_Cwls2", XivChatType.CrossLinkShell2),
+        ("Formatting_Channel_Cwls3", XivChatType.CrossLinkShell3),
+        ("Formatting_Channel_Cwls4", XivChatType.CrossLinkShell4),
+        ("Formatting_Channel_Cwls5", XivChatType.CrossLinkShell5),
+        ("Formatting_Channel_Cwls6", XivChatType.CrossLinkShell6),
+        ("Formatting_Channel_Cwls7", XivChatType.CrossLinkShell7),
+        ("Formatting_Channel_Cwls8", XivChatType.CrossLinkShell8),
     ];
 
-    public string Name => "Formatting";
+    public string Name => Loc.Get("Formatting_TabName");
     public FontAwesomeIcon Icon => FontAwesomeIcon.Font;
 
     private readonly Configuration mutable;
@@ -69,14 +70,13 @@ internal sealed class FormattingTab : ISettingsTab
 
     public void Draw()
     {
-        SettingsUi.SectionHeader("Color selection for text types",
-            "Each enabled type recolors matching chat text: Color is the text color, Glow its outline. "
-            + "Right-click a swatch to clear it.");
+        SettingsUi.SectionHeader(Loc.Get("Formatting_ColorSelection_Header"),
+            Loc.Get("Formatting_ColorSelection_Tooltip"));
         DrawSegmentColors();
 
         ImGuiHelpers.ScaledDummy(10f);
 
-        SettingsUi.SectionHeader("Channels with RP formatting");
+        SettingsUi.SectionHeader(Loc.Get("Formatting_Channels_Header"));
         DrawChannels();
     }
 
@@ -86,20 +86,22 @@ internal sealed class FormattingTab : ISettingsTab
         if (!table)
             return;
 
-        ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 90f * ImGuiHelpers.GlobalScale);
-        ImGui.TableSetupColumn("Color");
-        ImGui.TableSetupColumn("Glow");
-        ImGui.TableSetupColumn("Delimiters", ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableSetupColumn(Loc.Get("Formatting_Column_Type"), ImGuiTableColumnFlags.WidthFixed, 90f * ImGuiHelpers.GlobalScale);
+        ImGui.TableSetupColumn(Loc.Get("Formatting_Column_Color"));
+        ImGui.TableSetupColumn(Loc.Get("Formatting_Column_Glow"));
+        ImGui.TableSetupColumn(Loc.Get("Formatting_Column_Delimiters"), ImGuiTableColumnFlags.WidthStretch);
 
-        DrawSegmentRow("Say", mutable.SayStyle, "\"…\"  „…“  «…»");
-        DrawSegmentRow("Emote", mutable.EmoteStyle, "*…*  <…>");
-        DrawSegmentRow("OOC", mutable.OocStyle, "((…))");
-        DrawSegmentRow("Mention", mutable.MentionStyle, "trigger words");
+        // Punctuation examples, not translated — they're syntax, not words.
+        DrawSegmentRow("Formatting_Segment_Say", mutable.SayStyle, "\"…\"  „…“  «…»");
+        DrawSegmentRow("Formatting_Segment_Emote", mutable.EmoteStyle, "*…*  <…>");
+        DrawSegmentRow("Formatting_Segment_Ooc", mutable.OocStyle, "((…))");
+        DrawSegmentRow("Formatting_Segment_Mention", mutable.MentionStyle, Loc.Get("Formatting_Segment_Mention_Delimiters"));
     }
 
-    private void DrawSegmentRow(string label, SegmentStyle style, string delimiters)
+    private void DrawSegmentRow(string labelKey, SegmentStyle style, string delimiters)
     {
-        using var id = ImRaii.PushId(label);
+        using var id = ImRaii.PushId(labelKey);
+        var label = Loc.Get(labelKey);
 
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
@@ -127,28 +129,28 @@ internal sealed class FormattingTab : ISettingsTab
     {
         DrawChannelGrid("##channels-main", MainChannels);
 
-        if (ImGui.CollapsingHeader("Linkshells"))
+        if (ImGui.CollapsingHeader(Loc.Get("Formatting_Channels_Linkshells")))
             DrawChannelGrid("##channels-ls", LinkshellChannels);
 
-        if (ImGui.CollapsingHeader("Cross-world Linkshells"))
+        if (ImGui.CollapsingHeader(Loc.Get("Formatting_Channels_CrossworldLinkshells")))
             DrawChannelGrid("##channels-cwls", CrossworldLinkshellChannels);
 
         ImGuiHelpers.ScaledDummy(2f);
-        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Undo, "Reset to RP defaults"))
+        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Undo, Loc.Get("Formatting_Channels_ResetDefaults")))
             mutable.HighlightChannels = [.. Configuration.DefaultHighlightChannels];
     }
 
-    private void DrawChannelGrid(string id, (string Label, XivChatType Type)[] choices)
+    private void DrawChannelGrid(string id, (string LabelKey, XivChatType Type)[] choices)
     {
         using var table = ImRaii.Table(id, 3);
         if (!table)
             return;
 
-        foreach (var (label, type) in choices)
+        foreach (var (labelKey, type) in choices)
         {
             ImGui.TableNextColumn();
             var active = mutable.HighlightChannels.Contains(type);
-            if (!ImGui.Checkbox(label, ref active))
+            if (!ImGui.Checkbox(Loc.Get(labelKey), ref active))
                 continue;
 
             if (active)

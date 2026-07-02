@@ -3,6 +3,7 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using GobchatEx.Localization;
 using Lumina.Excel.Sheets;
 
 namespace GobchatEx.Windows;
@@ -64,8 +65,8 @@ internal sealed class UiColorPicker
         {
             using (ImRaii.Tooltip())
                 ImGui.TextUnformatted(value == 0
-                    ? "No recolor. Click to choose a color."
-                    : $"UIColor row {value}. Right-click to clear.");
+                    ? Loc.Get("ColorPicker_NoRecolor_Tooltip")
+                    : string.Format(Loc.Get("ColorPicker_Recolor_Tooltip"), value));
         }
 
         using var popup = ImRaii.Popup($"##{id}-popup");
@@ -88,7 +89,7 @@ internal sealed class UiColorPicker
             if (ImGui.IsItemHovered())
             {
                 using (ImRaii.Tooltip())
-                    ImGui.TextUnformatted($"UIColor row {row}");
+                    ImGui.TextUnformatted(string.Format(Loc.Get("ColorPicker_Swatch_Tooltip"), row));
             }
         }
 

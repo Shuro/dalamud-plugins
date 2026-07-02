@@ -10,12 +10,19 @@ using GobchatEx.Core;
 namespace GobchatEx.Chat;
 
 /// <summary>
-/// Subscribes to IChatGui.ChatMessage and applies RP highlighting to
-/// configured channels by rewriting the message's payload list. Everything
-/// derived from configuration (segmenter, channel set, style lookup) is
-/// rebuilt only on <see cref="SettingsChanged"/>, never per message.
-/// ChatMessage and the config UI both run on the framework thread, so no
-/// locking is needed.
+/// Subscribes to IChatGui.CheckMessageHandled and applies RP highlighting to
+/// configured channels by rewriting the message's payload list. Subscribed
+/// on the CheckMessageHandled pass rather than ChatMessage: Dalamud fires
+/// ChatMessage first (a shared multicast event across every plugin, last
+/// writer wins on message.Message) and CheckMessageHandled strictly after,
+/// documented by Dalamud itself as the pass for "final modifications, like
+/// translation or formatting" — exactly this plugin's job. That means
+/// GobchatEx's formatting now always applies after any other plugin still
+/// on the earlier ChatMessage pass (e.g. ChatAlerts), instead of losing an
+/// arbitrary (plugin-load-order-dependent) race. Everything derived from
+/// configuration (segmenter, channel set, style lookup) is rebuilt only on
+/// <see cref="SettingsChanged"/>, never per message. CheckMessageHandled and
+/// the config UI both run on the framework thread, so no locking is needed.
 /// </summary>
 public sealed class ChatListener : IDisposable
 {
@@ -27,15 +34,55 @@ public sealed class ChatListener : IDisposable
     private Dictionary<SegmentType, (ushort Foreground, ushort Glow)> _styles = null!;
     private bool _enabled;
 
+    private static readonly MentionRules NoMentionRules = new([], [], [], FuzzyMatchLevel.Conservative);
+
     public ChatListener(Configuration config)
     {
         _config = config;
+
+        // Plugin can load mid-session (e.g. dev-plugin auto-reload, or enabling it after game start);
+        // learn the already-logged-in character instead of waiting for a Login event that already fired.
+        if (Plugin.PlayerState.IsLoaded)
+            RememberCharacter(Plugin.PlayerState.CharacterName);
+
         SettingsChanged();
-        Plugin.ChatGui.ChatMessage += OnChatMessage;
+        Plugin.ChatGui.CheckMessageHandled += OnChatMessage;
+        Plugin.ClientState.Login += OnLogin;
+        Plugin.ClientState.Logout += OnLogout;
     }
 
     public void Dispose()
-        => Plugin.ChatGui.ChatMessage -= OnChatMessage;
+    {
+        Plugin.ClientState.Logout -= OnLogout;
+        Plugin.ClientState.Login -= OnLogin;
+        Plugin.ChatGui.CheckMessageHandled -= OnChatMessage;
+    }
+
+    private void OnLogin()
+    {
+        RememberCharacter(Plugin.PlayerState.CharacterName);
+        SettingsChanged();
+    }
+
+    private void OnLogout(int type, int code)
+        => SettingsChanged();
+
+    /// <summary>
+    /// Adds a freshly logged-in character to the remembered list, always inactive (they only start
+    /// mentioning once the user activates them in settings), ported from the app's RememberCharacter.
+    /// No-op when a character with the same name (case-insensitive) is already remembered.
+    /// </summary>
+    private void RememberCharacter(string playerName)
+    {
+        var name = playerName.Trim();
+        if (name.Length == 0)
+            return;
+        if (_config.Characters.Any(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        _config.Characters.Add(new CharacterMentionSettings { Name = name, Active = false });
+        _config.Save();
+    }
 
     /// <summary>Call after any configuration change (and Save()).</summary>
     public void SettingsChanged()
@@ -55,7 +102,55 @@ public sealed class ChatListener : IDisposable
         // Mention detection also runs highlight-disabled when the sound alert
         // needs it; the rewriter then renders those spans plain via (0, 0).
         var wantMentions = _config.MentionStyle.Enabled || _config.MentionSoundEnabled;
-        _segmenter = new MessageSegmenter(rules, wantMentions ? _config.MentionTriggers : []);
+        _segmenter = new MessageSegmenter(rules, wantMentions ? BuildMentionRules() : NoMentionRules);
+    }
+
+    /// <summary>
+    /// Global trigger words plus the currently logged-in character's resolved mention words (if that
+    /// character is remembered and active), ported from the app's RecomputePlayerMentions /
+    /// ApplyEffectiveMentions. Player-resolved whole words are unioned into the global list,
+    /// case-insensitive de-duplicated; partial and fuzzy words are player-only.
+    /// </summary>
+    private MentionRules BuildMentionRules()
+    {
+        var wholeWords = new List<string>(_config.MentionTriggers);
+        IReadOnlyList<string> partialWords = [];
+        IReadOnlyList<string> fuzzyWords = [];
+        var fuzzyLevel = FuzzyMatchLevel.Conservative;
+
+        if (_config.PlayerMentionsEnabled && Plugin.PlayerState.IsLoaded)
+        {
+            var playerName = Plugin.PlayerState.CharacterName;
+            var character = _config.Characters.FirstOrDefault(c =>
+                c.Active && string.Equals(c.Name, playerName, StringComparison.OrdinalIgnoreCase));
+
+            if (character != null)
+            {
+                var resolved = PlayerMentionResolver.ResolveWords(
+                    character.Name,
+                    character.MatchFullName,
+                    character.MatchFirstName,
+                    character.MatchLastName,
+                    character.MatchFirstNamePartial,
+                    character.MatchLastNamePartial,
+                    character.MatchMiqote,
+                    character.CustomWords);
+
+                foreach (var word in resolved.WholeWords)
+                    if (!wholeWords.Any(w => string.Equals(w, word, StringComparison.OrdinalIgnoreCase)))
+                        wholeWords.Add(word);
+
+                partialWords = resolved.PartialWords;
+
+                if (character.MatchFuzzy)
+                {
+                    fuzzyWords = PlayerMentionResolver.FuzzyCandidates(resolved);
+                    fuzzyLevel = character.FuzzyLevel;
+                }
+            }
+        }
+
+        return new MentionRules(wholeWords, partialWords, fuzzyWords, fuzzyLevel);
     }
 
     private static (ushort Foreground, ushort Glow) StyleTuple(SegmentStyle style)
@@ -118,14 +213,15 @@ public sealed class ChatListener : IDisposable
     }
 
     /// <summary>
-    /// Heuristic own-message check: TellOutgoing is exact; otherwise the
-    /// sender text must contain the local player's name (tolerant of party
-    /// number prefixes and cross-world suffixes). Only the sound is
-    /// suppressed for own messages, never the highlighting.
+    /// Heuristic own-message check: TellOutgoing and Echo are unconditionally self (a Tell you sent,
+    /// or a local-only /echo print that carries no sender at all — Dalamud's own self-test identifies
+    /// Echo messages purely by Message text for the same reason); otherwise the sender text must
+    /// contain the local player's name (tolerant of party number prefixes and cross-world suffixes).
+    /// Only the sound is suppressed for own messages, never the highlighting.
     /// </summary>
     private static bool IsFromSelf(IHandleableChatMessage message)
     {
-        if (message.LogKind == XivChatType.TellOutgoing)
+        if (message.LogKind is XivChatType.TellOutgoing or XivChatType.Echo)
             return true;
 
         var localName = Plugin.ObjectTable.LocalPlayer?.Name.TextValue;

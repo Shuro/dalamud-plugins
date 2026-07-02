@@ -18,6 +18,15 @@
     <Compile Include="..\..\GobchatEx\Core\**\*.cs" LinkBase="Core" />
   </ItemGroup>
 
+  <!--
+    Loc.cs (GobchatEx/Localization) has no Dalamud usings either, so it gets
+    the same treatment as Core — compiled directly into the test assembly
+    rather than referencing GobchatEx.dll. See ADR 0002 above.
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\GobchatEx\Localization\**\*.cs" LinkBase="Localization" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="xunit" Version="2.9.2" />

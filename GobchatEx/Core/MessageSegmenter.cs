@@ -23,9 +23,14 @@ public sealed class MessageSegmenter
     private readonly MentionMatcher _mentions;
 
     public MessageSegmenter(IReadOnlyList<TokenRule> rules, IEnumerable<string> mentionTriggers)
+        : this(rules, new MentionRules([.. mentionTriggers], [], [], FuzzyMatchLevel.Conservative))
+    {
+    }
+
+    public MessageSegmenter(IReadOnlyList<TokenRule> rules, MentionRules mentionRules)
     {
         _parsers = rules.Select(rule => new SegmentParser(rule)).ToList();
-        _mentions = new MentionMatcher(mentionTriggers);
+        _mentions = new MentionMatcher(mentionRules);
     }
 
     /// <summary>

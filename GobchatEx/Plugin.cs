@@ -1,9 +1,12 @@
+using System.Globalization;
+using System.Linq;
 using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Interface.Windowing;
 using GobchatEx.Chat;
+using GobchatEx.Localization;
 using GobchatEx.Windows;
 
 namespace GobchatEx;
@@ -39,7 +42,7 @@ public sealed class Plugin : IDalamudPlugin
 
     public Plugin()
     {
-        Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        Configuration = Configuration.Load();
         if (Configuration.Version < 1)
         {
             // v0 → v1: the RP-highlighting fields are new and simply take
@@ -48,6 +51,19 @@ public sealed class Plugin : IDalamudPlugin
             Configuration.Save();
         }
 
+        if (Configuration.Version < 2)
+        {
+            // v1 → v2: HighlightChannels could have accumulated duplicate entries from a Json.NET
+            // ObjectCreationHandling.Reuse deserialization bug (now fixed by the [JsonProperty]
+            // attribute in Configuration.cs) — collapse any duplicates already baked into a saved
+            // config.
+            Configuration.HighlightChannels = [.. Configuration.HighlightChannels.Distinct()];
+            Configuration.Version = 2;
+            Configuration.Save();
+        }
+
+        OnLanguageChanged(PluginInterface.UiLanguage);
+
         SettingsWindow = new SettingsWindow(this);
         WindowSystem.AddWindow(SettingsWindow);
 
@@ -55,15 +71,15 @@ public sealed class Plugin : IDalamudPlugin
         // name gets its own handler pointing at the same action.
         CommandManager.AddHandler(PrimaryCommand, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Open the GobchatEx settings window."
+            HelpMessage = Loc.Get("Commands_Primary_Help")
         });
         CommandManager.AddHandler(AliasCommand, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Alias for /gobchat — open the GobchatEx settings window."
+            HelpMessage = Loc.Get("Commands_Alias_Help")
         });
         CommandManager.AddHandler(ShortAliasCommand, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Alias for /gobchat.",
+            HelpMessage = Loc.Get("Commands_ShortAlias_Help"),
             ShowInHelp = false
         });
 
@@ -72,6 +88,7 @@ public sealed class Plugin : IDalamudPlugin
         // the settings window is the plugin's only window.
         PluginInterface.UiBuilder.OpenConfigUi += ToggleSettingsUI;
         PluginInterface.UiBuilder.OpenMainUi += ToggleSettingsUI;
+        PluginInterface.LanguageChanged += OnLanguageChanged;
 
         ChatListener = new ChatListener(Configuration);
 
@@ -90,9 +107,25 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw -= DrawUI;
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleSettingsUI;
         PluginInterface.UiBuilder.OpenMainUi -= ToggleSettingsUI;
+        PluginInterface.LanguageChanged -= OnLanguageChanged;
     }
 
     private void OnCommand(string command, string args) => ToggleSettingsUI();
     private void DrawUI() => WindowSystem.Draw();
     public void ToggleSettingsUI() => SettingsWindow.Toggle();
+
+    private void OnLanguageChanged(string langCode)
+    {
+        var culture = Configuration.LanguageOverride is LanguageOverride.None
+            ? new CultureInfo(langCode)
+            : new CultureInfo(Configuration.LanguageOverride.Code());
+        Loc.Culture = culture;
+    }
+
+    /// <summary>
+    /// Re-resolves Loc.Culture from the current Configuration.LanguageOverride
+    /// and Dalamud's own UI language. Call after any save that could have
+    /// changed LanguageOverride (SettingsWindow's footer).
+    /// </summary>
+    internal void RefreshLanguage() => OnLanguageChanged(PluginInterface.UiLanguage);
 }
