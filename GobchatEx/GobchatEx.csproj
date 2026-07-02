@@ -27,7 +27,7 @@
   -->
 
   <ItemGroup>
-    <Content Include="..\Data\icon.png">
+    <Content Include="..\data\icon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
