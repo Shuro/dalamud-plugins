@@ -37,7 +37,7 @@ the logic to port lives.
   ([ADR 0003](adr/0003-game-sound-effects-only-v1.md))
 - Settings window (nav rail, staged Save/Apply/Cancel)
 
-## Milestone 1 — Advanced mentions (player-name matching)
+## Milestone 1 — Advanced mentions (player-name matching) — Done
 
 Match your character's name — not just a static word list. Ported from the
 app's mention engine (pure logic, unit-tested upstream):
@@ -48,14 +48,15 @@ app's mention engine (pure logic, unit-tested upstream):
   levels (`Core/Util/StringSimilarity.cs`, OSA edit distance)
 - NFKC unicode folding so decorative "fancy font" text still matches
   (`Core/Util/UnicodeNormalizer.cs`)
-- Auto-learn the logged-in character (`IClientState.Login` + `IPlayerState`),
-  per-character match flags and custom words, effective-mention union
+- Characters are added via an explicit "Add Current Character" button in the
+  Mentions tab (backed by `IPlayerState`), not auto-learned silently on
+  login — per-character match flags and custom words, effective-mention union
 - Mentions tab grows a character list with per-character options
 
 Complexity: medium. Extends the existing `MentionMatcher` / `MessageSegmenter`
 seam in `GobchatEx/Core/`.
 
-## Milestone 2 — Player groups
+## Milestone 2 — Player groups — In progress
 
 Sort players into colored groups so friends and RP partners stand out:
 
