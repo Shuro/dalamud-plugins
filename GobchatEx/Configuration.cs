@@ -189,6 +189,30 @@ public class Configuration : IPluginConfiguration
         new() { Id = "ffgroup-6", Name = "Club", FfGroup = 6 },
     ];
 
+    // ------------------------------------------------------------------
+    // Range filter (Milestone 3): fade chat from far-away players into
+    // darkened color steps, suppress it beyond the cut-off. Distances are
+    // linear in-game yalms; defaults mirror the app's default_profile.json
+    // (cutoff 24, fadeout 16, channels Say/Emote/AnimatedEmote).
+    // ------------------------------------------------------------------
+    public bool RangeFilterEnabled { get; set; }
+    public float RangeFilterCutOff { get; set; } = 24f;
+    public float RangeFilterFadeOut { get; set; } = 16f;
+
+    /// <summary>Mentions bypass the range filter, so a far-away player calling your name still shows.</summary>
+    public bool RangeFilterMentionsIgnoreRange { get; set; } = true;
+
+    public static readonly IReadOnlyList<XivChatType> DefaultRangeFilterChannels =
+    [
+        XivChatType.Say,
+        XivChatType.CustomEmote,
+        XivChatType.StandardEmote,
+    ];
+
+    // Replace, not Reuse: same Json.NET default-list-append bug as HighlightChannels above.
+    [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
+    public List<XivChatType> RangeFilterChannels { get; set; } = [.. DefaultRangeFilterChannels];
+
     /// <summary>
     /// Copies all user-editable settings from <paramref name="other"/> in
     /// place. Used by the settings window's staged-save model: stage into a
@@ -216,6 +240,11 @@ public class Configuration : IPluginConfiguration
         SuppressSoundFromSelf = other.SuppressSoundFromSelf;
         Groups = [.. other.Groups.Select(g => g.Clone())];
         FriendGroups = [.. other.FriendGroups.Select(g => g.Clone())];
+        RangeFilterEnabled = other.RangeFilterEnabled;
+        RangeFilterCutOff = other.RangeFilterCutOff;
+        RangeFilterFadeOut = other.RangeFilterFadeOut;
+        RangeFilterMentionsIgnoreRange = other.RangeFilterMentionsIgnoreRange;
+        RangeFilterChannels = [.. other.RangeFilterChannels];
     }
 
     /// <summary>

@@ -201,9 +201,19 @@
     <data name="Placeholder_Profiles_Description"><value>Multiple settings profiles with import and export.</value></data>
     <data name="Placeholder_Logs_Name"><value>Logs</value></data>
     <data name="Placeholder_Logs_Description"><value>Writing chat to log files on disk.</value></data>
-    <data name="Placeholder_RangeFilter_Name"><value>Range filter</value></data>
-    <data name="Placeholder_RangeFilter_Description"><value>Distance-based filtering of messages from far-away players.</value></data>
     <data name="Placeholder_ComingSoon"><value>Planned for a future release.</value></data>
+
+    <data name="Range_TabName"><value>Range filter</value></data>
+    <data name="Range_Enable_Name"><value>Fade distant chat</value></data>
+    <data name="Range_Enable_Tooltip"><value>Dims chat from far-away players in steps and hides it entirely beyond the cut-off distance. Distances are measured in yalms at the moment the message arrives.</value></data>
+    <data name="Range_FadeOut_Name"><value>Start fading at (yalms)</value></data>
+    <data name="Range_FadeOut_Tooltip"><value>Up to this distance, messages stay fully readable; beyond it they darken step by step.</value></data>
+    <data name="Range_CutOff_Name"><value>Hide beyond (yalms)</value></data>
+    <data name="Range_CutOff_Tooltip"><value>Messages from players farther away than this are hidden completely. Set it equal to the fade start for a hard cutoff without fading.</value></data>
+    <data name="Range_MentionsIgnore_Name"><value>Mentions ignore the range filter</value></data>
+    <data name="Range_MentionsIgnore_Tooltip"><value>A message that mentions you is never faded or hidden, no matter how far away the sender is.</value></data>
+    <data name="Range_Channels_Header"><value>Filtered channels</value></data>
+    <data name="Range_Channels_Tooltip"><value>Only proximity channels are offered — filtering a server-wide channel by distance would hide messages based on where the sender happens to be standing.</value></data>
 
     <data name="ColorPicker_NoRecolor_Tooltip"><value>No recolor. Click to choose a color.</value></data>
     <data name="ColorPicker_Recolor_Tooltip"><value>UIColor row {0}. Right-click to clear.</value></data>

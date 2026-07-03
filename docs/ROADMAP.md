@@ -74,7 +74,7 @@ Sort players into colored groups so friends and RP partners stand out:
 Complexity: medium-high (context-menu integration; sender payload surgery
 around party/alliance prefixes).
 
-## Milestone 3 — Range filter
+## Milestone 3 — Range filter — In progress
 
 Fade or hide chat from far-away players (great on crowded RP servers):
 

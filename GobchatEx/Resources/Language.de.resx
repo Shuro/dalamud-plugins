@@ -201,9 +201,19 @@
     <data name="Placeholder_Profiles_Description"><value>Mehrere Einstellungsprofile mit Import und Export.</value></data>
     <data name="Placeholder_Logs_Name"><value>Protokolle</value></data>
     <data name="Placeholder_Logs_Description"><value>Chat in Protokolldateien auf der Festplatte schreiben.</value></data>
-    <data name="Placeholder_RangeFilter_Name"><value>Entfernungsfilter</value></data>
-    <data name="Placeholder_RangeFilter_Description"><value>Entfernungsbasierte Filterung von Nachrichten weit entfernter Spieler.</value></data>
     <data name="Placeholder_ComingSoon"><value>Für eine zukünftige Version geplant.</value></data>
+
+    <data name="Range_TabName"><value>Entfernungsfilter</value></data>
+    <data name="Range_Enable_Name"><value>Chat entfernter Spieler abblenden</value></data>
+    <data name="Range_Enable_Tooltip"><value>Blendet Chat weit entfernter Spieler stufenweise ab und versteckt ihn jenseits der Ausblende-Entfernung vollständig. Entfernungen werden in Yalms zum Zeitpunkt der Nachricht gemessen.</value></data>
+    <data name="Range_FadeOut_Name"><value>Abblenden ab (Yalms)</value></data>
+    <data name="Range_FadeOut_Tooltip"><value>Bis zu dieser Entfernung bleiben Nachrichten voll lesbar; darüber hinaus werden sie stufenweise dunkler.</value></data>
+    <data name="Range_CutOff_Name"><value>Verstecken ab (Yalms)</value></data>
+    <data name="Range_CutOff_Tooltip"><value>Nachrichten von Spielern jenseits dieser Entfernung werden vollständig versteckt. Gleich dem Abblend-Beginn gesetzt ergibt das eine harte Grenze ohne Abblenden.</value></data>
+    <data name="Range_MentionsIgnore_Name"><value>Erwähnungen ignorieren den Filter</value></data>
+    <data name="Range_MentionsIgnore_Tooltip"><value>Eine Nachricht, die dich erwähnt, wird nie abgeblendet oder versteckt, egal wie weit der Absender entfernt ist.</value></data>
+    <data name="Range_Channels_Header"><value>Gefilterte Kanäle</value></data>
+    <data name="Range_Channels_Tooltip"><value>Nur Nähe-Kanäle stehen zur Auswahl — einen serverweiten Kanal nach Entfernung zu filtern würde Nachrichten davon abhängig machen, wo der Absender gerade steht.</value></data>
 
     <data name="ColorPicker_NoRecolor_Tooltip"><value>Keine Einfärbung. Klicken, um eine Farbe zu wählen.</value></data>
     <data name="ColorPicker_Recolor_Tooltip"><value>UIColor-Zeile {0}. Rechtsklick zum Zurücksetzen.</value></data>

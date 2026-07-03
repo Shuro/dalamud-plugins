@@ -36,6 +36,13 @@ public sealed class ChatListener : IDisposable
     private IReadOnlyList<GroupRule> _groupRules = [];
     private Dictionary<string, (ushort Foreground, ushort Glow)> _groupStyles = new();
     private bool _enabled;
+    private bool _rangeEnabled;
+    private HashSet<XivChatType> _rangeChannels = [];
+
+    // Progressively darker grey UIColor rows for the partial-visibility fade steps (native chat
+    // has no per-line opacity). Provisional picks from the low grey ramp of the UIColor sheet;
+    // tune during the in-game smoke test if a step is illegible on some chat theme.
+    private static readonly ushort[] FadeStepColors = [3, 4, 5];
 
     private static readonly MentionRules NoMentionRules = new([], [], [], FuzzyMatchLevel.Conservative);
 
@@ -92,9 +99,14 @@ public sealed class ChatListener : IDisposable
 
         var rules = DefaultRules.All.Where(rule => StyleFor(rule.Type).Enabled).ToList();
 
-        // Mention detection also runs highlight-disabled when the sound alert
-        // needs it; the rewriter then renders those spans plain via (0, 0).
-        var wantMentions = _config.MentionStyle.Enabled || _config.MentionSoundEnabled;
+        _rangeEnabled = _config.RangeFilterEnabled;
+        _rangeChannels = [.. _config.RangeFilterChannels];
+
+        // Mention detection also runs highlight-disabled when the sound alert needs it (the
+        // rewriter then renders those spans plain via (0, 0)) or when the range filter's
+        // mention bypass needs to know whether a fading message mentions the player.
+        var wantMentions = _config.MentionStyle.Enabled || _config.MentionSoundEnabled
+            || (_rangeEnabled && _config.RangeFilterMentionsIgnoreRange);
         _segmenter = new MessageSegmenter(rules, wantMentions ? BuildMentionRules() : NoMentionRules);
 
         BuildGroupRules();
@@ -188,32 +200,87 @@ public sealed class ChatListener : IDisposable
 
     private void OnChatMessage(IHandleableChatMessage message)
     {
+        // Range filter first: a suppressed message needs no styling, and a dimmed one renders as
+        // a uniform dark line — highlighting or group-coloring it would defeat the fade.
+        if (ApplyRangeFilter(message))
+            return;
+
         if (_enabled && _channels.Contains(message.LogKind))
             ApplyBodyHighlighting(message);
 
         ApplySenderGroupColor(message);
     }
 
+    /// <summary>
+    /// Fades or suppresses the message by sender distance (Milestone 3). Returns true when the
+    /// message was suppressed or dimmed, i.e. the normal styling passes must be skipped. An
+    /// unresolvable sender (not in the object table, e.g. already gone) stays fully visible —
+    /// the app's deliberate rule, ported as-is.
+    /// </summary>
+    private bool ApplyRangeFilter(IHandleableChatMessage message)
+    {
+        if (!_rangeEnabled || !_rangeChannels.Contains(message.LogKind))
+            return false;
+
+        SenderIdentity.Resolve(message.Sender, out var name, out var world);
+        if (SenderDistance.Resolve(name, world) is not { } distance)
+            return false;
+
+        var visibility = RangeFade.CalculateVisibility(
+            distance, _config.RangeFilterFadeOut, _config.RangeFilterCutOff);
+        if (visibility == RangeFade.MaxVisibility)
+            return false;
+
+        if (_config.RangeFilterMentionsIgnoreRange && HasMention(message))
+            return false;
+
+        if (visibility == 0)
+        {
+            message.PreventOriginal();
+            return true;
+        }
+
+        var dim = FadeStepColors[RangeFade.FadeStep(visibility, FadeStepColors.Length)];
+        ApplyUniformColor(message, dim);
+        return true;
+    }
+
+    /// <summary>
+    /// Mention probe for the range filter's bypass: segments the message body without rewriting
+    /// anything. Costs one extra segmentation for bypassed messages (which then get segmented
+    /// again by <see cref="ApplyBodyHighlighting"/>) — same order of cost as the existing
+    /// sound-only mention path, and only paid by messages already inside fade range.
+    /// </summary>
+    private bool HasMention(IHandleableChatMessage message)
+    {
+        CollectTextRuns(message.Message.Payloads, out _, out var runTexts);
+        if (runTexts == null)
+            return false;
+
+        return _segmenter.Segment(runTexts)?.HasMention == true;
+    }
+
+    /// <summary>Dims sender and body to one flat color — the "darkened step" rendering of a fade.</summary>
+    private static void ApplyUniformColor(IHandleableChatMessage message, ushort foreground)
+    {
+        message.Message = new SeString(RecolorAllRuns(message.Message, foreground));
+        message.Sender = new SeString(RecolorAllRuns(message.Sender, foreground));
+    }
+
+    private static List<Payload> RecolorAllRuns(SeString text, ushort foreground)
+    {
+        CollectTextRuns(text.Payloads, out var runIndices, out var runTexts);
+        if (runTexts == null)
+            return text.Payloads;
+
+        return PayloadRewriter.RewriteUniform(text.Payloads, runIndices!, runTexts, (foreground, (ushort)0));
+    }
+
     private void ApplyBodyHighlighting(IHandleableChatMessage message)
     {
         var payloads = message.Message.Payloads;
 
-        // Extract the text runs. Like ChatAlerts, every TextPayload counts —
-        // including link display text; our balanced on/off pairs nest inside
-        // pre-colored regions and pop back correctly.
-        List<int>? runIndices = null;
-        List<string>? runTexts = null;
-        for (var i = 0; i < payloads.Count; ++i)
-        {
-            if (payloads[i] is not TextPayload { Text.Length: > 0 } textPayload)
-                continue;
-
-            runIndices ??= [];
-            runTexts ??= [];
-            runIndices.Add(i);
-            runTexts.Add(textPayload.Text);
-        }
-
+        CollectTextRuns(payloads, out var runIndices, out var runTexts);
         if (runTexts == null)
             return;
 
@@ -248,8 +315,25 @@ public sealed class ChatListener : IDisposable
             return;
 
         var payloads = message.Sender.Payloads;
-        List<int>? runIndices = null;
-        List<string>? runTexts = null;
+        CollectTextRuns(payloads, out var runIndices, out var runTexts);
+        if (runTexts == null)
+            return;
+
+        var rewritten = PayloadRewriter.RewriteUniform(payloads, runIndices!, runTexts, style);
+        message.Sender = new SeString(rewritten);
+    }
+
+    /// <summary>
+    /// Extracts the non-empty TextPayload runs as parallel index/text lists for PayloadRewriter.
+    /// Like ChatAlerts, every TextPayload counts — including link display text; the rewriters'
+    /// balanced on/off pairs nest inside pre-colored regions and pop back correctly. Both outputs
+    /// are null when the payload list contains no text at all.
+    /// </summary>
+    private static void CollectTextRuns(
+        IReadOnlyList<Payload> payloads, out List<int>? runIndices, out List<string>? runTexts)
+    {
+        runIndices = null;
+        runTexts = null;
         for (var i = 0; i < payloads.Count; ++i)
         {
             if (payloads[i] is not TextPayload { Text.Length: > 0 } textPayload)
@@ -260,12 +344,6 @@ public sealed class ChatListener : IDisposable
             runIndices.Add(i);
             runTexts.Add(textPayload.Text);
         }
-
-        if (runTexts == null)
-            return;
-
-        var rewritten = PayloadRewriter.RewriteUniform(payloads, runIndices!, runTexts, style);
-        message.Sender = new SeString(rewritten);
     }
 
     private void TryPlayMentionSound(IHandleableChatMessage message)

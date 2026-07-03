@@ -75,8 +75,7 @@ public class SettingsWindow : Window
             [
                 new MentionsTab(mutable),
                 new GroupsTab(mutable, plugin.FriendGroups),
-                new PlaceholderTab("Placeholder_RangeFilter_Name", FontAwesomeIcon.Ruler,
-                    "Placeholder_RangeFilter_Description"),
+                new RangeTab(mutable),
             ]),
             new NavSection(null, [new AboutTab()]),
         ];
