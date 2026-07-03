@@ -74,8 +74,7 @@ public class SettingsWindow : Window
             new NavSection("Settings_Nav_Chat",
             [
                 new MentionsTab(mutable),
-                new PlaceholderTab("Placeholder_Groups_Name", FontAwesomeIcon.Users,
-                    "Placeholder_Groups_Description"),
+                new GroupsTab(mutable, plugin.FriendGroups),
                 new PlaceholderTab("Placeholder_RangeFilter_Name", FontAwesomeIcon.Ruler,
                     "Placeholder_RangeFilter_Description"),
             ]),

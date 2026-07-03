@@ -73,6 +73,42 @@ public class CharacterMentionSettings
     };
 }
 
+/// <summary>
+/// One player group (Milestone 2): either a custom group matched by a <see cref="Members"/> list, or
+/// one of the game's seven fixed friend-list display groups matched by <see cref="FfGroup"/>
+/// (0=Star..6=Club). Sender-name recoloring uses <see cref="Foreground"/>/<see cref="Glow"/> the same
+/// way segment styles do; 0 means "do not recolor".
+/// </summary>
+[Serializable]
+public class PlayerGroup
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = string.Empty;
+    public bool Active { get; set; } = true;
+    public int? FfGroup { get; set; }
+
+    /// <summary>
+    /// Stored exactly as entered (original casing) — GroupMatcher folds case at match time, never at
+    /// rest, so the saved config stays readable/professional-looking instead of forcing everything to
+    /// lowercase.
+    /// </summary>
+    public List<GroupMember> Members { get; set; } = [];
+
+    public ushort Foreground { get; set; }
+    public ushort Glow { get; set; }
+
+    public PlayerGroup Clone() => new()
+    {
+        Id = Id,
+        Name = Name,
+        Active = Active,
+        FfGroup = FfGroup,
+        Members = [.. Members], // GroupMember is an immutable record; a shallow copy is a deep copy
+        Foreground = Foreground,
+        Glow = Glow,
+    };
+}
+
 [Serializable]
 public class Configuration : IPluginConfiguration
 {
@@ -130,6 +166,29 @@ public class Configuration : IPluginConfiguration
     public int MentionSoundCooldownMs { get; set; } = 5000;
     public bool SuppressSoundFromSelf { get; set; } = true;
 
+    /// <summary>Custom player groups (Milestone 2), reorderable, matched by player-name trigger lists.</summary>
+    public List<PlayerGroup> Groups { get; set; } = [];
+
+    /// <summary>
+    /// The game's seven friend-list display groups, matched by sender FfGroup index (0=Star..6=Club).
+    /// Always exactly 7 entries, seeded once by <see cref="CreateDefaultFriendGroups"/> when the plugin
+    /// migrates to config version 3 (see Plugin()'s constructor); the Groups tab can toggle Active and
+    /// pick a color per row but never add, remove, or rename them.
+    /// </summary>
+    public List<PlayerGroup> FriendGroups { get; set; } = [];
+
+    /// <summary>Stable ids and <c>FfGroup</c> indices mirror FFXIVClientStructs' DisplayGroup enum (Star=1..Club=7, offset by -1).</summary>
+    public static List<PlayerGroup> CreateDefaultFriendGroups() =>
+    [
+        new() { Id = "ffgroup-0", Name = "Star", FfGroup = 0 },
+        new() { Id = "ffgroup-1", Name = "Circle", FfGroup = 1 },
+        new() { Id = "ffgroup-2", Name = "Triangle", FfGroup = 2 },
+        new() { Id = "ffgroup-3", Name = "Diamond", FfGroup = 3 },
+        new() { Id = "ffgroup-4", Name = "Heart", FfGroup = 4 },
+        new() { Id = "ffgroup-5", Name = "Spade", FfGroup = 5 },
+        new() { Id = "ffgroup-6", Name = "Club", FfGroup = 6 },
+    ];
+
     /// <summary>
     /// Copies all user-editable settings from <paramref name="other"/> in
     /// place. Used by the settings window's staged-save model: stage into a
@@ -155,6 +214,8 @@ public class Configuration : IPluginConfiguration
         MentionSoundEffect = other.MentionSoundEffect;
         MentionSoundCooldownMs = other.MentionSoundCooldownMs;
         SuppressSoundFromSelf = other.SuppressSoundFromSelf;
+        Groups = [.. other.Groups.Select(g => g.Clone())];
+        FriendGroups = [.. other.FriendGroups.Select(g => g.Clone())];
     }
 
     /// <summary>

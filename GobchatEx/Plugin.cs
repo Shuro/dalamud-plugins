@@ -1,6 +1,9 @@
+using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Dalamud.Game.Command;
+using Dalamud.Game.Gui.ContextMenu;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -25,11 +28,13 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IPlayerState PlayerState { get; private set; } = null!;
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
+    [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
     [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
     [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
     [PluginService] internal static INotificationManager NotificationManager { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
+    [PluginService] internal static IContextMenu ContextMenu { get; private set; } = null!;
 
     private const string PrimaryCommand = "/gobchat";
     private const string AliasCommand = "/gobchatex";
@@ -38,6 +43,8 @@ public sealed class Plugin : IDalamudPlugin
     public Configuration Configuration { get; init; }
     public readonly WindowSystem WindowSystem = new("GobchatEx");
     internal ChatListener ChatListener { get; init; }
+    internal FriendGroupLookup FriendGroups { get; } = new();
+    private ChatTwoContextMenuIntegration ChatTwoIntegration { get; init; }
     private SettingsWindow SettingsWindow { get; init; }
 
     public Plugin()
@@ -59,6 +66,15 @@ public sealed class Plugin : IDalamudPlugin
             // config.
             Configuration.HighlightChannels = [.. Configuration.HighlightChannels.Distinct()];
             Configuration.Version = 2;
+            Configuration.Save();
+        }
+
+        if (Configuration.Version < 3)
+        {
+            // v2 → v3: seed the game's 7 fixed friend-display groups (Milestone 2). Custom Groups start
+            // empty; users create those themselves in the Groups tab.
+            Configuration.FriendGroups = Configuration.CreateDefaultFriendGroups();
+            Configuration.Version = 3;
             Configuration.Save();
         }
 
@@ -90,13 +106,17 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenMainUi += ToggleSettingsUI;
         PluginInterface.LanguageChanged += OnLanguageChanged;
 
-        ChatListener = new ChatListener(Configuration);
+        ChatListener = new ChatListener(Configuration, FriendGroups);
+        ContextMenu.OnMenuOpened += OnMenuOpened;
+        ChatTwoIntegration = new ChatTwoContextMenuIntegration(this);
 
         Log.Information($"{PluginInterface.Manifest.Name} loaded.");
     }
 
     public void Dispose()
     {
+        ChatTwoIntegration.Dispose();
+        ContextMenu.OnMenuOpened -= OnMenuOpened;
         ChatListener.Dispose();
         WindowSystem.RemoveAllWindows();
 
@@ -110,7 +130,85 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.LanguageChanged -= OnLanguageChanged;
     }
 
-    private void OnCommand(string command, string args) => ToggleSettingsUI();
+    /// <summary>
+    /// Adds a "Groups" submenu entry to any native right-click menu targeting a player name (chat log,
+    /// party list, target, friend list, ...) — not restricted to a specific addon. An earlier version
+    /// filtered on <c>args.AddonName</c> being "ChatLog"/"ChatLogPanel_N", which turned out to be an
+    /// unverified guess that excluded the real chat log addon name entirely (confirmed by other
+    /// plugins' menu items appearing on the exact same right-click while ours never did). Restricting
+    /// by addon was never load-bearing anyway — a player-name context menu is a player-name context
+    /// menu regardless of where it was opened from. The Chat 2 plugin draws its own separate context
+    /// menu entirely outside this addon-based hook — see ChatTwoContextMenuIntegration for that surface.
+    /// </summary>
+    private void OnMenuOpened(IMenuOpenedArgs args)
+    {
+        if (args.Target is not MenuTargetDefault target || string.IsNullOrEmpty(target.TargetName))
+            return;
+
+        var name = target.TargetName;
+        var world = target.TargetHomeWorld.ValueNullable?.Name.ExtractText();
+
+        args.AddMenuItem(new MenuItem
+        {
+            Name = Loc.Get("Groups_ContextMenu_SubmenuName"),
+            IsSubmenu = true,
+            OnClicked = clicked => OpenGroupSubmenu(clicked, name, world),
+        });
+    }
+
+    private void OpenGroupSubmenu(IMenuItemClickedArgs clicked, string name, string? world)
+    {
+        // OpenSubmenu throws if given an empty list, so a disabled placeholder stands in for "no
+        // groups configured yet" instead of just not offering the "Groups" entry at all — that way the
+        // feature is discoverable (and its presence proves the hook fired) before any group exists.
+        if (Configuration.Groups.Count == 0)
+        {
+            clicked.OpenSubmenu(Loc.Get("Groups_ContextMenu_SubmenuName"),
+                [new MenuItem { Name = Loc.Get("Groups_ContextMenu_None"), IsEnabled = false }]);
+            return;
+        }
+
+        var actions = new GroupMembershipActions(this, name, world);
+        var items = new List<IMenuItem>(Configuration.Groups.Count);
+
+        foreach (var group in Configuration.Groups)
+        {
+            var inGroup = actions.IsInGroup(group);
+            items.Add(new MenuItem
+            {
+                Name = inGroup
+                    ? string.Format(Loc.Get("Groups_ContextMenu_RemoveFrom"), group.Name)
+                    : string.Format(Loc.Get("Groups_ContextMenu_AddTo"), group.Name),
+                OnClicked = _ =>
+                {
+                    if (inGroup)
+                        actions.RemoveFromGroup(group);
+                    else
+                        actions.AddToGroup(group);
+                },
+            });
+        }
+
+        clicked.OpenSubmenu(Loc.Get("Groups_ContextMenu_SubmenuName"), items);
+    }
+
+    private void OnCommand(string command, string args)
+    {
+        var trimmed = args.TrimStart();
+        var firstSpace = trimmed.IndexOf(' ');
+        var firstWord = firstSpace < 0 ? trimmed : trimmed[..firstSpace];
+
+        if (firstWord.Equals("group", StringComparison.OrdinalIgnoreCase)
+            || firstWord.Equals("g", StringComparison.OrdinalIgnoreCase))
+        {
+            var rest = firstSpace < 0 ? string.Empty : trimmed[(firstSpace + 1)..];
+            GroupCommandHandler.Execute(this, rest);
+            return;
+        }
+
+        ToggleSettingsUI();
+    }
+
     private void DrawUI() => WindowSystem.Draw();
     public void ToggleSettingsUI() => SettingsWindow.Toggle();
 

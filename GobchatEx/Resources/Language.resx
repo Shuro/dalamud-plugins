@@ -150,6 +150,39 @@
     <data name="Mentions_Character_CustomWords"><value>Custom words</value></data>
     <data name="Mentions_Character_CustomWord_Hint"><value>add a custom word…</value></data>
 
+    <data name="Groups_TabName"><value>Groups</value></data>
+    <data name="Groups_Custom_Header"><value>Custom Groups</value></data>
+    <data name="Groups_Custom_Header_Tooltip"><value>Sort players into named, colored groups. A player in more than one group shows the earlier group's color.</value></data>
+    <data name="Groups_Custom_Empty"><value>No custom groups yet.</value></data>
+    <data name="Groups_Custom_Inactive"><value>{0} (inactive)</value></data>
+    <data name="Groups_Custom_Active"><value>Active</value></data>
+    <data name="Groups_Custom_Remove"><value>Remove</value></data>
+    <data name="Groups_Custom_Remove_Tooltip"><value>Hold Ctrl+Shift and click to remove this group.</value></data>
+    <data name="Groups_Custom_Players"><value>Players</value></data>
+    <data name="Groups_Custom_NameHint"><value>new group name…</value></data>
+    <data name="Groups_Custom_Add"><value>Add</value></data>
+    <data name="Groups_Custom_NumericName_Error"><value>A group name can't be just a number (that would be ambiguous with the /gobchat group command's index).</value></data>
+    <data name="Groups_Custom_AddTarget"><value>Add target player</value></data>
+    <data name="Groups_Custom_AddTarget_Tooltip"><value>Adds your current target, {0}, to this group.</value></data>
+    <data name="Groups_Custom_NoPlayerTarget"><value>Target a player first (NPCs, monsters, and other non-player targets can't be added).</value></data>
+    <data name="Groups_Friend_Header"><value>Friend Groups</value></data>
+    <data name="Groups_Friend_Header_Tooltip"><value>The game's own seven friend-list groups. Assign players to these from the Friend List window in-game.</value></data>
+    <data name="Groups_Friend_Refresh"><value>Refresh friend list</value></data>
+    <data name="Groups_Friend_Refresh_Tooltip"><value>Also refreshes automatically on login.</value></data>
+    <data name="Groups_Friend_Column_Active"><value>Active</value></data>
+    <data name="Groups_Friend_Column_Name"><value>Group</value></data>
+    <data name="Groups_FriendGroup_Star"><value>Star</value></data>
+    <data name="Groups_FriendGroup_Circle"><value>Circle</value></data>
+    <data name="Groups_FriendGroup_Triangle"><value>Triangle</value></data>
+    <data name="Groups_FriendGroup_Diamond"><value>Diamond</value></data>
+    <data name="Groups_FriendGroup_Heart"><value>Heart</value></data>
+    <data name="Groups_FriendGroup_Spade"><value>Spade</value></data>
+    <data name="Groups_FriendGroup_Club"><value>Club</value></data>
+    <data name="Groups_ContextMenu_SubmenuName"><value>Groups</value></data>
+    <data name="Groups_ContextMenu_AddTo"><value>Add to {0}</value></data>
+    <data name="Groups_ContextMenu_RemoveFrom"><value>Remove from {0}</value></data>
+    <data name="Groups_ContextMenu_None"><value>No groups configured yet</value></data>
+
     <data name="About_TabName"><value>About</value></data>
     <data name="About_Description"><value>GobchatEx highlights roleplay in the native chat log: quoted speech, emotes, OOC and mention trigger words each get their own colors.</value></data>
     <data name="About_RepoLink"><value>Source code &amp; issues</value></data>
@@ -168,8 +201,6 @@
     <data name="Placeholder_Profiles_Description"><value>Multiple settings profiles with import and export.</value></data>
     <data name="Placeholder_Logs_Name"><value>Logs</value></data>
     <data name="Placeholder_Logs_Description"><value>Writing chat to log files on disk.</value></data>
-    <data name="Placeholder_Groups_Name"><value>Groups</value></data>
-    <data name="Placeholder_Groups_Description"><value>Player groups that recolor matching senders in chat.</value></data>
     <data name="Placeholder_RangeFilter_Name"><value>Range filter</value></data>
     <data name="Placeholder_RangeFilter_Description"><value>Distance-based filtering of messages from far-away players.</value></data>
     <data name="Placeholder_ComingSoon"><value>Planned for a future release.</value></data>
@@ -183,4 +214,15 @@
     <data name="Commands_Primary_Help"><value>Open the GobchatEx settings window.</value></data>
     <data name="Commands_Alias_Help"><value>Alias for /gobchat — open the GobchatEx settings window.</value></data>
     <data name="Commands_ShortAlias_Help"><value>Alias for /gobchat.</value></data>
+
+    <data name="Commands_Group_InvalidSyntax"><value>Invalid syntax. Try: /gobchat group &lt;name or number&gt; add|remove|clear &lt;player&gt; [world]</value></data>
+    <data name="Commands_Group_InvalidLocator"><value>No group found matching "{0}".</value></data>
+    <data name="Commands_Group_Added"><value>Added {0} to group {1}.</value></data>
+    <data name="Commands_Group_AlreadyInGroup"><value>{0} is already in group {1}.</value></data>
+    <data name="Commands_Group_Removed"><value>Removed {0} from group {1}.</value></data>
+    <data name="Commands_Group_NotInGroup"><value>{0} isn't in group {1}.</value></data>
+    <data name="Commands_Group_AlreadyEmpty"><value>Group {0} is already empty.</value></data>
+    <data name="Commands_Group_Cleared"><value>Cleared all players from group {0}.</value></data>
+    <data name="Commands_Group_ListEmpty"><value>No custom groups yet.</value></data>
+    <data name="Commands_Group_List"><value>Groups: {0}</value></data>
 </root>

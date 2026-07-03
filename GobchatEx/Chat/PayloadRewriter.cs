@@ -45,6 +45,39 @@ internal static class PayloadRewriter
         return result;
     }
 
+    /// <summary>
+    /// Builds the rewritten payload list for a run set that all shares one color, e.g. a sender name
+    /// (one color for the whole name, not the multiple <see cref="SegmentType"/>s <see cref="Rewrite"/>
+    /// handles). Each run in <paramref name="runPayloadIndices"/> is wrapped as a whole; payloads outside
+    /// the run set (e.g. a cross-world icon payload between name runs) pass through untouched, exactly
+    /// like <see cref="Rewrite"/>.
+    /// </summary>
+    public static List<Payload> RewriteUniform(
+        IReadOnlyList<Payload> payloads,
+        IReadOnlyList<int> runPayloadIndices,
+        IReadOnlyList<string> runTexts,
+        (ushort Foreground, ushort Glow) style)
+    {
+        var result = new List<Payload>(payloads.Count + (4 * runPayloadIndices.Count));
+        var run = 0;
+        for (var i = 0; i < payloads.Count; ++i)
+        {
+            if (run >= runPayloadIndices.Count || runPayloadIndices[run] != i)
+            {
+                result.Add(payloads[i]);
+                continue;
+            }
+
+            if (style.Foreground == 0 && style.Glow == 0)
+                result.Add(new TextPayload(runTexts[run]));
+            else
+                AppendColored(result, runTexts[run], style);
+            ++run;
+        }
+
+        return result;
+    }
+
     private static void AppendRun(
         List<Payload> result,
         Payload original,
@@ -70,15 +103,20 @@ internal static class PayloadRewriter
                 continue;
             }
 
-            if (style.Foreground != 0)
-                result.Add(new UIForegroundPayload(style.Foreground));
-            if (style.Glow != 0)
-                result.Add(new UIGlowPayload(style.Glow));
-            result.Add(new TextPayload(sub));
-            if (style.Glow != 0)
-                result.Add(UIGlowPayload.UIGlowOff);
-            if (style.Foreground != 0)
-                result.Add(UIForegroundPayload.UIForegroundOff);
+            AppendColored(result, sub, style);
         }
+    }
+
+    private static void AppendColored(List<Payload> result, string text, (ushort Foreground, ushort Glow) style)
+    {
+        if (style.Foreground != 0)
+            result.Add(new UIForegroundPayload(style.Foreground));
+        if (style.Glow != 0)
+            result.Add(new UIGlowPayload(style.Glow));
+        result.Add(new TextPayload(text));
+        if (style.Glow != 0)
+            result.Add(UIGlowPayload.UIGlowOff);
+        if (style.Foreground != 0)
+            result.Add(UIForegroundPayload.UIForegroundOff);
     }
 }

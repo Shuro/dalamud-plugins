@@ -150,6 +150,39 @@
     <data name="Mentions_Character_CustomWords"><value>Eigene Wörter</value></data>
     <data name="Mentions_Character_CustomWord_Hint"><value>Eigenes Wort hinzufügen…</value></data>
 
+    <data name="Groups_TabName"><value>Gruppen</value></data>
+    <data name="Groups_Custom_Header"><value>Eigene Gruppen</value></data>
+    <data name="Groups_Custom_Header_Tooltip"><value>Sortiere Spieler in benannte, farbige Gruppen. Ist ein Spieler in mehreren Gruppen, gilt die Farbe der früheren Gruppe.</value></data>
+    <data name="Groups_Custom_Empty"><value>Noch keine eigenen Gruppen.</value></data>
+    <data name="Groups_Custom_Inactive"><value>{0} (inaktiv)</value></data>
+    <data name="Groups_Custom_Active"><value>Aktiv</value></data>
+    <data name="Groups_Custom_Remove"><value>Entfernen</value></data>
+    <data name="Groups_Custom_Remove_Tooltip"><value>Strg+Umschalt gedrückt halten und klicken, um diese Gruppe zu entfernen.</value></data>
+    <data name="Groups_Custom_Players"><value>Spieler</value></data>
+    <data name="Groups_Custom_NameHint"><value>Name der neuen Gruppe…</value></data>
+    <data name="Groups_Custom_Add"><value>Hinzufügen</value></data>
+    <data name="Groups_Custom_NumericName_Error"><value>Ein Gruppenname darf nicht nur aus einer Zahl bestehen (das wäre mehrdeutig mit dem Index im /gobchat-group-Befehl).</value></data>
+    <data name="Groups_Custom_AddTarget"><value>Ziel-Spieler hinzufügen</value></data>
+    <data name="Groups_Custom_AddTarget_Tooltip"><value>Fügt dein aktuelles Ziel, {0}, dieser Gruppe hinzu.</value></data>
+    <data name="Groups_Custom_NoPlayerTarget"><value>Ziele zuerst einen Spieler an (NPCs, Monster und andere Nicht-Spieler-Ziele können nicht hinzugefügt werden).</value></data>
+    <data name="Groups_Friend_Header"><value>Freundesgruppen</value></data>
+    <data name="Groups_Friend_Header_Tooltip"><value>Die sieben eigenen Freundesgruppen des Spiels. Weise Spieler diesen über das Freundeslisten-Fenster im Spiel zu.</value></data>
+    <data name="Groups_Friend_Refresh"><value>Freundesliste aktualisieren</value></data>
+    <data name="Groups_Friend_Refresh_Tooltip"><value>Wird auch automatisch beim Einloggen aktualisiert.</value></data>
+    <data name="Groups_Friend_Column_Active"><value>Aktiv</value></data>
+    <data name="Groups_Friend_Column_Name"><value>Gruppe</value></data>
+    <data name="Groups_FriendGroup_Star"><value>Stern</value></data>
+    <data name="Groups_FriendGroup_Circle"><value>Kreis</value></data>
+    <data name="Groups_FriendGroup_Triangle"><value>Dreieck</value></data>
+    <data name="Groups_FriendGroup_Diamond"><value>Raute</value></data>
+    <data name="Groups_FriendGroup_Heart"><value>Herz</value></data>
+    <data name="Groups_FriendGroup_Spade"><value>Pik</value></data>
+    <data name="Groups_FriendGroup_Club"><value>Kreuz</value></data>
+    <data name="Groups_ContextMenu_SubmenuName"><value>Gruppen</value></data>
+    <data name="Groups_ContextMenu_AddTo"><value>Zu {0} hinzufügen</value></data>
+    <data name="Groups_ContextMenu_RemoveFrom"><value>Aus {0} entfernen</value></data>
+    <data name="Groups_ContextMenu_None"><value>Noch keine Gruppen konfiguriert</value></data>
+
     <data name="About_TabName"><value>Über</value></data>
     <data name="About_Description"><value>GobchatEx hebt Rollenspiel im normalen Chatverlauf hervor: wörtliche Rede, Emotes, OOC und Erwähnungs-Auslösewörter erhalten jeweils eigene Farben.</value></data>
     <data name="About_RepoLink"><value>Quellcode &amp; Fehlermeldungen</value></data>
@@ -168,8 +201,6 @@
     <data name="Placeholder_Profiles_Description"><value>Mehrere Einstellungsprofile mit Import und Export.</value></data>
     <data name="Placeholder_Logs_Name"><value>Protokolle</value></data>
     <data name="Placeholder_Logs_Description"><value>Chat in Protokolldateien auf der Festplatte schreiben.</value></data>
-    <data name="Placeholder_Groups_Name"><value>Gruppen</value></data>
-    <data name="Placeholder_Groups_Description"><value>Spielergruppen, die passende Absender im Chat einfärben.</value></data>
     <data name="Placeholder_RangeFilter_Name"><value>Entfernungsfilter</value></data>
     <data name="Placeholder_RangeFilter_Description"><value>Entfernungsbasierte Filterung von Nachrichten weit entfernter Spieler.</value></data>
     <data name="Placeholder_ComingSoon"><value>Für eine zukünftige Version geplant.</value></data>
@@ -183,4 +214,15 @@
     <data name="Commands_Primary_Help"><value>Öffnet das GobchatEx-Einstellungsfenster.</value></data>
     <data name="Commands_Alias_Help"><value>Alias für /gobchat — öffnet das GobchatEx-Einstellungsfenster.</value></data>
     <data name="Commands_ShortAlias_Help"><value>Alias für /gobchat.</value></data>
+
+    <data name="Commands_Group_InvalidSyntax"><value>Ungültige Syntax. Versuch's mit: /gobchat group &lt;Name oder Nummer&gt; add|remove|clear &lt;Spieler&gt; [Welt]</value></data>
+    <data name="Commands_Group_InvalidLocator"><value>Keine Gruppe passend zu "{0}" gefunden.</value></data>
+    <data name="Commands_Group_Added"><value>{0} zur Gruppe {1} hinzugefügt.</value></data>
+    <data name="Commands_Group_AlreadyInGroup"><value>{0} ist bereits in Gruppe {1}.</value></data>
+    <data name="Commands_Group_Removed"><value>{0} aus Gruppe {1} entfernt.</value></data>
+    <data name="Commands_Group_NotInGroup"><value>{0} ist nicht in Gruppe {1}.</value></data>
+    <data name="Commands_Group_AlreadyEmpty"><value>Gruppe {0} ist bereits leer.</value></data>
+    <data name="Commands_Group_Cleared"><value>Alle Spieler aus Gruppe {0} entfernt.</value></data>
+    <data name="Commands_Group_ListEmpty"><value>Noch keine eigenen Gruppen.</value></data>
+    <data name="Commands_Group_List"><value>Gruppen: {0}</value></data>
 </root>

@@ -1,0 +1,70 @@
+using System.Linq;
+using System.Text.RegularExpressions;
+using GobchatEx.Core;
+
+namespace GobchatEx.Chat;
+
+/// <summary>
+/// Shared add/remove/membership-check logic for one player against a custom group's member list, used
+/// by the slash command, the native right-click context menu, and the Chat 2 IPC integration alike.
+/// Bound to one (name, world) pair at construction (the right-clicked or /gobchat-group-targeted
+/// player); callers iterate <see cref="Configuration.Groups"/> and pass each <see cref="PlayerGroup"/>
+/// in turn. Mutates the <b>live</b> <see cref="Plugin.Configuration"/> directly, not a settings-window
+/// staged copy — none of these entry points are necessarily invoked while the settings window is open.
+/// If the window IS open with unsaved edits and the user then clicks Save, that Save's
+/// <c>Configuration.UpdateFrom(mutable)</c> will overwrite these live edits with its own stale staged
+/// copy; this is a pre-existing limitation of the staged Save/Apply/Cancel model (every other config
+/// field has the same "last save wins" behavior against concurrent external writers), not something
+/// this class attempts to reconcile.
+/// </summary>
+internal sealed class GroupMembershipActions
+{
+    private static readonly Regex CollapseWhitespace = new(@"\s+");
+
+    private readonly Plugin plugin;
+    private readonly string name;
+    private readonly string? world;
+
+    public GroupMembershipActions(Plugin plugin, string name, string? world)
+    {
+        this.plugin = plugin;
+        this.name = CollapseWhitespace.Replace(name.Trim(), " ");
+        this.world = string.IsNullOrWhiteSpace(world) ? null : CollapseWhitespace.Replace(world.Trim(), " ");
+    }
+
+    public bool IsInGroup(PlayerGroup group) => group.Members.Any(Matches);
+
+    /// <returns>False if the player was already in the group (no-op, not persisted).</returns>
+    public bool AddToGroup(PlayerGroup group)
+    {
+        if (IsInGroup(group))
+            return false;
+
+        group.Members.Add(new GroupMember(name, world));
+        Persist();
+        return true;
+    }
+
+    /// <returns>False if the player wasn't in the group (no-op, not persisted).</returns>
+    public bool RemoveFromGroup(PlayerGroup group)
+    {
+        if (group.Members.RemoveAll(Matches) == 0)
+            return false;
+
+        Persist();
+        return true;
+    }
+
+    /// <summary>
+    /// Delegates to <see cref="GroupMatcher.IsMember"/> — literally the same folding (NFKC +
+    /// case-insensitive) and bare-world-wildcard rules chat recoloring uses, so a group's
+    /// "Add"/"Remove" wording and the actual match always agree.
+    /// </summary>
+    private bool Matches(GroupMember member) => GroupMatcher.IsMember(member, name, world);
+
+    private void Persist()
+    {
+        plugin.Configuration.Save();
+        plugin.ChatListener.SettingsChanged();
+    }
+}

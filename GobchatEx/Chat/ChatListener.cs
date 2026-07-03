@@ -27,18 +27,33 @@ namespace GobchatEx.Chat;
 public sealed class ChatListener : IDisposable
 {
     private readonly Configuration _config;
+    private readonly FriendGroupLookup _friendGroups;
     private readonly SoundPlayer _soundPlayer = new();
 
     private MessageSegmenter _segmenter = null!;
     private HashSet<XivChatType> _channels = null!;
     private Dictionary<SegmentType, (ushort Foreground, ushort Glow)> _styles = null!;
+    private IReadOnlyList<GroupRule> _groupRules = [];
+    private Dictionary<string, (ushort Foreground, ushort Glow)> _groupStyles = new();
     private bool _enabled;
 
     private static readonly MentionRules NoMentionRules = new([], [], [], FuzzyMatchLevel.Conservative);
 
-    public ChatListener(Configuration config)
+    // Tells and Echo carry no real sender to group (Echo is local-only, matching IsFromSelf's own
+    // reasoning); error messages are game system text. Mirrors the old app's channel exclusion.
+    private static readonly HashSet<XivChatType> GroupingExcludedChannels =
+        [XivChatType.TellIncoming, XivChatType.TellOutgoing, XivChatType.Echo, XivChatType.ErrorMessage];
+
+    internal ChatListener(Configuration config, FriendGroupLookup friendGroups)
     {
         _config = config;
+        _friendGroups = friendGroups;
+
+        // A mid-session (re)load — plugin update or dev auto-reload — never fires Login, so seed
+        // the friend-list snapshot now. Plugin construction is only framework-thread when the
+        // manifest sets LoadSync (ours doesn't), and Refresh reads a game struct, so dispatch.
+        if (Plugin.ClientState.IsLoggedIn)
+            _ = Plugin.Framework.RunOnFrameworkThread(_friendGroups.Refresh);
 
         SettingsChanged();
         Plugin.ChatGui.CheckMessageHandled += OnChatMessage;
@@ -54,7 +69,10 @@ public sealed class ChatListener : IDisposable
     }
 
     private void OnLogin()
-        => SettingsChanged();
+    {
+        _friendGroups.Refresh();
+        SettingsChanged();
+    }
 
     private void OnLogout(int type, int code)
         => SettingsChanged();
@@ -78,6 +96,34 @@ public sealed class ChatListener : IDisposable
         // needs it; the rewriter then renders those spans plain via (0, 0).
         var wantMentions = _config.MentionStyle.Enabled || _config.MentionSoundEnabled;
         _segmenter = new MessageSegmenter(rules, wantMentions ? BuildMentionRules() : NoMentionRules);
+
+        BuildGroupRules();
+    }
+
+    /// <summary>
+    /// Custom groups first (so they take precedence over friend groups on the same sender, per
+    /// GroupMatcher's first-match-wins order), then the 7 friend groups sorted by FfGroup defensively
+    /// (they're always seeded 0..6 in order, but a hand-edited config shouldn't break precedence).
+    /// </summary>
+    private void BuildGroupRules()
+    {
+        var rules = new List<GroupRule>(_config.Groups.Count + _config.FriendGroups.Count);
+        var styles = new Dictionary<string, (ushort Foreground, ushort Glow)>(rules.Capacity);
+
+        foreach (var group in _config.Groups)
+        {
+            rules.Add(new GroupRule(group.Id, group.Active, FfGroup: null, group.Members));
+            styles[group.Id] = (group.Foreground, group.Glow);
+        }
+
+        foreach (var group in _config.FriendGroups.OrderBy(g => g.FfGroup))
+        {
+            rules.Add(new GroupRule(group.Id, group.Active, group.FfGroup, Members: []));
+            styles[group.Id] = (group.Foreground, group.Glow);
+        }
+
+        _groupRules = rules;
+        _groupStyles = styles;
     }
 
     /// <summary>
@@ -142,9 +188,14 @@ public sealed class ChatListener : IDisposable
 
     private void OnChatMessage(IHandleableChatMessage message)
     {
-        if (!_enabled || !_channels.Contains(message.LogKind))
-            return;
+        if (_enabled && _channels.Contains(message.LogKind))
+            ApplyBodyHighlighting(message);
 
+        ApplySenderGroupColor(message);
+    }
+
+    private void ApplyBodyHighlighting(IHandleableChatMessage message)
+    {
         var payloads = message.Message.Payloads;
 
         // Extract the text runs. Like ChatAlerts, every TextPayload counts —
@@ -175,6 +226,46 @@ public sealed class ChatListener : IDisposable
 
         if (result.HasMention)
             TryPlayMentionSound(message);
+    }
+
+    /// <summary>
+    /// Recolors the sender name when it belongs to a matching custom or friend group. Independent of
+    /// <see cref="_enabled"/>/<see cref="_channels"/> (the RP-highlighting master switch and channel
+    /// filter) — group coloring is its own feature and applies wherever a sender exists.
+    /// </summary>
+    private void ApplySenderGroupColor(IHandleableChatMessage message)
+    {
+        if (GroupingExcludedChannels.Contains(message.LogKind))
+            return;
+
+        SenderIdentity.Resolve(message.Sender, out var name, out var world);
+        var friendGroupIndex = _friendGroups.TryGetFriendGroupIndex(name, world, out var index) ? index : (int?)null;
+
+        var groupId = GroupMatcher.FindGroup(name, world, friendGroupIndex, _groupRules);
+        if (groupId == null
+            || !_groupStyles.TryGetValue(groupId, out var style)
+            || (style.Foreground == 0 && style.Glow == 0))
+            return;
+
+        var payloads = message.Sender.Payloads;
+        List<int>? runIndices = null;
+        List<string>? runTexts = null;
+        for (var i = 0; i < payloads.Count; ++i)
+        {
+            if (payloads[i] is not TextPayload { Text.Length: > 0 } textPayload)
+                continue;
+
+            runIndices ??= [];
+            runTexts ??= [];
+            runIndices.Add(i);
+            runTexts.Add(textPayload.Text);
+        }
+
+        if (runTexts == null)
+            return;
+
+        var rewritten = PayloadRewriter.RewriteUniform(payloads, runIndices!, runTexts, style);
+        message.Sender = new SeString(rewritten);
     }
 
     private void TryPlayMentionSound(IHandleableChatMessage message)
