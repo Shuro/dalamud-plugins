@@ -17,6 +17,11 @@ the logic to port lives.
 
 - **No overlay window.** The chat is directly available in-game; highlighting
   happens in the native chat log (ADR 0001).
+- **Chat 2 is an optional second render target.** Native-log rewriting stays
+  the baseline; per-message backgrounds and opacity — which SeString cannot
+  express — land in Chat 2 through its upstream styling IPC
+  ([ChatTwo#186](https://github.com/Infiziert90/ChatTwo/issues/186)) without
+  making Chat 2 a dependency.
 - **Chat logging comes last.** Useful, but not urgent.
 - **Chat Tabs are dropped.** Tabs only make sense inside an overlay window,
   and the native chat log already has game-managed tabs.
@@ -74,6 +79,9 @@ Sort players into colored groups so friends and RP partners stand out:
 Complexity: medium-high (context-menu integration; sender payload surgery
 around party/alliance prefixes).
 
+Group *background* tint — the most-requested group visual — needs Chat 2's
+styling IPC and lives in Milestone 3.5; the native log can't draw backgrounds.
+
 ## Milestone 3 — Range filter — In progress
 
 Fade or hide chat from far-away players (great on crowded RP servers):
@@ -82,9 +90,62 @@ Fade or hide chat from far-away players (great on crowded RP servers):
 - Distances from Dalamud `IObjectTable` positions at message time (replaces
   the app's memory-reader actor manager)
 - Native chat has no per-line opacity, so fading maps to darkened color
-  steps; beyond the cutoff the message is suppressed
+  steps that keep each segment's hue (colored spans are remapped to the
+  nearest darker UIColor row); beyond the cutoff the message dims to the
+  darkest step — never suppressed, because `PreventOriginal` marks the
+  message handled and it would then also vanish from Chat 2's history and
+  any event-fed chat logger
 - Configurable cutoff/fade distances, channel scope (default Say/Emote),
   and "mentions ignore range"
+
+Complexity: medium.
+
+In Chat 2 the same filter gets true per-message alpha instead of darkened
+color steps, and render-only hiding — Milestone 3.5. The darkened-step
+dimming here stays permanently as the "lite variant": it is what renders
+whenever Chat 2's styling isn't available.
+
+## Milestone 3.5 — Chat 2 styling integration — In progress
+
+Backgrounds and per-line opacity can't be expressed in SeString, so the
+render support was upstreamed into Chat 2 as a message styling IPC
+([issue #186](https://github.com/Infiziert90/ChatTwo/issues/186); PRs
+[#187](https://github.com/Infiziert90/ChatTwo/pull/187) checkerboard rows,
+[#188](https://github.com/Infiziert90/ChatTwo/pull/188) styling IPC,
+[#189](https://github.com/Infiziert90/ChatTwo/pull/189) per-tab policies).
+This milestone builds the consumer side — developed against the
+`local/dev-combined` fork build, live for users once the PRs ship in stock
+Chat 2. Scoping decisions: group *backgrounds* are Chat 2-gated (settings
+disabled with a hint while the styling IPC isn't connected; native
+sender-name coloring keeps working regardless), and the native darkened
+steps remain the range filter's permanent lite variant with Chat 2 adding
+real transparency on top.
+
+- Production style provider (`Chat/ChatTwoStyleProvider.cs`): registers via
+  `ChatTwo.SetMessageStyleProvider`, version-gated through
+  `ChatTwo.StyleVersion`, re-registers on `ChatTwo.Available`, exposes
+  `IsConnected` for the settings UI. The gate is single-provider (last
+  writer wins), so the Debug tester suspends the production provider while
+  it is registered and resumes it on unregister.
+- Per-message decision from the already-tested Core pieces: group background
+  via `GroupMatcher` (per-group `ChatTwoBackground` color), range alpha from
+  `RangeFade.CalculateVisibility`, honoring channel scope and "mentions
+  ignore range" against the message text. All inputs live in an immutable
+  snapshot rebuilt on settings changes.
+- Threading: Chat 2 calls the provider on its message-processing thread;
+  the `SenderDistance` lookup marshals to the framework thread, everything
+  else reads the snapshot.
+- Settings: per-group background color in the Groups tab (Chat 2 only), Chat 2
+  fade/hide toggles in the Range tab, and a Chat 2 page with connection status
+  plus per-tab allow/suppress switches fed by `ChatTwo.GetTabs`/`TabsChanged`
+  and sent through `ChatTwo.SetTabStylePolicies` on Save/Apply.
+- Cleanup: retire the `local/dev-combined` Chat 2 build and the fork branches
+  once the PRs are merged and released; decide whether the Debug tab stays as
+  a diagnostics page or goes.
+
+No hard dependency: without Chat 2 installed — or if the PRs stall (fork
+fallback, see project notes) — everything degrades to the native-log behavior
+of Milestones 2 and 3.
 
 Complexity: medium.
 

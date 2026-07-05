@@ -15,9 +15,12 @@ in configured channels are recolored per segment —
 - **Say** — quoted speech: `"…"`, `„…“`, `„…”`, `“…”`, `»…«`, `«…»`
 - **Emote** — actions: `*…*`, `<…>`
 - **OOC** — out-of-character: `((…))`
-- **Mentions** — your own list of trigger words/names (case-insensitive
-  whole words), optionally with a game sound effect (`<se.1>`–`<se.16>`)
-  and a per-sound cooldown.
+- **Mentions** — your own list of trigger words (case-insensitive whole
+  words) plus per-character player-name matching: full/first/last name,
+  opt-in partial (substring) matching, Miqo'te apostrophe segments, and
+  typo-tolerant fuzzy matching with three strictness levels. Decorative
+  "fancy font" text is unicode-folded before matching. Optionally plays a
+  game sound effect (`<se.1>`–`<se.16>`) with a per-sound cooldown.
 
 Colors come from the game's UIColor palette (swatch picker in the config
 window; right-click a swatch to clear). Delimiters may span item/player
@@ -28,11 +31,25 @@ The message-rewriting approach follows
 are recorded in [adr/](adr/); planned features migrating from the
 standalone app are sequenced in [ROADMAP.md](ROADMAP.md).
 
+**Player groups** recolor chat sender names per group: custom groups you
+fill via right-click → Groups on any player name (also inside
+[Chat 2](https://github.com/Infiziert90/ChatTwo)'s own context menu), the
+`/gobchat group` command, or the settings tab — plus the game's seven
+friend-list display groups (Star–Club). Custom groups take precedence over
+friend groups. The settings window itself is localized (English, German)
+and follows Dalamud's language unless overridden.
+
 ## Commands
 
 - `/gobchat` — Toggles the settings window (also reachable via
   `/xlplugins` → GobchatEx → ⚙, or the gear in the title bar).
 - `/gobchatex`, `/gex` — Aliases for `/gobchat`.
+- `/gobchat group list` — Prints your custom groups with their indices.
+- `/gobchat group <n|name> <add|remove> Player Name [World]` — Adds or
+  removes a player from the custom group with 1-based index `n` or the
+  given name; the bracketed world is optional (a bare entry matches the
+  name on any world). `... clear` empties the group; `g` is a shorthand
+  for `group`.
 
 ## Building locally
 
@@ -50,12 +67,15 @@ just a DLL. To load it in-game:
 1. `/xlsettings` → Experimental → "Dev Plugin Locations" → add the full path
    to `GobchatEx.dll` inside that folder.
 2. `/xlplugins` → Dev Tools → Installed Dev Plugins → enable.
-3. Hot-reload while iterating: `/xlreload GobchatEx`.
+3. While iterating, enable **Automatic Reloading** on the plugin's row
+   under Installed Dev Plugins — Dalamud then reloads the plugin whenever
+   `dotnet build` rewrites the DLL.
 
 ## Testing
 
-The segmentation engine (`GobchatEx/Core/`) is Dalamud-free and covered by
-unit tests (no game or XIVLauncher install needed):
+The matching engine (`GobchatEx/Core/`) and the localization helper
+(`GobchatEx/Localization/`) are Dalamud-free and covered by unit tests (no
+game or XIVLauncher install needed):
 
 ```sh
 dotnet test
@@ -64,9 +84,9 @@ dotnet test --collect "Code Coverage;Format=cobertura"
 ```
 
 Manual in-game smoke test (the Dalamud-facing layer is thin and validated
-by hand): the **Echo** channel is highlighted by default (configs saved
-before that change need "Reset to RP defaults" or a manual tick), and
-mention tests need a trigger word added first. Then:
+by hand). Setup: the **Echo** channel is *not* highlighted by default
+(defaults: Say, Custom Emote, Party, Cross-world Party) — tick it in the
+highlighted-channels list first, and add a mention trigger word. Then:
 
 1. `/echo he said "hi" and *waves* ((brb)) YourTriggerWord` — expect the
    emote, OOC and mention segments to recolor. The default Say color is
@@ -79,7 +99,14 @@ mention tests need a trigger word added first. Then:
 4. Add a trigger word, enable the mention sound, have someone (or an alt)
    say it — sound plays, respecting cooldown and the "not for my own
    messages" toggle.
-5. `/xlreload GobchatEx` — settings persist.
+5. Mentions tab → "Add Current Character" (it starts active), then
+   `/echo Yourfirstname likes this` — your name recolors as a mention.
+6. Right-click a player name in the chat log → Groups → add them to a
+   custom group that has a color — their sender name recolors on their
+   next chat line (group coloring skips Tell/Echo/Error, so use Say or
+   Party).
+7. Rebuild (auto-reload) or toggle the plugin off and on — settings
+   persist.
 
 ## Contributing
 

@@ -12,13 +12,14 @@ policy that applies to every PR.
   `%AppData%\XIVLauncher\addon\Hooks\dev`. Launch the game through
   XIVLauncher at least once so that folder exists.
 - Unit tests need **neither** the game nor XIVLauncher — `dotnet test`
-  compiles the Dalamud-free `GobchatEx/Core/` sources directly.
+  compiles the Dalamud-free `GobchatEx/Core/` and `GobchatEx/Localization/`
+  sources directly.
 
 ## Commands
 
 <!-- AUTO-GENERATED from GobchatEx/GobchatEx.csproj and tests/GobchatEx.Core.Tests/GobchatEx.Core.Tests.csproj -->
 | Command | Description |
-|---------|-------------|
+| ------- | ----------- |
 | `dotnet build` | Build plugin + tests; produces the packed plugin folder `bin/x64/Debug/GobchatEx/` |
 | `dotnet test` | Run the Core unit tests (xunit; no game install needed) |
 | `dotnet test --collect "Code Coverage;Format=cobertura"` | Tests with coverage — use this built-in collector; coverlet cannot instrument net10.0 and silently reports 0 lines |
@@ -30,12 +31,12 @@ Loading and hot-reloading the built plugin in-game is described in
 
 ## Architecture constraint (test-enforced)
 
-`GobchatEx/Core/` must stay Dalamud-free
+`GobchatEx/Core/` and `GobchatEx/Localization/` must stay Dalamud-free
 ([ADR 0002](adr/0002-pure-dalamud-free-parser-core.md)). The test project
-compiles `Core/**/*.cs` directly instead of referencing the plugin project,
-so any Dalamud using-directive in Core breaks `dotnet test`. Portable logic
-goes into Core (test-first); the Dalamud-facing layers (`Chat/`, `Windows/`,
-`Plugin.cs`) stay thin.
+compiles `Core/**/*.cs` and `Localization/**/*.cs` directly instead of
+referencing the plugin project, so any Dalamud using-directive there breaks
+`dotnet test`. Portable logic goes into Core (test-first); the Dalamud-facing
+layers (`Chat/`, `Windows/`, `Plugin.cs`) stay thin.
 
 ## Testing
 
