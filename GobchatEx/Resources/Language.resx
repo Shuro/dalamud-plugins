@@ -171,8 +171,6 @@
     <data name="Groups_Custom_NoPlayerTarget"><value>Target a player first (NPCs, monsters, and other non-player targets can't be added).</value></data>
     <data name="Groups_Friend_Header"><value>Friend Groups</value></data>
     <data name="Groups_Friend_Header_Tooltip"><value>The game's own seven friend-list groups. Assign players to these from the Friend List window in-game.</value></data>
-    <data name="Groups_Friend_Refresh"><value>Refresh friend list</value></data>
-    <data name="Groups_Friend_Refresh_Tooltip"><value>Also refreshes automatically on login.</value></data>
     <data name="Groups_Friend_Column_Active"><value>Active</value></data>
     <data name="Groups_Friend_Column_Name"><value>Group</value></data>
     <data name="Groups_FriendGroup_Star"><value>Star</value></data>
@@ -196,7 +194,7 @@
     <data name="About_RepoLink"><value>Source code &amp; issues</value></data>
     <data name="About_ByAuthor"><value>by {0}</value></data>
 
-    <data name="Settings_WindowTitle"><value>GobchatEx Settings</value></data>
+    <data name="Settings_WindowTitle"><value>GobchatEx Roleplay Suite</value></data>
     <data name="Settings_Nav_General"><value>General</value></data>
     <data name="Settings_Nav_Appearance"><value>Appearance</value></data>
     <data name="Settings_Nav_Chat"><value>Chat</value></data>

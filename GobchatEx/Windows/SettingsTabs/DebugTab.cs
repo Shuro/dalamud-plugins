@@ -26,6 +26,7 @@ internal sealed class DebugTab : ISettingsTab
 
     private readonly ChatTwoStyleIpcTester tester;
     private readonly DebugRangePane rangePane;
+    private readonly DebugGroupsPane groupsPane;
 
     public string Name => Loc.Get("Debug_TabName");
     public FontAwesomeIcon Icon => FontAwesomeIcon.Bug;
@@ -34,6 +35,7 @@ internal sealed class DebugTab : ISettingsTab
     {
         tester = plugin.ChatTwoStyleTester;
         rangePane = new DebugRangePane(plugin);
+        groupsPane = new DebugGroupsPane(plugin);
     }
 
     public void Draw()
@@ -52,6 +54,12 @@ internal sealed class DebugTab : ISettingsTab
         {
             if (rangeTab)
                 rangePane.Draw();
+        }
+
+        using (var groupsTab = ImRaii.TabItem("Friend Groups"))
+        {
+            if (groupsTab)
+                groupsPane.Draw();
         }
     }
 

@@ -171,8 +171,6 @@
     <data name="Groups_Custom_NoPlayerTarget"><value>Ziele zuerst einen Spieler an (NPCs, Monster und andere Nicht-Spieler-Ziele können nicht hinzugefügt werden).</value></data>
     <data name="Groups_Friend_Header"><value>Freundesgruppen</value></data>
     <data name="Groups_Friend_Header_Tooltip"><value>Die sieben eigenen Freundesgruppen des Spiels. Weise Spieler diesen über das Freundeslisten-Fenster im Spiel zu.</value></data>
-    <data name="Groups_Friend_Refresh"><value>Freundesliste aktualisieren</value></data>
-    <data name="Groups_Friend_Refresh_Tooltip"><value>Wird auch automatisch beim Einloggen aktualisiert.</value></data>
     <data name="Groups_Friend_Column_Active"><value>Aktiv</value></data>
     <data name="Groups_Friend_Column_Name"><value>Gruppe</value></data>
     <data name="Groups_FriendGroup_Star"><value>Stern</value></data>
@@ -196,7 +194,7 @@
     <data name="About_RepoLink"><value>Quellcode &amp; Fehlermeldungen</value></data>
     <data name="About_ByAuthor"><value>von {0}</value></data>
 
-    <data name="Settings_WindowTitle"><value>GobchatEx-Einstellungen</value></data>
+    <data name="Settings_WindowTitle"><value>GobchatEx Roleplay Suite</value></data>
     <data name="Settings_Nav_General"><value>Allgemein</value></data>
     <data name="Settings_Nav_Appearance"><value>Darstellung</value></data>
     <data name="Settings_Nav_Chat"><value>Chat</value></data>

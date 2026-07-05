@@ -25,15 +25,13 @@ internal sealed class GroupsTab : ISettingsTab
     public FontAwesomeIcon Icon => FontAwesomeIcon.Users;
 
     private readonly Configuration mutable;
-    private readonly FriendGroupLookup friendGroups;
     private readonly ChatTwoStyleProvider chatTwoStyles;
     private readonly UiColorPicker colorPicker = new();
     private string newGroupName = string.Empty;
 
-    public GroupsTab(Configuration mutable, FriendGroupLookup friendGroups, ChatTwoStyleProvider chatTwoStyles)
+    public GroupsTab(Configuration mutable, ChatTwoStyleProvider chatTwoStyles)
     {
         this.mutable = mutable;
-        this.friendGroups = friendGroups;
         this.chatTwoStyles = chatTwoStyles;
     }
 
@@ -213,11 +211,6 @@ internal sealed class GroupsTab : ISettingsTab
 
     private void DrawFriendGroups()
     {
-        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Sync, Loc.Get("Groups_Friend_Refresh")))
-            friendGroups.Refresh();
-        ImGui.SameLine();
-        ImGuiComponents.HelpMarker(Loc.Get("Groups_Friend_Refresh_Tooltip"));
-
         ImGuiHelpers.ScaledDummy(4f);
 
         using var table = ImRaii.Table("##friendGroups", 5, ImGuiTableFlags.SizingFixedFit);

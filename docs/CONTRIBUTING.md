@@ -14,6 +14,12 @@ policy that applies to every PR.
 - Unit tests need **neither** the game nor XIVLauncher — `dotnet test`
   compiles the Dalamud-free `GobchatEx/Core/` and `GobchatEx/Localization/`
   sources directly.
+- **Chat 2's `local/dev-combined` fork build** — only if you're changing the
+  Chat 2 styling integration (Milestone 3.5: `Chat/ChatTwoStyleProvider.cs`,
+  the ChatTwoTab settings page, or the Debug page's "Chat 2 IPC" tab). Stock
+  released Chat 2 doesn't have the styling IPC yet
+  ([ChatTwo#186](https://github.com/Infiziert90/ChatTwo/issues/186)); every
+  other change needs at most a stock Chat 2 install (or none at all).
 
 ## Commands
 
@@ -45,6 +51,9 @@ layers (`Chat/`, `Windows/`, `Plugin.cs`) stay thin.
 - The Dalamud-facing layer is validated manually: run the in-game smoke test
   in [README → Testing](README.md#testing) for any change touching `Chat/`,
   `Windows/`, or `Plugin.cs`.
+- Debug builds add a Debug settings page (`#if DEBUG`, never in Release) with
+  live exercisers for the range filter and the Chat 2 styling IPC — use it
+  instead of writing throwaway test code for those two surfaces.
 
 ## Code style
 
@@ -61,6 +70,8 @@ conventions:
 - [ ] `dotnet build` succeeds and `dotnet test` is green
 - [ ] New or changed Core logic comes with unit tests
 - [ ] Manual in-game smoke test run if the Dalamud-facing layer changed
+- [ ] Chat 2's `local/dev-combined` fork build tested against if the styling
+      IPC integration changed (Milestone 3.5)
 - [ ] `packages.lock.json` committed if dependencies changed (Plogon requirement)
 - [ ] AI assistance beyond autocomplete disclosed per the
       [AI policy levels](README.md#contributing)

@@ -1,4 +1,4 @@
-# GobchatEx
+# GobchatEx Roleplay Suite
 
 A Dalamud plugin for Final Fantasy XIV via [XIVLauncher](https://github.com/goatcorp/FFXIVQuickLauncher).
 
@@ -42,7 +42,7 @@ and follows Dalamud's language unless overridden.
 ## Commands
 
 - `/gobchat` — Toggles the settings window (also reachable via
-  `/xlplugins` → GobchatEx → ⚙, or the gear in the title bar).
+  `/xlplugins` → GobchatEx Roleplay Suite → ⚙, or the gear in the title bar).
 - `/gobchatex`, `/gex` — Aliases for `/gobchat`.
 - `/gobchat group list` — Prints your custom groups with their indices.
 - `/gobchat group <n|name> <add|remove> Player Name [World]` — Adds or
@@ -107,6 +107,19 @@ highlighted-channels list first, and add a mention trigger word. Then:
    Party).
 7. Rebuild (auto-reload) or toggle the plugin off and on — settings
    persist.
+8. Range tab → enable the range filter with a short fade-out/cut-off, tick
+   Say — have a distant alt say something: the line dims to a darkened
+   step instead of your normal color, and vanishes (still visible, darkest
+   step) once they're beyond the cut-off. Say something that mentions your
+   trigger word from beyond the cut-off — with "mentions ignore range" on,
+   it renders normally instead of dimmed.
+9. Only if testing the Chat 2 styling integration (Milestone 3.5): load
+   Chat 2's `local/dev-combined` fork build, open the ChatTwo tab in
+   settings — it should show connected. Give a custom group a Chat 2
+   background color: a group member's message gets that background in
+   Chat 2's window (not the native log, which can't draw backgrounds).
+   Repeat step 8's distance test with Chat 2 open — messages should fade to
+   true partial transparency there instead of a darkened color step.
 
 ## Contributing
 

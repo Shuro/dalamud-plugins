@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using Dalamud.Game.Command;
 using Dalamud.Game.Gui.ContextMenu;
+using Dalamud.Game.Text;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -36,6 +37,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static INotificationManager NotificationManager { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static IContextMenu ContextMenu { get; private set; } = null!;
+    [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
 
     private const string PrimaryCommand = "/gobchat";
     private const string AliasCommand = "/gobchatex";
@@ -45,6 +47,7 @@ public sealed class Plugin : IDalamudPlugin
     public readonly WindowSystem WindowSystem = new("GobchatEx");
     internal ChatListener ChatListener { get; init; }
     internal FriendGroupLookup FriendGroups { get; } = new();
+    internal FriendListAddonListener FriendListListener { get; init; }
     private ChatTwoContextMenuIntegration ChatTwoIntegration { get; init; }
 #if DEBUG
     internal ChatTwoStyleIpcTester ChatTwoStyleTester { get; init; }
@@ -137,6 +140,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.LanguageChanged += OnLanguageChanged;
 
         ChatListener = new ChatListener(Configuration, FriendGroups);
+        FriendListListener = new FriendListAddonListener(FriendGroups);
         ContextMenu.OnMenuOpened += OnMenuOpened;
         ChatTwoIntegration = new ChatTwoContextMenuIntegration(this);
 
@@ -151,6 +155,7 @@ public sealed class Plugin : IDalamudPlugin
         ChatTwoStyles.Dispose();
         ChatTwoIntegration.Dispose();
         ContextMenu.OnMenuOpened -= OnMenuOpened;
+        FriendListListener.Dispose();
         ChatListener.Dispose();
         WindowSystem.RemoveAllWindows();
 
@@ -186,6 +191,11 @@ public sealed class Plugin : IDalamudPlugin
         {
             Name = Loc.Get("Groups_ContextMenu_SubmenuName"),
             IsSubmenu = true,
+            // Boxed "G" for GobchatEx. Silences Dalamud's "no prefix" warning (ContextMenu.cs falls
+            // back to its own default + logs otherwise).
+            Prefix = SeIconChar.BoxedLetterG,
+            // GobchatEx's own orange accent (see Configuration.DefaultEmoteForeground).
+            PrefixColor = Configuration.DefaultEmoteForeground,
             OnClicked = clicked => OpenGroupSubmenu(clicked, name, world),
         });
     }

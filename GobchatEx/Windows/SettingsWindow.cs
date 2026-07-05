@@ -51,7 +51,7 @@ public class SettingsWindow : Window
     private ISettingsTab currentTab;
 
     public SettingsWindow(Plugin plugin)
-        : base("GobchatEx Settings###GobchatExSettings",
+        : base("GobchatEx Roleplay Suite###GobchatExSettings",
                ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
         this.plugin = plugin;
@@ -84,7 +84,7 @@ public class SettingsWindow : Window
             new NavSection("Settings_Nav_Chat",
             [
                 new MentionsTab(mutable),
-                new GroupsTab(mutable, plugin.FriendGroups, plugin.ChatTwoStyles),
+                new GroupsTab(mutable, plugin.ChatTwoStyles),
                 new RangeTab(mutable, plugin.ChatTwoStyles),
                 new ChatTwoTab(mutable, plugin.ChatTwoStyles),
             ]),

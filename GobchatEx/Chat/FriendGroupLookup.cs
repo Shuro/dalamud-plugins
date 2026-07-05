@@ -9,13 +9,18 @@ namespace GobchatEx.Chat;
 /// service wraps <c>InfoProxyFriendList</c> for plugins, so this reads FFXIVClientStructs directly;
 /// failure (proxy not ready, world row missing) degrades to "no match" rather than throwing. Refreshed
 /// on login, once at plugin load when already logged in (mid-session plugin update / dev auto-reload,
-/// which never fire Login), and via a manual UI button — never per message. Login and ImGui draw
-/// callbacks already run on the framework thread; the plugin-load call site dispatches explicitly
-/// because plugin construction isn't guaranteed to be framework-thread without LoadSync.
+/// which never fire Login), live via <see cref="FriendListAddonListener"/> watching the game's own
+/// FriendList addon, and — in Debug builds only — a manual button on the Debug page's Friend Groups
+/// pane for dev iteration without relogging; never per message. Login and ImGui draw callbacks already
+/// run on the framework thread; the plugin-load call site dispatches explicitly because plugin
+/// construction isn't guaranteed to be framework-thread without LoadSync.
 /// </summary>
 internal sealed class FriendGroupLookup
 {
     private Dictionary<(string Name, string World), int> _index = new();
+
+    /// <summary>Read-only snapshot for the Debug page's Friend Groups pane; not for matching logic.</summary>
+    public IReadOnlyDictionary<(string Name, string World), int> Entries => _index;
 
     public unsafe void Refresh()
     {
