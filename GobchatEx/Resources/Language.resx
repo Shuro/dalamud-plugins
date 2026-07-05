@@ -69,6 +69,10 @@
     <data name="General_MovableWindow_Tooltip"><value>Takes effect after Save.</value></data>
     <data name="General_Language_Name"><value>Language</value></data>
     <data name="General_Language_Tooltip"><value>Changes the language of GobchatEx's own settings window. Does not translate in-game chat text.</value></data>
+    <data name="General_OptionalPlugins_Header"><value>Optional plugins</value></data>
+    <data name="General_OptionalPlugins_Tooltip"><value>Plugins GobchatEx integrates with when they are available.</value></data>
+    <data name="General_ChatTwo_NotInstalled"><value>Chat 2 is not installed or not loaded.</value></data>
+    <data name="General_ChatTwo_NoStyling"><value>Chat 2 is loaded, but this version has no message styling support yet.</value></data>
     <data name="Language_Option_UseDalamudDefault"><value>Use Dalamud's default language</value></data>
 
     <data name="Formatting_TabName"><value>Formatting</value></data>
@@ -178,10 +182,14 @@
     <data name="Groups_FriendGroup_Heart"><value>Heart</value></data>
     <data name="Groups_FriendGroup_Spade"><value>Spade</value></data>
     <data name="Groups_FriendGroup_Club"><value>Club</value></data>
+    <data name="Groups_Column_ChatTwoBackground"><value>Chat 2 background</value></data>
+    <data name="Groups_ChatTwoBackground_Tooltip"><value>Message background color in Chat 2. Right-click to clear.</value></data>
     <data name="Groups_ContextMenu_SubmenuName"><value>Groups</value></data>
     <data name="Groups_ContextMenu_AddTo"><value>Add to {0}</value></data>
     <data name="Groups_ContextMenu_RemoveFrom"><value>Remove from {0}</value></data>
     <data name="Groups_ContextMenu_None"><value>No groups configured yet</value></data>
+
+    <data name="Debug_TabName"><value>Debug</value></data>
 
     <data name="About_TabName"><value>About</value></data>
     <data name="About_Description"><value>GobchatEx highlights roleplay in the native chat log: quoted speech, emotes, OOC and mention trigger words each get their own colors.</value></data>
@@ -203,17 +211,41 @@
     <data name="Placeholder_Logs_Description"><value>Writing chat to log files on disk.</value></data>
     <data name="Placeholder_ComingSoon"><value>Planned for a future release.</value></data>
 
+    <data name="Formatting_Reset_Tooltip"><value>Reset to the default color.</value></data>
+    <data name="Formatting_ImportGame_Tooltip"><value>Import the game's own color for this channel (Character Configuration → Log Text Color), mapped to the closest UIColor row.</value></data>
+
     <data name="Range_TabName"><value>Range filter</value></data>
     <data name="Range_Enable_Name"><value>Fade distant chat</value></data>
-    <data name="Range_Enable_Tooltip"><value>Dims chat from far-away players in steps and hides it entirely beyond the cut-off distance. Distances are measured in yalms at the moment the message arrives.</value></data>
+    <data name="Range_Enable_Tooltip"><value>Dims chat from far-away players in steps, down to a darkest step beyond the cut-off distance. Messages are never removed from the native log; in Chat 2 the filter can use real transparency and hide messages from display only. Distances are measured in yalms at the moment the message arrives.</value></data>
     <data name="Range_FadeOut_Name"><value>Start fading at (yalms)</value></data>
     <data name="Range_FadeOut_Tooltip"><value>Up to this distance, messages stay fully readable; beyond it they darken step by step.</value></data>
-    <data name="Range_CutOff_Name"><value>Hide beyond (yalms)</value></data>
-    <data name="Range_CutOff_Tooltip"><value>Messages from players farther away than this are hidden completely. Set it equal to the fade start for a hard cutoff without fading.</value></data>
+    <data name="Range_CutOff_Name"><value>Cut-off (yalms)</value></data>
+    <data name="Range_CutOff_Tooltip"><value>Beyond this distance messages dim to the darkest step in the native log — never removed, so they stay in the chat history and logs. In Chat 2 they can be hidden from display only. Set it equal to the fade start for a hard transition without fading.</value></data>
     <data name="Range_MentionsIgnore_Name"><value>Mentions ignore the range filter</value></data>
     <data name="Range_MentionsIgnore_Tooltip"><value>A message that mentions you is never faded or hidden, no matter how far away the sender is.</value></data>
     <data name="Range_Channels_Header"><value>Filtered channels</value></data>
     <data name="Range_Channels_Tooltip"><value>Only proximity channels are offered — filtering a server-wide channel by distance would hide messages based on where the sender happens to be standing.</value></data>
+    <data name="Range_ChatTwo_Header"><value>Chat 2</value></data>
+    <data name="Range_ChatTwo_Header_Tooltip"><value>In Chat 2 the range filter can use real per-message transparency instead of the darkened color steps of the native chat log.</value></data>
+    <data name="Range_ChatTwo_Fade_Name"><value>Fade with real transparency</value></data>
+    <data name="Range_ChatTwo_Fade_Tooltip"><value>Messages inside the fade range render with true transparency in Chat 2.</value></data>
+    <data name="Range_ChatTwo_Hide_Name"><value>Hide beyond the cut-off</value></data>
+    <data name="Range_ChatTwo_Hide_Tooltip"><value>Messages beyond the cut-off are hidden in Chat 2 — render-only, they stay in Chat 2's history. When off, they show heavily faded instead.</value></data>
+
+    <data name="ChatTwo_TabName"><value>Tab settings</value></data>
+    <data name="ChatTwo_Status_Connected"><value>Connected to Chat 2's message styling.</value></data>
+    <data name="ChatTwo_Status_NotConnected"><value>Not connected to Chat 2's message styling.</value></data>
+    <data name="ChatTwo_NotConnected_Hint"><value>Requires the Chat 2 plugin with message styling support. Chat 2-only options are disabled until it is available.</value></data>
+    <data name="ChatTwo_NotConnected_Tooltip"><value>Needs a connection to Chat 2's message styling — see the Chat 2 page.</value></data>
+    <data name="ChatTwo_Connect"><value>Connect</value></data>
+    <data name="ChatTwo_Disconnect"><value>Disconnect</value></data>
+    <data name="ChatTwo_Tabs_Header"><value>Chat 2 tabs</value></data>
+    <data name="ChatTwo_Tabs_Header_Tooltip"><value>Choose which styling may apply in each Chat 2 tab. Unchecked features are suppressed there — for example, never hide anything in a tab that should log everything.</value></data>
+    <data name="ChatTwo_Tabs_Empty"><value>No tabs known yet — Chat 2 sends its tab list once connected.</value></data>
+    <data name="ChatTwo_Policy_Column_Tab"><value>Tab</value></data>
+    <data name="ChatTwo_Policy_Column_Backgrounds"><value>Backgrounds</value></data>
+    <data name="ChatTwo_Policy_Column_Fading"><value>Fading</value></data>
+    <data name="ChatTwo_Policy_Column_Hiding"><value>Hiding</value></data>
 
     <data name="ColorPicker_NoRecolor_Tooltip"><value>No recolor. Click to choose a color.</value></data>
     <data name="ColorPicker_Recolor_Tooltip"><value>UIColor row {0}. Right-click to clear.</value></data>

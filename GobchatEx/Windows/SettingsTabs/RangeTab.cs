@@ -5,6 +5,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using GobchatEx.Chat;
 using GobchatEx.Localization;
 
 namespace GobchatEx.Windows.SettingsTabs;
@@ -33,10 +34,12 @@ internal sealed class RangeTab : ISettingsTab
     public FontAwesomeIcon Icon => FontAwesomeIcon.Ruler;
 
     private readonly Configuration mutable;
+    private readonly ChatTwoStyleProvider chatTwoStyles;
 
-    public RangeTab(Configuration mutable)
+    public RangeTab(Configuration mutable, ChatTwoStyleProvider chatTwoStyles)
     {
         this.mutable = mutable;
+        this.chatTwoStyles = chatTwoStyles;
     }
 
     public void Draw()
@@ -60,6 +63,33 @@ internal sealed class RangeTab : ISettingsTab
         ImGuiHelpers.ScaledDummy(10f);
         SettingsUi.SectionHeader(Loc.Get("Range_Channels_Header"), Loc.Get("Range_Channels_Tooltip"));
         DrawChannels();
+
+        ImGuiHelpers.ScaledDummy(10f);
+        SettingsUi.SectionHeader(Loc.Get("Range_ChatTwo_Header"), Loc.Get("Range_ChatTwo_Header_Tooltip"));
+        DrawChatTwoOptions();
+    }
+
+    /// <summary>
+    /// Chat 2 gets true per-message alpha and render-only hiding through the styling IPC; the
+    /// native log always keeps the darkened-step "lite" dimming above. Disabled with a hint while
+    /// the IPC isn't connected (and, via the caller's scope, while the range filter is off).
+    /// </summary>
+    private void DrawChatTwoOptions()
+    {
+        if (!chatTwoStyles.IsConnected)
+            ImGui.TextDisabled(Loc.Get("ChatTwo_NotConnected_Hint"));
+
+        using var disabled = ImRaii.Disabled(!chatTwoStyles.IsConnected);
+
+        var fade = mutable.RangeFilterChatTwoFade;
+        if (SettingsUi.Toggle(Loc.Get("Range_ChatTwo_Fade_Name"), ref fade))
+            mutable.RangeFilterChatTwoFade = fade;
+        ImGuiComponents.HelpMarker(Loc.Get("Range_ChatTwo_Fade_Tooltip"));
+
+        var hide = mutable.RangeFilterChatTwoHide;
+        if (SettingsUi.Toggle(Loc.Get("Range_ChatTwo_Hide_Name"), ref hide))
+            mutable.RangeFilterChatTwoHide = hide;
+        ImGuiComponents.HelpMarker(Loc.Get("Range_ChatTwo_Hide_Tooltip"));
     }
 
     private void DrawDistanceSliders()

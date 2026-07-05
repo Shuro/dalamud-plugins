@@ -61,7 +61,7 @@ public class SettingsWindow : Window
         [
             new NavSection("Settings_Nav_General",
             [
-                new GeneralTab(mutable),
+                new GeneralTab(mutable, plugin.ChatTwoStyles),
                 new PlaceholderTab("Placeholder_Profiles_Name", FontAwesomeIcon.Users,
                     "Placeholder_Profiles_Description"),
                 new PlaceholderTab("Placeholder_Logs_Name", FontAwesomeIcon.FileAlt,
@@ -74,8 +74,9 @@ public class SettingsWindow : Window
             new NavSection("Settings_Nav_Chat",
             [
                 new MentionsTab(mutable),
-                new GroupsTab(mutable, plugin.FriendGroups),
-                new RangeTab(mutable),
+                new GroupsTab(mutable, plugin.FriendGroups, plugin.ChatTwoStyles),
+                new RangeTab(mutable, plugin.ChatTwoStyles),
+                new ChatTwoTab(mutable, plugin.ChatTwoStyles),
             ]),
             new NavSection(null, [new AboutTab()]),
         ];
@@ -238,6 +239,7 @@ public class SettingsWindow : Window
         plugin.Configuration.UpdateFrom(mutable);
         plugin.Configuration.Save();
         plugin.ChatListener.SettingsChanged();
+        plugin.ChatTwoStyles.SettingsChanged();
         plugin.RefreshLanguage();
         mutable.UpdateFrom(plugin.Configuration);
     }

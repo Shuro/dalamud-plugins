@@ -46,6 +46,7 @@ public sealed class Plugin : IDalamudPlugin
     internal ChatListener ChatListener { get; init; }
     internal FriendGroupLookup FriendGroups { get; } = new();
     private ChatTwoContextMenuIntegration ChatTwoIntegration { get; init; }
+    internal ChatTwoStyleProvider ChatTwoStyles { get; init; }
     private SettingsWindow SettingsWindow { get; init; }
 
     public Plugin()
@@ -97,6 +98,9 @@ public sealed class Plugin : IDalamudPlugin
 
         OnLanguageChanged(PluginInterface.UiLanguage);
 
+        // Before SettingsWindow, which hands these to its tabs.
+        ChatTwoStyles = new ChatTwoStyleProvider(Configuration, FriendGroups);
+
         SettingsWindow = new SettingsWindow(this);
         WindowSystem.AddWindow(SettingsWindow);
 
@@ -132,6 +136,7 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
+        ChatTwoStyles.Dispose();
         ChatTwoIntegration.Dispose();
         ContextMenu.OnMenuOpened -= OnMenuOpened;
         ChatListener.Dispose();

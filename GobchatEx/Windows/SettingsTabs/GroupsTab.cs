@@ -26,13 +26,15 @@ internal sealed class GroupsTab : ISettingsTab
 
     private readonly Configuration mutable;
     private readonly FriendGroupLookup friendGroups;
+    private readonly ChatTwoStyleProvider chatTwoStyles;
     private readonly UiColorPicker colorPicker = new();
     private string newGroupName = string.Empty;
 
-    public GroupsTab(Configuration mutable, FriendGroupLookup friendGroups)
+    public GroupsTab(Configuration mutable, FriendGroupLookup friendGroups, ChatTwoStyleProvider chatTwoStyles)
     {
         this.mutable = mutable;
         this.friendGroups = friendGroups;
+        this.chatTwoStyles = chatTwoStyles;
     }
 
     public void Draw()
@@ -84,6 +86,9 @@ internal sealed class GroupsTab : ISettingsTab
             var glow = group.Glow;
             if (colorPicker.Draw("glow", ref glow, glow: true))
                 group.Glow = glow;
+
+            ImGui.SameLine();
+            DrawChatTwoBackgroundEdit(group);
 
             ImGui.SameLine();
             var canRemove = ImGui.GetIO().KeyCtrl && ImGui.GetIO().KeyShift;
@@ -215,7 +220,7 @@ internal sealed class GroupsTab : ISettingsTab
 
         ImGuiHelpers.ScaledDummy(4f);
 
-        using var table = ImRaii.Table("##friendGroups", 4, ImGuiTableFlags.SizingFixedFit);
+        using var table = ImRaii.Table("##friendGroups", 5, ImGuiTableFlags.SizingFixedFit);
         if (!table)
             return;
 
@@ -223,6 +228,7 @@ internal sealed class GroupsTab : ISettingsTab
         ImGui.TableSetupColumn(Loc.Get("Groups_Friend_Column_Name"), ImGuiTableColumnFlags.WidthFixed, 110f * ImGuiHelpers.GlobalScale);
         ImGui.TableSetupColumn(Loc.Get("Formatting_Column_Color"));
         ImGui.TableSetupColumn(Loc.Get("Formatting_Column_Glow"));
+        ImGui.TableSetupColumn(Loc.Get("Groups_Column_ChatTwoBackground"));
 
         foreach (var group in mutable.FriendGroups.OrderBy(g => g.FfGroup))
         {
@@ -247,6 +253,38 @@ internal sealed class GroupsTab : ISettingsTab
             var glow = group.Glow;
             if (colorPicker.Draw("glow", ref glow, glow: true))
                 group.Glow = glow;
+
+            ImGui.TableNextColumn();
+            DrawChatTwoBackgroundEdit(group);
+        }
+    }
+
+    /// <summary>
+    /// Swatch editing <see cref="PlayerGroup.ChatTwoBackground"/> (a literal RGBA value, not a
+    /// UIColor row — Chat 2 draws arbitrary colors). Right-click clears to "no background",
+    /// mirroring UiColorPicker's convention; disabled with a hint while Chat 2's styling IPC
+    /// isn't connected, since only Chat 2 can render it.
+    /// </summary>
+    private void DrawChatTwoBackgroundEdit(PlayerGroup group)
+    {
+        var connected = chatTwoStyles.IsConnected;
+        using (ImRaii.Disabled(!connected))
+        {
+            var background = RgbaColor.ToVector4(group.ChatTwoBackground);
+            if (ImGui.ColorEdit4("##chattwo-bg", ref background,
+                    ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreviewHalf))
+                group.ChatTwoBackground = RgbaColor.FromVector4(background);
+
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && group.ChatTwoBackground != 0)
+                group.ChatTwoBackground = 0;
+        }
+
+        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+        {
+            using (ImRaii.Tooltip())
+                ImGui.TextUnformatted(connected
+                    ? Loc.Get("Groups_ChatTwoBackground_Tooltip")
+                    : Loc.Get("ChatTwo_NotConnected_Tooltip"));
         }
     }
 

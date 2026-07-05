@@ -69,6 +69,10 @@
     <data name="General_MovableWindow_Tooltip"><value>Wird erst nach Speichern wirksam.</value></data>
     <data name="General_Language_Name"><value>Sprache</value></data>
     <data name="General_Language_Tooltip"><value>Ändert die Sprache des GobchatEx-Einstellungsfensters. Übersetzt keinen Chattext im Spiel.</value></data>
+    <data name="General_OptionalPlugins_Header"><value>Optionale Plugins</value></data>
+    <data name="General_OptionalPlugins_Tooltip"><value>Plugins, mit denen GobchatEx zusammenarbeitet, wenn sie verfügbar sind.</value></data>
+    <data name="General_ChatTwo_NotInstalled"><value>Chat 2 ist nicht installiert oder nicht geladen.</value></data>
+    <data name="General_ChatTwo_NoStyling"><value>Chat 2 ist geladen, aber diese Version bietet noch keine Nachrichten-Gestaltung.</value></data>
     <data name="Language_Option_UseDalamudDefault"><value>Dalamuds Standardsprache verwenden</value></data>
 
     <data name="Formatting_TabName"><value>Formatierung</value></data>
@@ -178,10 +182,14 @@
     <data name="Groups_FriendGroup_Heart"><value>Herz</value></data>
     <data name="Groups_FriendGroup_Spade"><value>Pik</value></data>
     <data name="Groups_FriendGroup_Club"><value>Kreuz</value></data>
+    <data name="Groups_Column_ChatTwoBackground"><value>Chat-2-Hintergrund</value></data>
+    <data name="Groups_ChatTwoBackground_Tooltip"><value>Hintergrundfarbe der Nachricht in Chat 2. Rechtsklick zum Zurücksetzen.</value></data>
     <data name="Groups_ContextMenu_SubmenuName"><value>Gruppen</value></data>
     <data name="Groups_ContextMenu_AddTo"><value>Zu {0} hinzufügen</value></data>
     <data name="Groups_ContextMenu_RemoveFrom"><value>Aus {0} entfernen</value></data>
     <data name="Groups_ContextMenu_None"><value>Noch keine Gruppen konfiguriert</value></data>
+
+    <data name="Debug_TabName"><value>Debug</value></data>
 
     <data name="About_TabName"><value>Über</value></data>
     <data name="About_Description"><value>GobchatEx hebt Rollenspiel im normalen Chatverlauf hervor: wörtliche Rede, Emotes, OOC und Erwähnungs-Auslösewörter erhalten jeweils eigene Farben.</value></data>
@@ -203,17 +211,41 @@
     <data name="Placeholder_Logs_Description"><value>Chat in Protokolldateien auf der Festplatte schreiben.</value></data>
     <data name="Placeholder_ComingSoon"><value>Für eine zukünftige Version geplant.</value></data>
 
+    <data name="Formatting_Reset_Tooltip"><value>Auf die Standardfarbe zurücksetzen.</value></data>
+    <data name="Formatting_ImportGame_Tooltip"><value>Übernimmt die Farbe, die das Spiel selbst für diesen Kanal nutzt (Charakterkonfiguration → Log-Textfarbe), abgebildet auf die nächstgelegene UIColor-Zeile.</value></data>
+
     <data name="Range_TabName"><value>Entfernungsfilter</value></data>
     <data name="Range_Enable_Name"><value>Chat entfernter Spieler abblenden</value></data>
-    <data name="Range_Enable_Tooltip"><value>Blendet Chat weit entfernter Spieler stufenweise ab und versteckt ihn jenseits der Ausblende-Entfernung vollständig. Entfernungen werden in Yalms zum Zeitpunkt der Nachricht gemessen.</value></data>
+    <data name="Range_Enable_Tooltip"><value>Blendet Chat weit entfernter Spieler stufenweise ab, jenseits der Grenze bis zur dunkelsten Stufe. Nachrichten werden nie aus dem normalen Chatverlauf entfernt; in Chat 2 kann der Filter echte Transparenz nutzen und Nachrichten nur aus der Anzeige ausblenden. Entfernungen werden in Yalms zum Zeitpunkt der Nachricht gemessen.</value></data>
     <data name="Range_FadeOut_Name"><value>Abblenden ab (Yalms)</value></data>
     <data name="Range_FadeOut_Tooltip"><value>Bis zu dieser Entfernung bleiben Nachrichten voll lesbar; darüber hinaus werden sie stufenweise dunkler.</value></data>
-    <data name="Range_CutOff_Name"><value>Verstecken ab (Yalms)</value></data>
-    <data name="Range_CutOff_Tooltip"><value>Nachrichten von Spielern jenseits dieser Entfernung werden vollständig versteckt. Gleich dem Abblend-Beginn gesetzt ergibt das eine harte Grenze ohne Abblenden.</value></data>
+    <data name="Range_CutOff_Name"><value>Grenze (Yalms)</value></data>
+    <data name="Range_CutOff_Tooltip"><value>Jenseits dieser Entfernung werden Nachrichten im normalen Chatverlauf auf die dunkelste Stufe abgeblendet — nie entfernt, sie bleiben in Verlauf und Protokollen. In Chat 2 können sie nur aus der Anzeige ausgeblendet werden. Gleich dem Abblend-Beginn gesetzt ergibt das einen harten Übergang ohne Abblenden.</value></data>
     <data name="Range_MentionsIgnore_Name"><value>Erwähnungen ignorieren den Filter</value></data>
     <data name="Range_MentionsIgnore_Tooltip"><value>Eine Nachricht, die dich erwähnt, wird nie abgeblendet oder versteckt, egal wie weit der Absender entfernt ist.</value></data>
     <data name="Range_Channels_Header"><value>Gefilterte Kanäle</value></data>
     <data name="Range_Channels_Tooltip"><value>Nur Nähe-Kanäle stehen zur Auswahl — einen serverweiten Kanal nach Entfernung zu filtern würde Nachrichten davon abhängig machen, wo der Absender gerade steht.</value></data>
+    <data name="Range_ChatTwo_Header"><value>Chat 2</value></data>
+    <data name="Range_ChatTwo_Header_Tooltip"><value>In Chat 2 kann der Entfernungsfilter echte Transparenz pro Nachricht nutzen statt der dunkleren Farbstufen des normalen Chatverlaufs.</value></data>
+    <data name="Range_ChatTwo_Fade_Name"><value>Mit echter Transparenz abblenden</value></data>
+    <data name="Range_ChatTwo_Fade_Tooltip"><value>Nachrichten im Abblendbereich werden in Chat 2 mit echter Transparenz dargestellt.</value></data>
+    <data name="Range_ChatTwo_Hide_Name"><value>Jenseits der Grenze verstecken</value></data>
+    <data name="Range_ChatTwo_Hide_Tooltip"><value>Nachrichten jenseits der Ausblende-Entfernung werden in Chat 2 versteckt — nur in der Darstellung, sie bleiben in Chat 2s Verlauf erhalten. Ausgeschaltet erscheinen sie stattdessen stark abgeblendet.</value></data>
+
+    <data name="ChatTwo_TabName"><value>Tab-Einstellungen</value></data>
+    <data name="ChatTwo_Status_Connected"><value>Mit der Nachrichten-Gestaltung von Chat 2 verbunden.</value></data>
+    <data name="ChatTwo_Status_NotConnected"><value>Nicht mit der Nachrichten-Gestaltung von Chat 2 verbunden.</value></data>
+    <data name="ChatTwo_NotConnected_Hint"><value>Benötigt das Chat-2-Plugin mit Unterstützung für Nachrichten-Gestaltung. Chat-2-Optionen sind deaktiviert, bis es verfügbar ist.</value></data>
+    <data name="ChatTwo_NotConnected_Tooltip"><value>Benötigt eine Verbindung zur Nachrichten-Gestaltung von Chat 2 — siehe die Chat-2-Seite.</value></data>
+    <data name="ChatTwo_Connect"><value>Verbinden</value></data>
+    <data name="ChatTwo_Disconnect"><value>Trennen</value></data>
+    <data name="ChatTwo_Tabs_Header"><value>Chat-2-Tabs</value></data>
+    <data name="ChatTwo_Tabs_Header_Tooltip"><value>Legt fest, welche Gestaltung in welchem Chat-2-Tab wirken darf. Abgewählte Funktionen werden dort unterdrückt — zum Beispiel nie etwas in einem Tab verstecken, der alles protokollieren soll.</value></data>
+    <data name="ChatTwo_Tabs_Empty"><value>Noch keine Tabs bekannt — Chat 2 sendet seine Tab-Liste nach dem Verbinden.</value></data>
+    <data name="ChatTwo_Policy_Column_Tab"><value>Tab</value></data>
+    <data name="ChatTwo_Policy_Column_Backgrounds"><value>Hintergründe</value></data>
+    <data name="ChatTwo_Policy_Column_Fading"><value>Abblenden</value></data>
+    <data name="ChatTwo_Policy_Column_Hiding"><value>Verstecken</value></data>
 
     <data name="ColorPicker_NoRecolor_Tooltip"><value>Keine Einfärbung. Klicken, um eine Farbe zu wählen.</value></data>
     <data name="ColorPicker_Recolor_Tooltip"><value>UIColor-Zeile {0}. Rechtsklick zum Zurücksetzen.</value></data>

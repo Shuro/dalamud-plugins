@@ -97,6 +97,13 @@ public class PlayerGroup
     public ushort Foreground { get; set; }
     public ushort Glow { get; set; }
 
+    /// <summary>
+    /// Per-message background color rendered in Chat 2 (0xRRGGBBAA, 0 = none). Chat 2-only: the
+    /// native log can't draw backgrounds, so this only renders through Chat 2's styling IPC
+    /// (Milestone 3.5) and its settings UI is disabled while that IPC isn't connected.
+    /// </summary>
+    public uint ChatTwoBackground { get; set; }
+
     public PlayerGroup Clone() => new()
     {
         Id = Id,
@@ -106,6 +113,7 @@ public class PlayerGroup
         Members = [.. Members], // GroupMember is an immutable record; a shallow copy is a deep copy
         Foreground = Foreground,
         Glow = Glow,
+        ChatTwoBackground = ChatTwoBackground,
     };
 }
 
@@ -222,6 +230,25 @@ public class Configuration : IPluginConfiguration
     [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
     public List<XivChatType> RangeFilterChannels { get; set; } = [.. DefaultRangeFilterChannels];
 
+    // ------------------------------------------------------------------
+    // Chat 2 styling (Milestone 3.5): rendered through Chat 2's message
+    // styling IPC when it is connected; nothing here affects the native
+    // log (which keeps the darkened-step "lite" dimming above). Group
+    // backgrounds live on PlayerGroup.ChatTwoBackground.
+    // ------------------------------------------------------------------
+
+    /// <summary>Range filter renders true per-message alpha in Chat 2 instead of darkened steps.</summary>
+    public bool RangeFilterChatTwoFade { get; set; } = true;
+
+    /// <summary>Range filter hides beyond-cut-off messages in Chat 2 (render-only; they stay in Chat 2's history).</summary>
+    public bool RangeFilterChatTwoHide { get; set; } = true;
+
+    /// <summary>
+    /// Per-Chat 2-tab styling suppression flags (1 = no backgrounds, 2 = no fade, 4 = no hide),
+    /// keyed by Chat 2's persistent tab identifier; tabs without an entry get everything.
+    /// </summary>
+    public Dictionary<Guid, int> ChatTwoTabPolicies { get; set; } = [];
+
     /// <summary>
     /// Copies all user-editable settings from <paramref name="other"/> in
     /// place. Used by the settings window's staged-save model: stage into a
@@ -254,6 +281,9 @@ public class Configuration : IPluginConfiguration
         RangeFilterFadeOut = other.RangeFilterFadeOut;
         RangeFilterMentionsIgnoreRange = other.RangeFilterMentionsIgnoreRange;
         RangeFilterChannels = [.. other.RangeFilterChannels];
+        RangeFilterChatTwoFade = other.RangeFilterChatTwoFade;
+        RangeFilterChatTwoHide = other.RangeFilterChatTwoHide;
+        ChatTwoTabPolicies = new Dictionary<Guid, int>(other.ChatTwoTabPolicies);
     }
 
     /// <summary>

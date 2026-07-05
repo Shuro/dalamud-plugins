@@ -66,5 +66,6 @@ internal sealed class GroupMembershipActions
     {
         plugin.Configuration.Save();
         plugin.ChatListener.SettingsChanged();
+        plugin.ChatTwoStyles.SettingsChanged();
     }
 }
