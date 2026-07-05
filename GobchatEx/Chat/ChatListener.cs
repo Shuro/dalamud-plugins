@@ -41,14 +41,16 @@ public sealed class ChatListener : IDisposable
 
     // Progressively darker grey UIColor rows for the partial-visibility fade steps (native chat
     // has no per-line opacity). Provisional picks from the low grey ramp of the UIColor sheet;
-    // tune during the in-game smoke test if a step is illegible on some chat theme.
-    private static readonly ushort[] FadeStepColors = [3, 4, 5];
+    // tune during the in-game smoke test if a step is illegible on some chat theme. Internal so
+    // the Debug page's range pane can preview and print exactly these rows.
+    internal static readonly ushort[] FadeStepColors = [3, 4, 5];
 
     private static readonly MentionRules NoMentionRules = new([], [], [], FuzzyMatchLevel.Conservative);
 
     // Tells and Echo carry no real sender to group (Echo is local-only, matching IsFromSelf's own
     // reasoning); error messages are game system text. Mirrors the old app's channel exclusion.
-    private static readonly HashSet<XivChatType> GroupingExcludedChannels =
+    // Internal so ChatTwoStyleProvider applies the same exclusion to group backgrounds.
+    internal static readonly HashSet<XivChatType> GroupingExcludedChannels =
         [XivChatType.TellIncoming, XivChatType.TellOutgoing, XivChatType.Echo, XivChatType.ErrorMessage];
 
     internal ChatListener(Configuration config, FriendGroupLookup friendGroups)
@@ -107,7 +109,7 @@ public sealed class ChatListener : IDisposable
         // mention bypass needs to know whether a fading message mentions the player.
         var wantMentions = _config.MentionStyle.Enabled || _config.MentionSoundEnabled
             || (_rangeEnabled && _config.RangeFilterMentionsIgnoreRange);
-        _segmenter = new MessageSegmenter(rules, wantMentions ? BuildMentionRules() : NoMentionRules);
+        _segmenter = new MessageSegmenter(rules, wantMentions ? BuildMentionRules(_config) : NoMentionRules);
 
         BuildGroupRules();
     }
@@ -142,19 +144,21 @@ public sealed class ChatListener : IDisposable
     /// Global trigger words plus the currently logged-in character's resolved mention words (if that
     /// character is remembered and active), ported from the app's RecomputePlayerMentions /
     /// ApplyEffectiveMentions. Player-resolved whole words are unioned into the global list,
-    /// case-insensitive de-duplicated; partial and fuzzy words are player-only.
+    /// case-insensitive de-duplicated; partial and fuzzy words are player-only. Static and internal
+    /// so ChatTwoStyleProvider builds its mention-bypass segmenter from the same rules; reads
+    /// IPlayerState, so callers must be on the framework thread.
     /// </summary>
-    private MentionRules BuildMentionRules()
+    internal static MentionRules BuildMentionRules(Configuration config)
     {
-        var wholeWords = new List<string>(_config.MentionTriggers);
+        var wholeWords = new List<string>(config.MentionTriggers);
         IReadOnlyList<string> partialWords = [];
         IReadOnlyList<string> fuzzyWords = [];
         var fuzzyLevel = FuzzyMatchLevel.Conservative;
 
-        if (_config.PlayerMentionsEnabled && Plugin.PlayerState.IsLoaded)
+        if (config.PlayerMentionsEnabled && Plugin.PlayerState.IsLoaded)
         {
             var playerName = Plugin.PlayerState.CharacterName;
-            var character = _config.Characters.FirstOrDefault(c =>
+            var character = config.Characters.FirstOrDefault(c =>
                 c.Active && string.Equals(c.Name, playerName, StringComparison.OrdinalIgnoreCase));
 
             if (character != null)
@@ -200,49 +204,49 @@ public sealed class ChatListener : IDisposable
 
     private void OnChatMessage(IHandleableChatMessage message)
     {
-        // Range filter first: a suppressed message needs no styling, and a dimmed one renders as
-        // a uniform dark line — highlighting or group-coloring it would defeat the fade.
-        if (ApplyRangeFilter(message))
-            return;
+        // Range outcome first (the distance and mention probe read the raw message), but styling
+        // still runs for dimmed messages — the fade then darkens the styled colors in place
+        // instead of flattening everything to one grey line.
+        var fadeStep = RangeFadeStep(message);
 
         if (_enabled && _channels.Contains(message.LogKind))
             ApplyBodyHighlighting(message);
 
         ApplySenderGroupColor(message);
+
+        if (fadeStep is { } step)
+            ApplyFade(message, step);
     }
 
     /// <summary>
-    /// Fades or suppresses the message by sender distance (Milestone 3). Returns true when the
-    /// message was suppressed or dimmed, i.e. the normal styling passes must be skipped. An
+    /// Distance outcome of the range filter (Milestone 3): null = fully visible, otherwise the
+    /// 0-based fade step to apply after styling. Beyond the cut-off the message gets the darkest
+    /// step instead of being suppressed: PreventOriginal marks a message handled, which drops it
+    /// before the ChatMessageUnhandled consumers see it — Chat 2's history and any event-fed chat
+    /// logger would silently lose it (Chat 2 can still hide it render-only on its side). An
     /// unresolvable sender (not in the object table, e.g. already gone) stays fully visible —
     /// the app's deliberate rule, ported as-is.
     /// </summary>
-    private bool ApplyRangeFilter(IHandleableChatMessage message)
+    private int? RangeFadeStep(IHandleableChatMessage message)
     {
         if (!_rangeEnabled || !_rangeChannels.Contains(message.LogKind))
-            return false;
+            return null;
 
         SenderIdentity.Resolve(message.Sender, out var name, out var world);
         if (SenderDistance.Resolve(name, world) is not { } distance)
-            return false;
+            return null;
 
         var visibility = RangeFade.CalculateVisibility(
             distance, _config.RangeFilterFadeOut, _config.RangeFilterCutOff);
         if (visibility == RangeFade.MaxVisibility)
-            return false;
+            return null;
 
         if (_config.RangeFilterMentionsIgnoreRange && HasMention(message))
-            return false;
+            return null;
 
-        if (visibility == 0)
-        {
-            message.PreventOriginal();
-            return true;
-        }
-
-        var dim = FadeStepColors[RangeFade.FadeStep(visibility, FadeStepColors.Length)];
-        ApplyUniformColor(message, dim);
-        return true;
+        return visibility == 0
+            ? FadeStepColors.Length - 1
+            : RangeFade.FadeStep(visibility, FadeStepColors.Length);
     }
 
     /// <summary>
@@ -260,20 +264,16 @@ public sealed class ChatListener : IDisposable
         return _segmenter.Segment(runTexts)?.HasMention == true;
     }
 
-    /// <summary>Dims sender and body to one flat color — the "darkened step" rendering of a fade.</summary>
-    private static void ApplyUniformColor(IHandleableChatMessage message, ushort foreground)
+    /// <summary>
+    /// Dims sender and body one fade step: colored spans (RP highlighting, group names,
+    /// pre-colored link text) keep their hue via UiColorDimmer's darker-row mapping, text
+    /// outside any color span falls back to the step's flat grey row.
+    /// </summary>
+    private static void ApplyFade(IHandleableChatMessage message, int step)
     {
-        message.Message = new SeString(RecolorAllRuns(message.Message, foreground));
-        message.Sender = new SeString(RecolorAllRuns(message.Sender, foreground));
-    }
-
-    private static List<Payload> RecolorAllRuns(SeString text, ushort foreground)
-    {
-        CollectTextRuns(text.Payloads, out var runIndices, out var runTexts);
-        if (runTexts == null)
-            return text.Payloads;
-
-        return PayloadRewriter.RewriteUniform(text.Payloads, runIndices!, runTexts, (foreground, (ushort)0));
+        var uncolored = FadeStepColors[step];
+        message.Message = new SeString(UiColorDimmer.DimPayloads(message.Message.Payloads, step, uncolored));
+        message.Sender = new SeString(UiColorDimmer.DimPayloads(message.Sender.Payloads, step, uncolored));
     }
 
     private void ApplyBodyHighlighting(IHandleableChatMessage message)
@@ -306,6 +306,9 @@ public sealed class ChatListener : IDisposable
             return;
 
         SenderIdentity.Resolve(message.Sender, out var name, out var world);
+        if (world == null)
+            ResolveWorldlessSender(message, ref name, ref world);
+
         var friendGroupIndex = _friendGroups.TryGetFriendGroupIndex(name, world, out var index) ? index : (int?)null;
 
         var groupId = GroupMatcher.FindGroup(name, world, friendGroupIndex, _groupRules);
@@ -321,6 +324,31 @@ public sealed class ChatListener : IDisposable
 
         var rewritten = PayloadRewriter.RewriteUniform(payloads, runIndices!, runTexts, style);
         message.Sender = new SeString(rewritten);
+    }
+
+    /// <summary>
+    /// Completes a sender that resolved without a world. The local player's own posts are the main
+    /// case: they carry no PlayerPayload (you aren't an interactable sender to yourself), so
+    /// SenderIdentity falls back to raw text — no world suffix, and possibly a party-number prefix
+    /// on the name. A world-qualified group member (the context menu and /gobchat group always store
+    /// one) would then never match; substitute the local player's clean name and home world instead.
+    /// Any other world-less sender is standing on the current world (visitors always render with a
+    /// cross-world suffix), the same fallback FriendGroupLookup.TryGetFriendGroupIndex applies.
+    /// </summary>
+    private static void ResolveWorldlessSender(IHandleableChatMessage message, ref string name, ref string? world)
+    {
+        if (IsFromSelf(message))
+        {
+            var local = Plugin.ObjectTable.LocalPlayer;
+            if (local == null)
+                return;
+
+            name = local.Name.TextValue;
+            world = local.HomeWorld.ValueNullable?.Name.ExtractText();
+            return;
+        }
+
+        world = Plugin.PlayerState.CurrentWorld.ValueNullable?.Name.ExtractText();
     }
 
     /// <summary>
