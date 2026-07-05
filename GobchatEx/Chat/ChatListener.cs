@@ -121,6 +121,13 @@ public sealed class ChatListener : IDisposable
     /// </summary>
     private void BuildGroupRules()
     {
+        if (!_config.GroupsEnabled)
+        {
+            _groupRules = [];
+            _groupStyles = new();
+            return;
+        }
+
         var rules = new List<GroupRule>(_config.Groups.Count + _config.FriendGroups.Count);
         var styles = new Dictionary<string, (ushort Foreground, ushort Glow)>(rules.Capacity);
 
@@ -150,6 +157,9 @@ public sealed class ChatListener : IDisposable
     /// </summary>
     internal static MentionRules BuildMentionRules(Configuration config)
     {
+        if (!config.MentionsEnabled)
+            return NoMentionRules;
+
         var wholeWords = new List<string>(config.MentionTriggers);
         IReadOnlyList<string> partialWords = [];
         IReadOnlyList<string> fuzzyWords = [];

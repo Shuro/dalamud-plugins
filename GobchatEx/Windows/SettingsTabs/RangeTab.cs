@@ -15,7 +15,7 @@ namespace GobchatEx.Windows.SettingsTabs;
 /// hide it beyond the cut-off. The two distance sliders keep fade-start ≤ cut-off between them —
 /// equal values are allowed and mean a hard cutoff with no fade ramp.
 /// </summary>
-internal sealed class RangeTab : ISettingsTab
+internal sealed class RangeTab : IToggleableTab
 {
     private const float MaxDistanceYalms = 100f;
 
@@ -33,6 +33,12 @@ internal sealed class RangeTab : ISettingsTab
     public string Name => Loc.Get("Range_TabName");
     public FontAwesomeIcon Icon => FontAwesomeIcon.Ruler;
 
+    public bool Enabled
+    {
+        get => mutable.RangeFilterEnabled;
+        set => mutable.RangeFilterEnabled = value;
+    }
+
     private readonly Configuration mutable;
     private readonly ChatTwoStyleProvider chatTwoStyles;
 
@@ -44,14 +50,6 @@ internal sealed class RangeTab : ISettingsTab
 
     public void Draw()
     {
-        var enabled = mutable.RangeFilterEnabled;
-        if (SettingsUi.Toggle(Loc.Get("Range_Enable_Name"), ref enabled))
-            mutable.RangeFilterEnabled = enabled;
-        ImGuiComponents.HelpMarker(Loc.Get("Range_Enable_Tooltip"));
-
-        ImGuiHelpers.ScaledDummy(6f);
-        using var disabled = ImRaii.Disabled(!mutable.RangeFilterEnabled);
-
         DrawDistanceSliders();
 
         ImGuiHelpers.ScaledDummy(6f);

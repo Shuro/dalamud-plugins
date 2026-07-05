@@ -17,7 +17,7 @@ namespace GobchatEx.Windows.SettingsTabs;
 /// cross-world linkshells are tucked into collapsed headers so the main
 /// channel grid stays scannable.
 /// </summary>
-internal sealed class FormattingTab : ISettingsTab
+internal sealed class FormattingTab : IToggleableTab
 {
     private static readonly (string LabelKey, XivChatType Type)[] MainChannels =
     [
@@ -62,6 +62,12 @@ internal sealed class FormattingTab : ISettingsTab
 
     public string Name => Loc.Get("Formatting_TabName");
     public FontAwesomeIcon Icon => FontAwesomeIcon.Font;
+
+    public bool Enabled
+    {
+        get => mutable.RpHighlightEnabled;
+        set => mutable.RpHighlightEnabled = value;
+    }
 
     private readonly Configuration mutable;
     private readonly UiColorPicker colorPicker = new();

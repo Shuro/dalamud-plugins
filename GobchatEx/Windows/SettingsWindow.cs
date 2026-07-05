@@ -164,12 +164,15 @@ public class SettingsWindow : Window
     /// <summary>
     /// Nav sizing from actual content: the icon column fits the widest
     /// glyph (some FontAwesome icons exceed the frame height), the rail
-    /// fits icon column + widest label + breathing room.
+    /// fits icon column + widest label + breathing room, plus a toggle
+    /// switch's width when any tab has one (so it never collides with the
+    /// widest label).
     /// </summary>
     private void ComputeNavWidths(out float iconColumnWidth, out float railWidth)
     {
         var widestIcon = 0f;
         var widestLabel = 0f;
+        var hasToggle = false;
 
         using (ImRaii.PushFont(UiBuilder.IconFont))
         {
@@ -179,17 +182,36 @@ public class SettingsWindow : Window
         }
 
         foreach (var section in sections)
+        {
             foreach (var tab in section.Tabs)
+            {
                 widestLabel = Math.Max(widestLabel, ImGui.CalcTextSize(tab.Name).X);
+                hasToggle |= tab is IToggleableTab;
+            }
+        }
 
         // Pad both sides: wide glyphs draw pixels beyond their reported
         // advance, so without slack they get clipped at the cell edge.
         iconColumnWidth = widestIcon + ImGui.GetStyle().ItemInnerSpacing.X * 2f;
         railWidth = iconColumnWidth + widestLabel + 10f * ImGuiHelpers.GlobalScale;
+
+        if (hasToggle)
+        {
+            var toggleWidth = ImGui.GetFrameHeight() * 1.55f; // matches ImGuiComponents.ToggleButton's own width calc
+            railWidth += ImGui.GetStyle().ItemInnerSpacing.X + toggleWidth;
+        }
     }
 
     private void DrawNavRail(float iconColumnWidth)
     {
+        // Row height grows to fit a toggle switch (taller than one text line); icon/label text
+        // is then vertically centered within it. Every row gets this height uniformly, toggle
+        // or not, so the rail doesn't look uneven.
+        var rowHeight = ImGui.GetFrameHeight();
+        var toggleWidth = rowHeight * 1.55f; // matches ImGuiComponents.ToggleButton's own width calc
+        var textOffsetY = (rowHeight - ImGui.GetTextLineHeight()) / 2f;
+        var rowRightX = ImGui.GetCursorPos().X + ImGui.GetContentRegionAvail().X;
+
         for (var sectionIndex = 0; sectionIndex < sections.Count; sectionIndex++)
         {
             var section = sections[sectionIndex];
@@ -202,17 +224,20 @@ public class SettingsWindow : Window
             for (var tabIndex = 0; tabIndex < section.Tabs.Length; tabIndex++)
             {
                 var tab = section.Tabs[tabIndex];
+                var chatTwoUnavailable = tab is ChatTwoTab && !plugin.ChatTwoStyles.IsConnected;
 
-                // Not-yet-implemented pages stay visible but dimmed.
+                // Not-yet-implemented pages and an unavailable Chat 2 tab stay visible but dimmed.
                 using var dim = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3,
-                    tab is PlaceholderTab);
+                    tab is PlaceholderTab || chatTwoUnavailable);
 
-                // Full-width invisible selectable, then icon + label drawn
-                // on top so the whole row is clickable. ID is index-based
-                // (not derived from tab.Name) so it stays stable across a
-                // language switch.
+                // Full-width invisible selectable, then icon + label (and, for toggleable tabs,
+                // a right-aligned switch) drawn on top so the whole row is clickable.
+                // AllowItemOverlap lets the toggle (drawn last, on top) steal the click when
+                // hovered instead of the row switching tabs. ID is index-based (not derived from
+                // tab.Name) so it stays stable across a language switch.
                 var cursor = ImGui.GetCursorPos();
-                if (ImGui.Selectable($"##tab-{sectionIndex}-{tabIndex}", currentTab == tab))
+                if (ImGui.Selectable($"##tab-{sectionIndex}-{tabIndex}", currentTab == tab,
+                        ImGuiSelectableFlags.AllowItemOverlap, new Vector2(0, rowHeight)))
                     currentTab = tab;
 
                 using (ImRaii.PushFont(UiBuilder.IconFont))
@@ -221,13 +246,22 @@ public class SettingsWindow : Window
                     // slack on both sides instead of clipping at the edge.
                     var glyph = tab.Icon.ToIconString();
                     var glyphOffset = (iconColumnWidth - ImGui.CalcTextSize(glyph).X) / 2f;
-                    ImGui.SetCursorPos(new Vector2(cursor.X + glyphOffset, cursor.Y));
+                    ImGui.SetCursorPos(new Vector2(cursor.X + glyphOffset, cursor.Y + textOffsetY));
                     ImGui.TextUnformatted(glyph);
                 }
 
                 ImGui.SameLine();
-                ImGui.SetCursorPosX(cursor.X + iconColumnWidth);
+                ImGui.SetCursorPos(new Vector2(cursor.X + iconColumnWidth, cursor.Y + textOffsetY));
                 ImGui.TextUnformatted(tab.Name);
+
+                if (tab is IToggleableTab toggleable)
+                {
+                    var enabled = toggleable.Enabled;
+                    ImGui.SameLine();
+                    ImGui.SetCursorPos(new Vector2(rowRightX - toggleWidth, cursor.Y));
+                    if (ImGuiComponents.ToggleButton($"##tab-toggle-{sectionIndex}-{tabIndex}", ref enabled))
+                        toggleable.Enabled = enabled;
+                }
             }
         }
     }

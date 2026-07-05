@@ -165,6 +165,13 @@ public class Configuration : IPluginConfiguration
     [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
     public List<XivChatType> HighlightChannels { get; set; } = [.. DefaultHighlightChannels];
 
+    /// <summary>
+    /// Master switch for the whole mentions feature: global trigger words and player-name
+    /// mentions alike. Nested under this is <see cref="PlayerMentionsEnabled"/>, which only
+    /// gates the player-name-derived subset.
+    /// </summary>
+    public bool MentionsEnabled { get; set; } = true;
+
     /// <summary>Case-insensitive whole words that count as mentions.</summary>
     public List<string> MentionTriggers { get; set; } = [];
 
@@ -182,6 +189,9 @@ public class Configuration : IPluginConfiguration
     public int MentionSoundEffect { get; set; } = 2;    // <se.2>
     public int MentionSoundCooldownMs { get; set; } = 5000;
     public bool SuppressSoundFromSelf { get; set; } = true;
+
+    /// <summary>Master switch for the whole groups feature: custom groups and friend groups alike.</summary>
+    public bool GroupsEnabled { get; set; } = true;
 
     /// <summary>Custom player groups (Milestone 2), reorderable, matched by player-name trigger lists.</summary>
     public List<PlayerGroup> Groups { get; set; } = [];
@@ -267,6 +277,7 @@ public class Configuration : IPluginConfiguration
         OocStyle.CopyFrom(other.OocStyle);
         MentionStyle.CopyFrom(other.MentionStyle);
         HighlightChannels = [.. other.HighlightChannels];
+        MentionsEnabled = other.MentionsEnabled;
         MentionTriggers = [.. other.MentionTriggers];
         PlayerMentionsEnabled = other.PlayerMentionsEnabled;
         Characters = [.. other.Characters.Select(c => c.Clone())];
@@ -274,6 +285,7 @@ public class Configuration : IPluginConfiguration
         MentionSoundEffect = other.MentionSoundEffect;
         MentionSoundCooldownMs = other.MentionSoundCooldownMs;
         SuppressSoundFromSelf = other.SuppressSoundFromSelf;
+        GroupsEnabled = other.GroupsEnabled;
         Groups = [.. other.Groups.Select(g => g.Clone())];
         FriendGroups = [.. other.FriendGroups.Select(g => g.Clone())];
         RangeFilterEnabled = other.RangeFilterEnabled;

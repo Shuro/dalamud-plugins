@@ -17,7 +17,7 @@ namespace GobchatEx.Windows.SettingsTabs;
 /// first, then "Global Mentions" trigger words, then per-character "Player
 /// Mentions" (Milestone 1).
 /// </summary>
-internal sealed class MentionsTab : ISettingsTab
+internal sealed class MentionsTab : IToggleableTab
 {
     private static readonly FuzzyMatchLevel[] FuzzyLevels =
     [
@@ -28,6 +28,12 @@ internal sealed class MentionsTab : ISettingsTab
 
     public string Name => Loc.Get("Mentions_TabName");
     public FontAwesomeIcon Icon => FontAwesomeIcon.At;
+
+    public bool Enabled
+    {
+        get => mutable.MentionsEnabled;
+        set => mutable.MentionsEnabled = value;
+    }
 
     private readonly Configuration mutable;
     private string newTrigger = string.Empty;

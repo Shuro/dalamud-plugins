@@ -19,10 +19,16 @@ namespace GobchatEx.Windows.SettingsTabs;
 /// seven fixed friend-list display groups (active/color only, no add/remove/rename). Mirrors
 /// MentionsTab's per-item CollapsingHeader + nested flat-list-editor pattern for custom groups.
 /// </summary>
-internal sealed class GroupsTab : ISettingsTab
+internal sealed class GroupsTab : IToggleableTab
 {
     public string Name => Loc.Get("Groups_TabName");
     public FontAwesomeIcon Icon => FontAwesomeIcon.Users;
+
+    public bool Enabled
+    {
+        get => mutable.GroupsEnabled;
+        set => mutable.GroupsEnabled = value;
+    }
 
     private readonly Configuration mutable;
     private readonly ChatTwoStyleProvider chatTwoStyles;

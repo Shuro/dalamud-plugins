@@ -27,11 +27,6 @@ internal sealed class GeneralTab : ISettingsTab
 
     public void Draw()
     {
-        var enabled = mutable.RpHighlightEnabled;
-        if (SettingsUi.Toggle(Loc.Get("General_RpHighlighting_Name"), ref enabled))
-            mutable.RpHighlightEnabled = enabled;
-        ImGuiComponents.HelpMarker(Loc.Get("General_RpHighlighting_Tooltip"));
-
         var movable = mutable.IsConfigWindowMovable;
         if (SettingsUi.Toggle(Loc.Get("General_MovableWindow_Name"), ref movable))
             mutable.IsConfigWindowMovable = movable;

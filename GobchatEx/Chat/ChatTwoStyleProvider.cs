@@ -320,19 +320,22 @@ internal sealed class ChatTwoStyleProvider : IDisposable
     /// </summary>
     private void RebuildSnapshot()
     {
-        var rules = new List<GroupRule>(_config.Groups.Count + _config.FriendGroups.Count);
-        var backgrounds = new Dictionary<string, uint>(rules.Capacity);
+        var rules = new List<GroupRule>();
+        var backgrounds = new Dictionary<string, uint>();
 
-        foreach (var group in _config.Groups)
+        if (_config.GroupsEnabled)
         {
-            rules.Add(new GroupRule(group.Id, group.Active, FfGroup: null, [.. group.Members]));
-            backgrounds[group.Id] = group.ChatTwoBackground;
-        }
+            foreach (var group in _config.Groups)
+            {
+                rules.Add(new GroupRule(group.Id, group.Active, FfGroup: null, [.. group.Members]));
+                backgrounds[group.Id] = group.ChatTwoBackground;
+            }
 
-        foreach (var group in _config.FriendGroups.OrderBy(g => g.FfGroup))
-        {
-            rules.Add(new GroupRule(group.Id, group.Active, group.FfGroup, Members: []));
-            backgrounds[group.Id] = group.ChatTwoBackground;
+            foreach (var group in _config.FriendGroups.OrderBy(g => g.FfGroup))
+            {
+                rules.Add(new GroupRule(group.Id, group.Active, group.FfGroup, Members: []));
+                backgrounds[group.Id] = group.ChatTwoBackground;
+            }
         }
 
         var rangeActive = _config.RangeFilterEnabled

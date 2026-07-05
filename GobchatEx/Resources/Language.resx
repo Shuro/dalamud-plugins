@@ -63,8 +63,6 @@
         </value>
     </resheader>
     <data name="General_TabName"><value>General</value></data>
-    <data name="General_RpHighlighting_Name"><value>Enable RP highlighting</value></data>
-    <data name="General_RpHighlighting_Tooltip"><value>Colors quoted speech, emotes, OOC and mention words in the native chat log.</value></data>
     <data name="General_MovableWindow_Name"><value>Movable Settings Window</value></data>
     <data name="General_MovableWindow_Tooltip"><value>Takes effect after Save.</value></data>
     <data name="General_Language_Name"><value>Language</value></data>
@@ -213,8 +211,6 @@
     <data name="Formatting_ImportGame_Tooltip"><value>Import the game's own color for this channel (Character Configuration → Log Text Color), mapped to the closest UIColor row.</value></data>
 
     <data name="Range_TabName"><value>Range filter</value></data>
-    <data name="Range_Enable_Name"><value>Fade distant chat</value></data>
-    <data name="Range_Enable_Tooltip"><value>Dims chat from far-away players in steps, down to a darkest step beyond the cut-off distance. Messages are never removed from the native log; in Chat 2 the filter can use real transparency and hide messages from display only. Distances are measured in yalms at the moment the message arrives.</value></data>
     <data name="Range_FadeOut_Name"><value>Start fading at (yalms)</value></data>
     <data name="Range_FadeOut_Tooltip"><value>Up to this distance, messages stay fully readable; beyond it they darken step by step.</value></data>
     <data name="Range_CutOff_Name"><value>Cut-off (yalms)</value></data>

@@ -63,8 +63,6 @@
         </value>
     </resheader>
     <data name="General_TabName"><value>Allgemein</value></data>
-    <data name="General_RpHighlighting_Name"><value>Rollenspiel-Hervorhebung aktivieren</value></data>
-    <data name="General_RpHighlighting_Tooltip"><value>Färbt wörtliche Rede, Emotes, OOC und Erwähnungs-Wörter im normalen Chatverlauf ein.</value></data>
     <data name="General_MovableWindow_Name"><value>Verschiebbares Einstellungsfenster</value></data>
     <data name="General_MovableWindow_Tooltip"><value>Wird erst nach Speichern wirksam.</value></data>
     <data name="General_Language_Name"><value>Sprache</value></data>
@@ -213,8 +211,6 @@
     <data name="Formatting_ImportGame_Tooltip"><value>Übernimmt die Farbe, die das Spiel selbst für diesen Kanal nutzt (Charakterkonfiguration → Log-Textfarbe), abgebildet auf die nächstgelegene UIColor-Zeile.</value></data>
 
     <data name="Range_TabName"><value>Entfernungsfilter</value></data>
-    <data name="Range_Enable_Name"><value>Chat entfernter Spieler abblenden</value></data>
-    <data name="Range_Enable_Tooltip"><value>Blendet Chat weit entfernter Spieler stufenweise ab, jenseits der Grenze bis zur dunkelsten Stufe. Nachrichten werden nie aus dem normalen Chatverlauf entfernt; in Chat 2 kann der Filter echte Transparenz nutzen und Nachrichten nur aus der Anzeige ausblenden. Entfernungen werden in Yalms zum Zeitpunkt der Nachricht gemessen.</value></data>
     <data name="Range_FadeOut_Name"><value>Abblenden ab (Yalms)</value></data>
     <data name="Range_FadeOut_Tooltip"><value>Bis zu dieser Entfernung bleiben Nachrichten voll lesbar; darüber hinaus werden sie stufenweise dunkler.</value></data>
     <data name="Range_CutOff_Name"><value>Grenze (Yalms)</value></data>
