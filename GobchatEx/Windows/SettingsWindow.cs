@@ -78,7 +78,13 @@ public class SettingsWindow : Window
                 new RangeTab(mutable, plugin.ChatTwoStyles),
                 new ChatTwoTab(mutable, plugin.ChatTwoStyles),
             ]),
-            new NavSection(null, [new AboutTab()]),
+            new NavSection(null,
+            [
+#if DEBUG
+                new DebugTab(plugin),
+#endif
+                new AboutTab(),
+            ]),
         ];
         currentTab = sections[0].Tabs[0];
 
@@ -233,6 +239,11 @@ public class SettingsWindow : Window
         if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Times, Loc.Get("Settings_Footer_Cancel")))
             IsOpen = false; // IsWindowAppearing re-stages on next open
 
+#if DEBUG
+        ImGui.SameLine();
+        DrawChatTwoStatus();
+#endif
+
         if (!persist)
             return;
 
@@ -243,4 +254,57 @@ public class SettingsWindow : Window
         plugin.RefreshLanguage();
         mutable.UpdateFrom(plugin.Configuration);
     }
+
+#if DEBUG
+    /// <summary>
+    /// Right corner of the footer, debug builds only: Chat 2 styling connection state plus a
+    /// Connect/Disconnect toggle. Release builds rely on the automatic connect (construction,
+    /// ChatTwo.Available) and read the status from the General page's Optional plugins row; this
+    /// manual override exists for testing. Acts on the live provider immediately (not staged) —
+    /// a connection isn't configuration.
+    /// </summary>
+    private void DrawChatTwoStatus()
+    {
+        var styles = plugin.ChatTwoStyles;
+        var connected = styles.IsConnected;
+        var icon = (connected ? FontAwesomeIcon.Check : FontAwesomeIcon.Times).ToIconString();
+        var buttonLabel = Loc.Get(connected ? "ChatTwo_Disconnect" : "ChatTwo_Connect");
+
+        float iconWidth;
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+            iconWidth = ImGui.CalcTextSize(icon).X;
+
+        var style = ImGui.GetStyle();
+        var totalWidth = ImGui.CalcTextSize("Chat 2").X + style.ItemSpacing.X + iconWidth
+            + style.ItemSpacing.X + ImGui.CalcTextSize(buttonLabel).X + style.FramePadding.X * 2f;
+        var slack = ImGui.GetContentRegionAvail().X - totalWidth;
+        if (slack > 0)
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + slack);
+
+        ImGui.AlignTextToFramePadding();
+        ImGui.TextUnformatted("Chat 2");
+
+        ImGui.SameLine();
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+        {
+            ImGui.AlignTextToFramePadding();
+            ImGui.TextColored(connected ? ImGuiColors.HealerGreen : ImGuiColors.DalamudGrey3, icon);
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            using (ImRaii.Tooltip())
+                ImGui.TextUnformatted(Loc.Get(connected ? "ChatTwo_Status_Connected" : "ChatTwo_Status_NotConnected"));
+        }
+
+        ImGui.SameLine();
+        if (!ImGui.Button(buttonLabel))
+            return;
+
+        if (connected)
+            styles.Disconnect();
+        else
+            styles.Resume();
+    }
+#endif
 }

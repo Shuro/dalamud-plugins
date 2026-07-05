@@ -46,6 +46,9 @@ public sealed class Plugin : IDalamudPlugin
     internal ChatListener ChatListener { get; init; }
     internal FriendGroupLookup FriendGroups { get; } = new();
     private ChatTwoContextMenuIntegration ChatTwoIntegration { get; init; }
+#if DEBUG
+    internal ChatTwoStyleIpcTester ChatTwoStyleTester { get; init; }
+#endif
     internal ChatTwoStyleProvider ChatTwoStyles { get; init; }
     private SettingsWindow SettingsWindow { get; init; }
 
@@ -100,6 +103,12 @@ public sealed class Plugin : IDalamudPlugin
 
         // Before SettingsWindow, which hands these to its tabs.
         ChatTwoStyles = new ChatTwoStyleProvider(Configuration, FriendGroups);
+#if DEBUG
+        // Debug builds only: the styling-IPC exerciser behind the Debug page. It suspends the
+        // production provider while it holds Chat 2's single-provider gate.
+        ChatTwoStyleTester = new ChatTwoStyleIpcTester();
+        ChatTwoStyleTester.ProductionProvider = ChatTwoStyles;
+#endif
 
         SettingsWindow = new SettingsWindow(this);
         WindowSystem.AddWindow(SettingsWindow);
@@ -136,6 +145,9 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
+#if DEBUG
+        ChatTwoStyleTester.Dispose();
+#endif
         ChatTwoStyles.Dispose();
         ChatTwoIntegration.Dispose();
         ContextMenu.OnMenuOpened -= OnMenuOpened;
