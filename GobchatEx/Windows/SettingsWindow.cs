@@ -30,6 +30,16 @@ public class SettingsWindow : Window
     private static readonly Vector4 KofiIconColor = new(1f, 94f / 255f, 91f / 255f, 1f);
 
     /// <summary>
+    /// Keeps Ko-fi left of Dalamud's own pin/clickthrough/blur "options" button (fixed at
+    /// Priority 0, shown only if the player enabled it in Dalamud's settings) instead of an
+    /// unstable tie — per <see cref="TitleBarButton.Priority"/>, lower draws closer to the native
+    /// collapse/close buttons on the right, so Ko-fi needs the higher value to land further left.
+    /// Native collapse (no custom button needed — see the ctor's Flags) sits between the options
+    /// button and Close, giving: Ko-fi, [Dalamud options], collapse, Close.
+    /// </summary>
+    private const int KofiPriority = 10;
+
+    /// <summary>
     /// One nav-rail section: a header above its pages, or a divider when
     /// <paramref name="HeaderKey"/> is null (the app does this before About).
     /// </summary>
@@ -42,7 +52,7 @@ public class SettingsWindow : Window
 
     public SettingsWindow(Plugin plugin)
         : base("GobchatEx Settings###GobchatExSettings",
-               ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoCollapse)
+               ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
         this.plugin = plugin;
 
@@ -93,6 +103,7 @@ public class SettingsWindow : Window
             Icon = FontAwesomeIcon.Heart,
             IconColor = KofiIconColor,
             IconOffset = new Vector2(1.5f, 1f),
+            Priority = KofiPriority,
             Click = _ => Dalamud.Utility.Util.OpenLink(KofiUrl),
             ShowTooltip = () =>
             {
