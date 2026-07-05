@@ -161,6 +161,9 @@ public class SettingsWindow : Window
         DrawFooter();
     }
 
+    /// <summary>Matches <see cref="ImGuiComponents.ToggleButton"/>'s own width calc.</summary>
+    private static float ToggleWidth() => ImGui.GetFrameHeight() * 1.55f;
+
     /// <summary>
     /// Nav sizing from actual content: the icon column fits the widest
     /// glyph (some FontAwesome icons exceed the frame height), the rail
@@ -196,10 +199,7 @@ public class SettingsWindow : Window
         railWidth = iconColumnWidth + widestLabel + 10f * ImGuiHelpers.GlobalScale;
 
         if (hasToggle)
-        {
-            var toggleWidth = ImGui.GetFrameHeight() * 1.55f; // matches ImGuiComponents.ToggleButton's own width calc
-            railWidth += ImGui.GetStyle().ItemInnerSpacing.X + toggleWidth;
-        }
+            railWidth += ImGui.GetStyle().ItemInnerSpacing.X + ToggleWidth();
     }
 
     private void DrawNavRail(float iconColumnWidth)
@@ -208,7 +208,7 @@ public class SettingsWindow : Window
         // is then vertically centered within it. Every row gets this height uniformly, toggle
         // or not, so the rail doesn't look uneven.
         var rowHeight = ImGui.GetFrameHeight();
-        var toggleWidth = rowHeight * 1.55f; // matches ImGuiComponents.ToggleButton's own width calc
+        var toggleWidth = ToggleWidth();
         var textOffsetY = (rowHeight - ImGui.GetTextLineHeight()) / 2f;
         var rowRightX = ImGui.GetCursorPos().X + ImGui.GetContentRegionAvail().X;
 
