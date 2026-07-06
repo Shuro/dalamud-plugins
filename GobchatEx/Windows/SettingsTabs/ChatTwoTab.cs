@@ -22,10 +22,10 @@ internal sealed class ChatTwoTab : ISettingsTab
     public string Name => Loc.Get("ChatTwo_TabName");
     public FontAwesomeIcon Icon => FontAwesomeIcon.CommentDots;
 
-    private readonly Configuration config;
+    private readonly TabsConfig config;
     private readonly ChatTwoStyleProvider chatTwoStyles;
 
-    public ChatTwoTab(Configuration config, ChatTwoStyleProvider chatTwoStyles)
+    public ChatTwoTab(TabsConfig config, ChatTwoStyleProvider chatTwoStyles)
     {
         this.config = config;
         this.chatTwoStyles = chatTwoStyles;

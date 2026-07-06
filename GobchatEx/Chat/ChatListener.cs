@@ -90,27 +90,27 @@ public sealed class ChatListener : IDisposable
     /// <summary>Call after any configuration change (and Save()).</summary>
     public void SettingsChanged()
     {
-        _enabled = _config.RpHighlightEnabled;
-        _channels = [.. _config.HighlightChannels];
+        _enabled = _config.Formatting.RpHighlightEnabled;
+        _channels = [.. _config.Formatting.HighlightChannels];
         _styles = new Dictionary<SegmentType, (ushort, ushort)>
         {
-            [SegmentType.Say] = StyleTuple(_config.SayStyle),
-            [SegmentType.Emote] = StyleTuple(_config.EmoteStyle),
-            [SegmentType.Ooc] = StyleTuple(_config.OocStyle),
-            [SegmentType.Mention] = StyleTuple(_config.MentionStyle),
+            [SegmentType.Say] = StyleTuple(_config.Formatting.SayStyle),
+            [SegmentType.Emote] = StyleTuple(_config.Formatting.EmoteStyle),
+            [SegmentType.Ooc] = StyleTuple(_config.Formatting.OocStyle),
+            [SegmentType.Mention] = StyleTuple(_config.Formatting.MentionStyle),
         };
 
         var rules = DefaultRules.All.Where(rule => StyleFor(rule.Type).Enabled).ToList();
 
-        _rangeEnabled = _config.RangeFilterEnabled;
-        _rangeChannels = [.. _config.RangeFilterChannels];
+        _rangeEnabled = _config.RangeFilter.RangeFilterEnabled;
+        _rangeChannels = [.. _config.RangeFilter.RangeFilterChannels];
 
         // Mention detection also runs highlight-disabled when the sound alert needs it (the
         // rewriter then renders those spans plain via (0, 0)) or when the range filter's
         // mention bypass needs to know whether a fading message mentions the player.
-        var wantMentions = _config.MentionStyle.Enabled || _config.MentionSoundEnabled
-            || (_rangeEnabled && _config.RangeFilterMentionsIgnoreRange);
-        _segmenter = new MessageSegmenter(rules, wantMentions ? BuildMentionRules(_config) : NoMentionRules);
+        var wantMentions = _config.Formatting.MentionStyle.Enabled || _config.Mentions.MentionSoundEnabled
+            || (_rangeEnabled && _config.RangeFilter.RangeFilterMentionsIgnoreRange);
+        _segmenter = new MessageSegmenter(rules, wantMentions ? BuildMentionRules(_config.Mentions) : NoMentionRules);
 
         BuildGroupRules();
     }
@@ -122,23 +122,23 @@ public sealed class ChatListener : IDisposable
     /// </summary>
     private void BuildGroupRules()
     {
-        if (!_config.GroupsEnabled)
+        if (!_config.Groups.GroupsEnabled)
         {
             _groupRules = [];
             _groupStyles = new();
             return;
         }
 
-        var rules = new List<GroupRule>(_config.Groups.Count + _config.FriendGroups.Count);
+        var rules = new List<GroupRule>(_config.Groups.Groups.Count + _config.Groups.FriendGroups.Count);
         var styles = new Dictionary<string, (ushort Foreground, ushort Glow)>(rules.Capacity);
 
-        foreach (var group in _config.Groups)
+        foreach (var group in _config.Groups.Groups)
         {
             rules.Add(new GroupRule(group.Id, group.Active, FfGroup: null, group.Members));
             styles[group.Id] = (group.Foreground, group.Glow);
         }
 
-        foreach (var group in _config.FriendGroups.OrderBy(g => g.FfGroup))
+        foreach (var group in _config.Groups.FriendGroups.OrderBy(g => g.FfGroup))
         {
             rules.Add(new GroupRule(group.Id, group.Active, group.FfGroup, Members: []));
             styles[group.Id] = (group.Foreground, group.Glow);
@@ -156,7 +156,7 @@ public sealed class ChatListener : IDisposable
     /// so ChatTwoStyleProvider builds its mention-bypass segmenter from the same rules; reads
     /// IPlayerState, so callers must be on the framework thread.
     /// </summary>
-    internal static MentionRules BuildMentionRules(Configuration config)
+    internal static MentionRules BuildMentionRules(MentionsConfig config)
     {
         if (!config.MentionsEnabled)
             return NoMentionRules;
@@ -207,10 +207,10 @@ public sealed class ChatListener : IDisposable
     private SegmentStyle StyleFor(SegmentType type)
         => type switch
         {
-            SegmentType.Say => _config.SayStyle,
-            SegmentType.Emote => _config.EmoteStyle,
-            SegmentType.Ooc => _config.OocStyle,
-            _ => _config.MentionStyle,
+            SegmentType.Say => _config.Formatting.SayStyle,
+            SegmentType.Emote => _config.Formatting.EmoteStyle,
+            SegmentType.Ooc => _config.Formatting.OocStyle,
+            _ => _config.Formatting.MentionStyle,
         };
 
     private void OnChatMessage(IHandleableChatMessage message)
@@ -248,11 +248,11 @@ public sealed class ChatListener : IDisposable
             return null;
 
         var visibility = RangeFade.CalculateVisibility(
-            distance, _config.RangeFilterFadeOut, _config.RangeFilterCutOff);
+            distance, _config.RangeFilter.RangeFilterFadeOut, _config.RangeFilter.RangeFilterCutOff);
         if (visibility == RangeFade.MaxVisibility)
             return null;
 
-        if (_config.RangeFilterMentionsIgnoreRange && HasMention(message))
+        if (_config.RangeFilter.RangeFilterMentionsIgnoreRange && HasMention(message))
             return null;
 
         return visibility == 0
@@ -387,12 +387,12 @@ public sealed class ChatListener : IDisposable
 
     private void TryPlayMentionSound(IHandleableChatMessage message)
     {
-        if (!_config.MentionSoundEnabled)
+        if (!_config.Mentions.MentionSoundEnabled)
             return;
-        if (_config.SuppressSoundFromSelf && IsFromSelf(message))
+        if (_config.Mentions.SuppressSoundFromSelf && IsFromSelf(message))
             return;
 
-        _soundPlayer.TryPlay(_config.MentionSoundEffect, _config.MentionSoundCooldownMs);
+        _soundPlayer.TryPlay(_config.Mentions.MentionSoundEffect, _config.Mentions.MentionSoundCooldownMs);
     }
 
     /// <summary>

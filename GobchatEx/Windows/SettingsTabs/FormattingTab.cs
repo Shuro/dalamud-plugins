@@ -70,10 +70,10 @@ internal sealed class FormattingTab : IToggleableTab
         set => config.RpHighlightEnabled = value;
     }
 
-    private readonly Configuration config;
+    private readonly FormattingConfig config;
     private readonly UiColorPicker colorPicker = new();
 
-    public FormattingTab(Configuration config)
+    public FormattingTab(FormattingConfig config)
     {
         this.config = config;
     }
@@ -106,13 +106,13 @@ internal sealed class FormattingTab : IToggleableTab
         // import the color the game itself uses for their channel (pattern from Chat 2's Chat
         // colours page); the other segments have no game channel equivalent.
         DrawSegmentRow("Formatting_Segment_Say", config.SayStyle, "\"…\"  „…“  «…»",
-            Configuration.DefaultSayForeground, UiConfigOption.ColorSay);
+            FormattingConfig.DefaultSayForeground, UiConfigOption.ColorSay);
         DrawSegmentRow("Formatting_Segment_Emote", config.EmoteStyle, "*…*  <…>",
-            Configuration.DefaultEmoteForeground, UiConfigOption.ColorEmoteUser);
+            FormattingConfig.DefaultEmoteForeground, UiConfigOption.ColorEmoteUser);
         DrawSegmentRow("Formatting_Segment_Ooc", config.OocStyle, "((…))",
-            Configuration.DefaultOocForeground, importOption: null);
+            FormattingConfig.DefaultOocForeground, importOption: null);
         DrawSegmentRow("Formatting_Segment_Mention", config.MentionStyle, Loc.Get("Formatting_Segment_Mention_Delimiters"),
-            Configuration.DefaultMentionForeground, importOption: null);
+            FormattingConfig.DefaultMentionForeground, importOption: null);
     }
 
     private void DrawSegmentRow(
@@ -209,7 +209,7 @@ internal sealed class FormattingTab : IToggleableTab
         ImGuiHelpers.ScaledDummy(2f);
         if (SettingsUi.DangerButton(FontAwesomeIcon.Undo, Loc.Get("Formatting_Channels_ResetDefaults"),
                 Loc.Get("Formatting_Channels_ResetDefaults_Tooltip")))
-            config.HighlightChannels = [.. Configuration.DefaultHighlightChannels];
+            config.HighlightChannels = [.. FormattingConfig.DefaultHighlightChannels];
     }
 
     private void DrawChannelGrid(string id, (string LabelKey, XivChatType Type)[] choices)

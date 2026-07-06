@@ -131,7 +131,7 @@ internal sealed class ChatTwoContextMenuIntegration : IDisposable
         if (!menu.Success)
             return;
 
-        if (plugin.Configuration.Groups.Count == 0)
+        if (plugin.Configuration.Groups.Groups.Count == 0)
         {
             using (ImRaii.Disabled(true))
                 ImGui.Selectable(Loc.Get("Groups_ContextMenu_None"));
@@ -140,7 +140,7 @@ internal sealed class ChatTwoContextMenuIntegration : IDisposable
 
         var actions = new GroupMembershipActions(plugin, name, world);
 
-        foreach (var group in plugin.Configuration.Groups)
+        foreach (var group in plugin.Configuration.Groups.Groups)
         {
             var inGroup = actions.IsInGroup(group);
             var label = inGroup

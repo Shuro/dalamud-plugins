@@ -31,12 +31,12 @@ internal sealed class GroupsTab : IToggleableTab
         set => config.GroupsEnabled = value;
     }
 
-    private readonly Configuration config;
+    private readonly GroupsConfig config;
     private readonly ChatTwoStyleProvider chatTwoStyles;
     private readonly UiColorPicker colorPicker = new();
     private string newGroupName = string.Empty;
 
-    public GroupsTab(Configuration config, ChatTwoStyleProvider chatTwoStyles)
+    public GroupsTab(GroupsConfig config, ChatTwoStyleProvider chatTwoStyles)
     {
         this.config = config;
         this.chatTwoStyles = chatTwoStyles;

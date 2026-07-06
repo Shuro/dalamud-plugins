@@ -58,10 +58,11 @@ public class SettingsWindow : Window
     private ISettingsTab currentTab;
 
     /// <summary>
-    /// JSON snapshot of the configuration as of the last commit — the
-    /// change-detection baseline for <see cref="CommitIfChanged"/>.
+    /// Per-section JSON snapshots of the configuration as of the last commit,
+    /// parallel to <see cref="Configuration.Sections"/> — the change-detection
+    /// baseline for <see cref="CommitIfChanged"/>.
     /// </summary>
-    private string lastPersistedJson;
+    private string[] lastPersisted;
     private long nextCommitCheck;
 
     /// <summary>
@@ -88,13 +89,13 @@ public class SettingsWindow : Window
         Size = new Vector2(600, 500);
         SizeCondition = ImGuiCond.FirstUseEver;
 
-        lastPersistedJson = plugin.Configuration.ToJson();
+        lastPersisted = SnapshotSections();
 
         sections =
         [
             new NavSection("Settings_Nav_General",
             [
-                new GeneralTab(plugin.Configuration, plugin.ChatTwoStyles),
+                new GeneralTab(plugin.Configuration.General, plugin.ChatTwoStyles),
                 new PlaceholderTab("Placeholder_Profiles_Name", FontAwesomeIcon.Users,
                     "Placeholder_Profiles_Description"),
                 new PlaceholderTab("Placeholder_Logs_Name", FontAwesomeIcon.FileAlt,
@@ -102,14 +103,14 @@ public class SettingsWindow : Window
             ]),
             new NavSection("Settings_Nav_Appearance",
             [
-                new FormattingTab(plugin.Configuration),
+                new FormattingTab(plugin.Configuration.Formatting),
             ]),
             new NavSection("Settings_Nav_Chat",
             [
-                new MentionsTab(plugin.Configuration),
-                new GroupsTab(plugin.Configuration, plugin.ChatTwoStyles),
-                new RangeTab(plugin.Configuration, plugin.ChatTwoStyles),
-                new ChatTwoTab(plugin.Configuration, plugin.ChatTwoStyles),
+                new MentionsTab(plugin.Configuration.Mentions),
+                new GroupsTab(plugin.Configuration.Groups, plugin.ChatTwoStyles),
+                new RangeTab(plugin.Configuration.RangeFilter, plugin.ChatTwoStyles),
+                new ChatTwoTab(plugin.Configuration.Tabs, plugin.ChatTwoStyles),
             ]),
             new NavSection(null,
             [
@@ -151,7 +152,7 @@ public class SettingsWindow : Window
         if (rebaseline)
         {
             rebaseline = false;
-            lastPersistedJson = plugin.Configuration.ToJson();
+            lastPersisted = SnapshotSections();
             nextCommitCheck = now + CommitDebounceMs;
             return;
         }
@@ -173,24 +174,46 @@ public class SettingsWindow : Window
     /// <summary>
     /// Instant-apply core: tabs (and the nav rail's toggles) write straight
     /// to the live configuration, and this detects those edits by comparing
-    /// a JSON snapshot against the last-committed one — one mechanism for
-    /// every widget, no per-site change plumbing. On a change: persist
-    /// (reusing the snapshot), rebuild the chat pipeline and Chat 2 styling,
-    /// and re-resolve the UI language. The baseline advances even if the
-    /// disk write failed (Save logs and swallows I/O errors) — the in-memory
-    /// apply has already happened either way.
+    /// per-section JSON snapshots against the last-committed ones — one
+    /// mechanism for every widget, no per-site change plumbing. On a change:
+    /// persist only the section files that changed (reusing their snapshots),
+    /// then rebuild the chat pipeline and Chat 2 styling and re-resolve the
+    /// UI language once. The baseline advances even if a disk write failed
+    /// (SaveSection logs and swallows I/O errors) — the in-memory apply has
+    /// already happened either way.
     /// </summary>
     internal void CommitIfChanged()
     {
-        var json = plugin.Configuration.ToJson();
-        if (json == lastPersistedJson)
+        var sections = plugin.Configuration.Sections;
+        var changed = false;
+
+        for (var i = 0; i < sections.Length; i++)
+        {
+            var json = Configuration.Serialize(sections[i].Section);
+            if (json == lastPersisted[i])
+                continue;
+
+            Configuration.SaveSection(sections[i].FileName, json);
+            lastPersisted[i] = json;
+            changed = true;
+        }
+
+        if (!changed)
             return;
 
-        plugin.Configuration.Save(json);
         plugin.ChatListener.SettingsChanged();
         plugin.ChatTwoStyles.SettingsChanged();
         plugin.RefreshLanguage();
-        lastPersistedJson = json;
+    }
+
+    /// <summary>One change-detection snapshot per section, parallel to <see cref="Configuration.Sections"/>.</summary>
+    private string[] SnapshotSections()
+    {
+        var sections = plugin.Configuration.Sections;
+        var snapshot = new string[sections.Length];
+        for (var i = 0; i < sections.Length; i++)
+            snapshot[i] = Configuration.Serialize(sections[i].Section);
+        return snapshot;
     }
 
     public override void Draw()

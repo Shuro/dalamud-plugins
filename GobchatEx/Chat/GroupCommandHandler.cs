@@ -94,12 +94,12 @@ internal static class GroupCommandHandler
     {
         if (int.TryParse(locatorText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var idx))
         {
-            return idx >= 1 && idx <= plugin.Configuration.Groups.Count
-                ? plugin.Configuration.Groups[idx - 1]
+            return idx >= 1 && idx <= plugin.Configuration.Groups.Groups.Count
+                ? plugin.Configuration.Groups.Groups[idx - 1]
                 : null;
         }
 
-        return plugin.Configuration.Groups
+        return plugin.Configuration.Groups.Groups
             .FirstOrDefault(g => g.Name.Equals(locatorText, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -137,7 +137,7 @@ internal static class GroupCommandHandler
 
     private static void ListGroups(Plugin plugin)
     {
-        var groups = plugin.Configuration.Groups;
+        var groups = plugin.Configuration.Groups.Groups;
         if (groups.Count == 0)
         {
             Plugin.ChatGui.Print(Loc.Get("Commands_Group_ListEmpty"));

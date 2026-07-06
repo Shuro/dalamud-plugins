@@ -47,10 +47,10 @@ internal sealed class RangeTab : IToggleableTab
         set => config.RangeFilterEnabled = value;
     }
 
-    private readonly Configuration config;
+    private readonly RangeFilterConfig config;
     private readonly ChatTwoStyleProvider chatTwoStyles;
 
-    public RangeTab(Configuration config, ChatTwoStyleProvider chatTwoStyles)
+    public RangeTab(RangeFilterConfig config, ChatTwoStyleProvider chatTwoStyles)
     {
         this.config = config;
         this.chatTwoStyles = chatTwoStyles;

@@ -9,7 +9,7 @@ namespace GobchatEx.Chat;
 /// Shared add/remove/membership-check logic for one player against a custom group's member list, used
 /// by the slash command, the native right-click context menu, and the Chat 2 IPC integration alike.
 /// Bound to one (name, world) pair at construction (the right-clicked or /gobchat-group-targeted
-/// player); callers iterate <see cref="Configuration.Groups"/> and pass each <see cref="PlayerGroup"/>
+/// player); callers iterate <see cref="GroupsConfig.Groups"/> and pass each <see cref="PlayerGroup"/>
 /// in turn. Mutates the live <see cref="Plugin.Configuration"/> directly and persists + applies via
 /// <see cref="Persist"/> — the same instance the settings window edits, so there is no conflict if
 /// the window happens to be open (its instant-apply commit would just re-save the same state).

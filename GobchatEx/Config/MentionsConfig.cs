@@ -1,0 +1,36 @@
+using System;
+using System.Collections.Generic;
+
+namespace GobchatEx.Config;
+
+/// <summary>Mention settings (Milestone 1), persisted to mentions.json.</summary>
+[Serializable]
+public class MentionsConfig
+{
+    public int Version { get; set; } = 1;
+
+    /// <summary>
+    /// Master switch for the whole mentions feature: global trigger words and player-name
+    /// mentions alike. Nested under this is <see cref="PlayerMentionsEnabled"/>, which only
+    /// gates the player-name-derived subset.
+    /// </summary>
+    public bool MentionsEnabled { get; set; } = true;
+
+    /// <summary>Case-insensitive whole words that count as mentions.</summary>
+    public List<string> MentionTriggers { get; set; } = [];
+
+    /// <summary>
+    /// Master switch for player-name mentions (Milestone 1). Characters are
+    /// auto-learned at login but added inactive; this only gates whether
+    /// any of them are matched at all.
+    /// </summary>
+    public bool PlayerMentionsEnabled { get; set; } = true;
+
+    /// <summary>Remembered characters and their per-character mention settings.</summary>
+    public List<CharacterMentionSettings> Characters { get; set; } = [];
+
+    public bool MentionSoundEnabled { get; set; }
+    public int MentionSoundEffect { get; set; } = 2;    // <se.2>
+    public int MentionSoundCooldownMs { get; set; } = 5000;
+    public bool SuppressSoundFromSelf { get; set; } = true;
+}

@@ -59,49 +59,6 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin()
     {
         Configuration = Configuration.Load();
-        if (Configuration.Version < 1)
-        {
-            // v0 → v1: the RP-highlighting fields are new and simply take
-            // their defaults; nothing to transform.
-            Configuration.Version = 1;
-            Configuration.Save();
-        }
-
-        if (Configuration.Version < 2)
-        {
-            // v1 → v2: HighlightChannels could have accumulated duplicate entries from a Json.NET
-            // ObjectCreationHandling.Reuse deserialization bug (now fixed by the [JsonProperty]
-            // attribute in Configuration.cs) — collapse any duplicates already baked into a saved
-            // config.
-            Configuration.HighlightChannels = [.. Configuration.HighlightChannels.Distinct()];
-            Configuration.Version = 2;
-            Configuration.Save();
-        }
-
-        if (Configuration.Version < 3)
-        {
-            // v2 → v3: seed the game's 7 fixed friend-display groups (Milestone 2). Custom Groups start
-            // empty; users create those themselves in the Groups tab.
-            Configuration.FriendGroups = Configuration.CreateDefaultFriendGroups();
-            Configuration.Version = 3;
-            Configuration.Save();
-        }
-
-        if (Configuration.Version < 5)
-        {
-            // v3 → v5: new default segment colors (Say soft-white 549, Emote orange 500, OOC
-            // grey 4; Mention keeps 48). Only values still on the old defaults move — customized
-            // colors stay untouched. Version 4 was a short-lived dev-only numbering (2026-07-05)
-            // and is deliberately skipped.
-            if (Configuration.SayStyle.Foreground == 1)
-                Configuration.SayStyle.Foreground = 549;
-            if (Configuration.EmoteStyle.Foreground == 45)
-                Configuration.EmoteStyle.Foreground = 500;
-            if (Configuration.OocStyle.Foreground == 500)
-                Configuration.OocStyle.Foreground = 4;
-            Configuration.Version = 5;
-            Configuration.Save();
-        }
 
         OnLanguageChanged(PluginInterface.UiLanguage);
 
@@ -208,8 +165,8 @@ public sealed class Plugin : IDalamudPlugin
             // Boxed "G" for GobchatEx. Silences Dalamud's "no prefix" warning (ContextMenu.cs falls
             // back to its own default + logs otherwise).
             Prefix = SeIconChar.BoxedLetterG,
-            // GobchatEx's own orange accent (see Configuration.DefaultEmoteForeground).
-            PrefixColor = Configuration.DefaultEmoteForeground,
+            // GobchatEx's own orange accent (see FormattingConfig.DefaultEmoteForeground).
+            PrefixColor = FormattingConfig.DefaultEmoteForeground,
             OnClicked = clicked => OpenGroupSubmenu(clicked, name, world),
         });
     }
@@ -219,7 +176,7 @@ public sealed class Plugin : IDalamudPlugin
         // OpenSubmenu throws if given an empty list, so a disabled placeholder stands in for "no
         // groups configured yet" instead of just not offering the "Groups" entry at all — that way the
         // feature is discoverable (and its presence proves the hook fired) before any group exists.
-        if (Configuration.Groups.Count == 0)
+        if (Configuration.Groups.Groups.Count == 0)
         {
             clicked.OpenSubmenu(Loc.Get("Groups_ContextMenu_SubmenuName"),
                 [new MenuItem { Name = Loc.Get("Groups_ContextMenu_None"), IsEnabled = false }]);
@@ -227,9 +184,9 @@ public sealed class Plugin : IDalamudPlugin
         }
 
         var actions = new GroupMembershipActions(this, name, world);
-        var items = new List<IMenuItem>(Configuration.Groups.Count);
+        var items = new List<IMenuItem>(Configuration.Groups.Groups.Count);
 
-        foreach (var group in Configuration.Groups)
+        foreach (var group in Configuration.Groups.Groups)
         {
             var inGroup = actions.IsInGroup(group);
             items.Add(new MenuItem
@@ -272,14 +229,14 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnLanguageChanged(string langCode)
     {
-        var culture = Configuration.LanguageOverride is LanguageOverride.None
+        var culture = Configuration.General.LanguageOverride is LanguageOverride.None
             ? new CultureInfo(langCode)
-            : new CultureInfo(Configuration.LanguageOverride.Code());
+            : new CultureInfo(Configuration.General.LanguageOverride.Code());
         Loc.Culture = culture;
     }
 
     /// <summary>
-    /// Re-resolves Loc.Culture from the current Configuration.LanguageOverride
+    /// Re-resolves Loc.Culture from the current Configuration.General.LanguageOverride
     /// and Dalamud's own UI language. Call after any save that could have
     /// changed LanguageOverride (SettingsWindow's commit).
     /// </summary>

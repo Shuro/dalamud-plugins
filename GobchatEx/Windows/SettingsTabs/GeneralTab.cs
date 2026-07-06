@@ -17,10 +17,10 @@ internal sealed class GeneralTab : ISettingsTab
     public string Name => Loc.Get("General_TabName");
     public FontAwesomeIcon Icon => FontAwesomeIcon.Cog;
 
-    private readonly Configuration config;
+    private readonly GeneralConfig config;
     private readonly ChatTwoStyleProvider chatTwoStyles;
 
-    public GeneralTab(Configuration config, ChatTwoStyleProvider chatTwoStyles)
+    public GeneralTab(GeneralConfig config, ChatTwoStyleProvider chatTwoStyles)
     {
         this.config = config;
         this.chatTwoStyles = chatTwoStyles;

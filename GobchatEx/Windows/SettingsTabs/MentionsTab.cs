@@ -36,11 +36,11 @@ internal sealed class MentionsTab : IToggleableTab
         set => config.MentionsEnabled = value;
     }
 
-    private readonly Configuration config;
+    private readonly MentionsConfig config;
     private string newTrigger = string.Empty;
     private readonly Dictionary<string, string> newCustomWordByCharacter = new(StringComparer.OrdinalIgnoreCase);
 
-    public MentionsTab(Configuration config)
+    public MentionsTab(MentionsConfig config)
     {
         this.config = config;
     }

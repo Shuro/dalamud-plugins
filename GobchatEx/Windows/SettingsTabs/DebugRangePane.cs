@@ -56,7 +56,7 @@ internal sealed class DebugRangePane
 
     private void DrawConfigSummary()
     {
-        var config = plugin.Configuration;
+        var config = plugin.Configuration.RangeFilter;
         ImGui.TextDisabled("Live settings — edits on the Range page show here as soon as they commit");
         ImGui.TextUnformatted(
             $"Range filter {(config.RangeFilterEnabled ? "enabled" : "disabled (tools below still evaluate the configured distances)")}"
@@ -70,7 +70,7 @@ internal sealed class DebugRangePane
         ImGui.SetNextItemWidth(320f * ImGuiHelpers.GlobalScale);
         ImGui.SliderFloat("Distance##debug-range-sim", ref simulatedDistance, 0f, 100f, "%.1f yalms");
 
-        var config = plugin.Configuration;
+        var config = plugin.Configuration.RangeFilter;
         var visibility = RangeFade.CalculateVisibility(
             simulatedDistance, config.RangeFilterFadeOut, config.RangeFilterCutOff);
         DrawOutcome(visibility);
@@ -87,7 +87,7 @@ internal sealed class DebugRangePane
             return;
         }
 
-        var config = plugin.Configuration;
+        var config = plugin.Configuration.RangeFilter;
 
         using var table = ImRaii.Table("##debug-range-players", 4,
             ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable,
@@ -149,7 +149,7 @@ internal sealed class DebugRangePane
 
             // Second line in the dimmed emote color, to eyeball UiColorDimmer's darker-row
             // mapping — colored spans keep their hue when faded.
-            var emoteRow = plugin.Configuration.EmoteStyle.Foreground;
+            var emoteRow = plugin.Configuration.Formatting.EmoteStyle.Foreground;
             if (emoteRow == 0)
                 continue;
 

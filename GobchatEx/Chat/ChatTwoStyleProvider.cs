@@ -256,12 +256,12 @@ internal sealed class ChatTwoStyleProvider : IDisposable
     /// </summary>
     private void PruneStalePolicies()
     {
-        var stale = _config.ChatTwoTabPolicies.Keys.Where(id => !KnownTabs.ContainsKey(id)).ToList();
+        var stale = _config.Tabs.ChatTwoTabPolicies.Keys.Where(id => !KnownTabs.ContainsKey(id)).ToList();
         if (stale.Count == 0)
             return;
 
         foreach (var id in stale)
-            _config.ChatTwoTabPolicies.Remove(id);
+            _config.Tabs.ChatTwoTabPolicies.Remove(id);
 
         _config.Save();
     }
@@ -306,7 +306,7 @@ internal sealed class ChatTwoStyleProvider : IDisposable
 
         try
         {
-            _setTabPolicies.InvokeAction(new Dictionary<Guid, int>(_config.ChatTwoTabPolicies));
+            _setTabPolicies.InvokeAction(new Dictionary<Guid, int>(_config.Tabs.ChatTwoTabPolicies));
         }
         catch (Exception ex)
         {
@@ -324,37 +324,37 @@ internal sealed class ChatTwoStyleProvider : IDisposable
         var rules = new List<GroupRule>();
         var backgrounds = new Dictionary<string, uint>();
 
-        if (_config.GroupsEnabled)
+        if (_config.Groups.GroupsEnabled)
         {
-            foreach (var group in _config.Groups)
+            foreach (var group in _config.Groups.Groups)
             {
                 rules.Add(new GroupRule(group.Id, group.Active, FfGroup: null, [.. group.Members]));
                 backgrounds[group.Id] = group.ChatTwoBackground;
             }
 
-            foreach (var group in _config.FriendGroups.OrderBy(g => g.FfGroup))
+            foreach (var group in _config.Groups.FriendGroups.OrderBy(g => g.FfGroup))
             {
                 rules.Add(new GroupRule(group.Id, group.Active, group.FfGroup, Members: []));
                 backgrounds[group.Id] = group.ChatTwoBackground;
             }
         }
 
-        var rangeActive = _config.RangeFilterEnabled
-            && (_config.RangeFilterChatTwoFade || _config.RangeFilterChatTwoHide);
-        var wantMentions = rangeActive && _config.RangeFilterMentionsIgnoreRange;
+        var rangeActive = _config.RangeFilter.RangeFilterEnabled
+            && (_config.RangeFilter.RangeFilterChatTwoFade || _config.RangeFilter.RangeFilterChatTwoHide);
+        var wantMentions = rangeActive && _config.RangeFilter.RangeFilterMentionsIgnoreRange;
 
         var loaded = Plugin.PlayerState.IsLoaded;
         _snapshot = new Snapshot(
             RangeEnabled: rangeActive,
-            FadeOut: _config.RangeFilterFadeOut,
-            CutOff: _config.RangeFilterCutOff,
-            ChatTwoFade: _config.RangeFilterChatTwoFade,
-            ChatTwoHide: _config.RangeFilterChatTwoHide,
-            RangeChannels: [.. _config.RangeFilterChannels.Select(c => (ushort)c)],
+            FadeOut: _config.RangeFilter.RangeFilterFadeOut,
+            CutOff: _config.RangeFilter.RangeFilterCutOff,
+            ChatTwoFade: _config.RangeFilter.RangeFilterChatTwoFade,
+            ChatTwoHide: _config.RangeFilter.RangeFilterChatTwoHide,
+            RangeChannels: [.. _config.RangeFilter.RangeFilterChannels.Select(c => (ushort)c)],
             GroupRules: rules,
             GroupBackgrounds: backgrounds,
             MentionSegmenter: wantMentions
-                ? new MessageSegmenter((IReadOnlyList<TokenRule>)[], ChatListener.BuildMentionRules(_config))
+                ? new MessageSegmenter((IReadOnlyList<TokenRule>)[], ChatListener.BuildMentionRules(_config.Mentions))
                 : null,
             LocalName: loaded ? Plugin.PlayerState.CharacterName : string.Empty,
             LocalHomeWorld: loaded ? Plugin.PlayerState.HomeWorld.ValueNullable?.Name.ExtractText() : null,
