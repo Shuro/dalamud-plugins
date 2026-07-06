@@ -1,4 +1,4 @@
-<!-- Generated: 2026-07-06 (post instant-apply settings) | Files scanned: 57 | Token estimate: ~1500 -->
+<!-- Generated: 2026-07-06 (post per-file config split) | Files scanned: 55 | Token estimate: ~1500 -->
 
 # GobchatEx Roleplay Suite Architecture
 
@@ -14,10 +14,13 @@ requires it. No server, no database, no network I/O.
 ```text
 GobchatEx/
 ├── Plugin.cs            entry point, [PluginService] injection, commands,
-│                        config migrations (v1→v5), native context menu
-├── Configuration.cs     IPluginConfiguration; SegmentStyle, CharacterMentionSettings,
-│                        PlayerGroup, range-filter + Chat 2 fields; ToJson() shared by
-│                        Save() and the settings window's change detection
+│                        native context menu
+├── Config/              Configuration aggregate + one section class per feature
+│                        (GeneralConfig … TabsConfig), each persisted to its own
+│                        JSON file (general.json … tabs.json, per-file Version);
+│                        element types SegmentStyle/CharacterMentionSettings/PlayerGroup;
+│                        Serialize() shared by SaveSection() and the settings
+│                        window's change detection
 ├── Core/                matching/math engine — Dalamud-FREE (ADR 0002, test-enforced)
 ├── Chat/                Dalamud-facing: chat rewrite, groups, range, sound, Chat 2 IPC
 ├── Localization/        Loc.cs ResourceManager wrapper (also Dalamud-free)
@@ -74,7 +77,7 @@ pass's darkened color steps).
 - Decision reuses the same Core pieces as the native passes: `GroupMatcher`
   for `PlayerGroup.ChatTwoBackground`, `RangeFade.CalculateVisibility` for
   alpha, same mentions-bypass segmenter.
-- Per-Chat-2-tab suppress flags (`Configuration.ChatTwoTabPolicies`) pushed
+- Per-Chat-2-tab suppress flags (`TabsConfig.ChatTwoTabPolicies`) pushed
   via `ChatTwo.SetTabStylePolicies`; tab list from `GetTabs`/`TabsChanged`,
   pruned when a tab disappears.
 - `#if DEBUG` only: `Chat/ChatTwoStyleIpcTester.cs` — manual IPC exerciser
@@ -141,17 +144,18 @@ GroupCommandHandler instead.
 
 Localization/Loc.cs — ResourceManager over Resources/Language.resx (en) with
 de satellite; missing key renders the key itself. Culture follows Dalamud's
-UI language unless Configuration.LanguageOverride is set; re-resolved via
+UI language unless GeneralConfig.LanguageOverride is set; re-resolved via
 `Plugin.RefreshLanguage()` after saves.
 
 ## Settings UI (Windows/)
 
-- SettingsWindow.cs (395) — nav rail: General / Appearance (FormattingTab) /
+- SettingsWindow.cs (419) — nav rail: General / Appearance (FormattingTab) /
   Chat (MentionsTab, GroupsTab, RangeTab, ChatTwoTab) / divider / Debug
   (`#if DEBUG`) / About. Native collapse enabled; title-bar Ko-fi button
   ordered via `Priority` to sit left of Dalamud's own options button.
-  Instant-apply: tabs edit the live Configuration; a debounced JSON-snapshot
-  compare (Update tick + OnClose/Dispose flush) persists and applies changes —
+  Instant-apply: each tab edits its live config section; a debounced
+  per-section JSON-snapshot compare (Update tick + OnClose/Dispose flush)
+  persists only the section files that changed and applies once —
   no Save/Apply/Cancel. Debug builds show live Chat 2 connect/disconnect status.
 - SettingsUi.cs (115) — shared tab widgets: section headers, green/red
   `ToggleSwitch` (custom-drawn; Dalamud's ToggleButton hardcodes gray),
@@ -173,8 +177,8 @@ UI language unless Configuration.LanguageOverride is set; re-resolved via
 
 ## Key Files
 
-- GobchatEx/Chat/ChatTwoStyleProvider.cs (456) — Chat 2 styling IPC producer + snapshot
-- GobchatEx/Chat/ChatListener.cs (413) — 3-pass event subscription, config-derived caches
+- GobchatEx/Chat/ChatTwoStyleProvider.cs (457) — Chat 2 styling IPC producer + snapshot
+- GobchatEx/Chat/ChatListener.cs (414) — 3-pass event subscription, config-derived caches
 - GobchatEx/Chat/ChatTwoStyleIpcTester.cs (254, DEBUG) — manual IPC exerciser
 - GobchatEx/Core/MentionMatcher.cs (180) — compiled regexes + fuzzy tokens, interval merge
 - GobchatEx/Core/PlayerMentionResolver.cs (145) — name parts → whole/partial word lists

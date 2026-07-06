@@ -13,6 +13,7 @@ nothing else in the repo records what was AI-assisted.
 |---|---|---|---|---|
 | 2026-07-01 | v1 project scaffold (`Plugin.cs`, `Configuration.cs`, `Windows/`, `.csproj`, manifest, README) | Claude Code (`dalamud-plugin-scaffold` skill) | Copilot | AI generated the full scaffold from a template; author reviewed the code, built it, and loaded it in-game before accepting. |
 | 2026-07-06 | Settings-window rework, commit `7038efb`: instant-apply (staged Save/Apply/Cancel model removed), green/red toggle switches, movable-window setting removed, range-filter UX (engine-limit markers, slider cap); plus codemap/doc sync | Claude Code | Copilot | AI implemented from a human-approved plan with an AI code-review pass; author directs, reviews, and smoke-tests in-game. |
+| 2026-07-06 | Config split into per-feature JSON files, commits `689e5f3`/`0493d7f`: `GobchatEx/Config/` section classes + aggregate, per-file save/load with per-section defaults on missing/corrupt files, per-section settings-window change detection, v0–v5 migrations removed (plugin unpublished); plus codemap/doc sync | Claude Code | Copilot | AI implemented from a human-approved plan; author directs, reviews, and smoke-tests in-game. |
 
 ## Current disclosure statement
 
