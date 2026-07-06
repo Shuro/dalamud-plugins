@@ -89,6 +89,7 @@
     <data name="Formatting_Channels_Linkshells"><value>Linkshells</value></data>
     <data name="Formatting_Channels_CrossworldLinkshells"><value>Cross-world Linkshells</value></data>
     <data name="Formatting_Channels_ResetDefaults"><value>Reset to RP defaults</value></data>
+    <data name="Formatting_Channels_ResetDefaults_Tooltip"><value>Hold Ctrl+Shift and click to reset to the default channels.</value></data>
     <data name="Formatting_Channel_Say"><value>Say</value></data>
     <data name="Formatting_Channel_Emote"><value>Emote</value></data>
     <data name="Formatting_Channel_StandardEmote"><value>Standard Emote</value></data>
@@ -130,6 +131,7 @@
     <data name="Mentions_Trigger_Hint"><value>add a word or name…</value></data>
     <data name="Mentions_Trigger_Add"><value>Add</value></data>
     <data name="Mentions_Trigger_Empty"><value>No trigger words yet.</value></data>
+    <data name="Mentions_Trigger_Remove_Tooltip"><value>Hold Ctrl+Shift and click to remove this word.</value></data>
     <data name="Mentions_Player_Header"><value>Player Mentions</value></data>
     <data name="Mentions_Player_Header_Tooltip"><value>Match your character's name automatically. Characters are remembered the first time you log them in, but stay inactive until you turn them on below.</value></data>
     <data name="Mentions_Player_MatchLoggedIn"><value>Match logged-in characters' names</value></data>
@@ -151,6 +153,7 @@
     <data name="Mentions_Character_Fuzzy_Tooltip"><value>Also matches close misspellings of the names above, e.g. "Elora" for "Elara".</value></data>
     <data name="Mentions_Character_CustomWords"><value>Custom words</value></data>
     <data name="Mentions_Character_CustomWord_Hint"><value>add a custom word…</value></data>
+    <data name="Mentions_CustomWord_Remove_Tooltip"><value>Hold Ctrl+Shift and click to remove this word.</value></data>
 
     <data name="Groups_TabName"><value>Groups</value></data>
     <data name="Groups_Custom_Header"><value>Custom Groups</value></data>
@@ -160,6 +163,7 @@
     <data name="Groups_Custom_Active"><value>Active</value></data>
     <data name="Groups_Custom_Remove"><value>Remove</value></data>
     <data name="Groups_Custom_Remove_Tooltip"><value>Hold Ctrl+Shift and click to remove this group.</value></data>
+    <data name="Groups_Custom_Player_Remove_Tooltip"><value>Hold Ctrl+Shift and click to remove this player.</value></data>
     <data name="Groups_Custom_Players"><value>Players</value></data>
     <data name="Groups_Custom_NameHint"><value>new group name…</value></data>
     <data name="Groups_Custom_Add"><value>Add</value></data>
@@ -207,7 +211,7 @@
     <data name="Placeholder_Logs_Description"><value>Writing chat to log files on disk.</value></data>
     <data name="Placeholder_ComingSoon"><value>Planned for a future release.</value></data>
 
-    <data name="Formatting_Reset_Tooltip"><value>Reset to the default color.</value></data>
+    <data name="Formatting_Reset_Tooltip"><value>Hold Ctrl+Shift and click to reset to the default color.</value></data>
     <data name="Formatting_ImportGame_Tooltip"><value>Import the game's own color for this channel (Character Configuration → Log Text Color), mapped to the closest UIColor row.</value></data>
 
     <data name="Range_TabName"><value>Range filter</value></data>

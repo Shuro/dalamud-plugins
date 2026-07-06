@@ -131,13 +131,11 @@ internal sealed class FormattingTab : IToggleableTab
         ImGui.TableNextColumn();
         using (ImRaii.PushId("reset"))
         {
-            if (ImGuiComponents.IconButton(FontAwesomeIcon.Undo))
+            if (SettingsUi.DangerButton(FontAwesomeIcon.Undo, Loc.Get("Formatting_Reset_Tooltip")))
             {
                 style.Foreground = defaultForeground;
                 style.Glow = 0;
             }
-
-            DrawActionTooltip(Loc.Get("Formatting_Reset_Tooltip"));
         }
 
         if (importOption is { } option)
@@ -208,7 +206,8 @@ internal sealed class FormattingTab : IToggleableTab
             DrawChannelGrid("##channels-cwls", CrossworldLinkshellChannels);
 
         ImGuiHelpers.ScaledDummy(2f);
-        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Undo, Loc.Get("Formatting_Channels_ResetDefaults")))
+        if (SettingsUi.DangerButton(FontAwesomeIcon.Undo, Loc.Get("Formatting_Channels_ResetDefaults"),
+                Loc.Get("Formatting_Channels_ResetDefaults_Tooltip")))
             mutable.HighlightChannels = [.. Configuration.DefaultHighlightChannels];
     }
 

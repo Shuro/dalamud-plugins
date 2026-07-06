@@ -130,7 +130,7 @@ internal sealed class MentionsTab : IToggleableTab
 
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
-            if (ImGuiComponents.IconButton(FontAwesomeIcon.Trash))
+            if (SettingsUi.DangerButton(FontAwesomeIcon.Trash, Loc.Get("Mentions_Trigger_Remove_Tooltip")))
             {
                 mutable.MentionTriggers.RemoveAt(i);
                 return; // list changed; redraw next frame
@@ -190,16 +190,8 @@ internal sealed class MentionsTab : IToggleableTab
                 character.Active = active;
 
             ImGui.SameLine();
-            var canRemove = ImGui.GetIO().KeyCtrl && ImGui.GetIO().KeyShift;
-            bool removeClicked;
-            using (ImRaii.Disabled(!canRemove))
-                removeClicked = ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Trash, Loc.Get("Mentions_Character_Remove"));
-
-            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            {
-                using (ImRaii.Tooltip())
-                    ImGui.TextUnformatted(Loc.Get("Mentions_Character_Remove_Tooltip"));
-            }
+            var removeClicked = SettingsUi.DangerButton(FontAwesomeIcon.Trash,
+                Loc.Get("Mentions_Character_Remove"), Loc.Get("Mentions_Character_Remove_Tooltip"));
 
             if (removeClicked)
             {
@@ -320,7 +312,7 @@ internal sealed class MentionsTab : IToggleableTab
         for (var i = 0; i < character.CustomWords.Count; ++i)
         {
             using var id = ImRaii.PushId(i);
-            if (ImGuiComponents.IconButton(FontAwesomeIcon.Trash))
+            if (SettingsUi.DangerButton(FontAwesomeIcon.Trash, Loc.Get("Mentions_CustomWord_Remove_Tooltip")))
             {
                 character.CustomWords.RemoveAt(i);
                 break;

@@ -95,16 +95,8 @@ internal sealed class GroupsTab : IToggleableTab
             DrawChatTwoBackgroundEdit(group);
 
             ImGui.SameLine();
-            var canRemove = ImGui.GetIO().KeyCtrl && ImGui.GetIO().KeyShift;
-            bool removeClicked;
-            using (ImRaii.Disabled(!canRemove))
-                removeClicked = ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Trash, Loc.Get("Groups_Custom_Remove"));
-
-            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            {
-                using (ImRaii.Tooltip())
-                    ImGui.TextUnformatted(Loc.Get("Groups_Custom_Remove_Tooltip"));
-            }
+            var removeClicked = SettingsUi.DangerButton(FontAwesomeIcon.Trash,
+                Loc.Get("Groups_Custom_Remove"), Loc.Get("Groups_Custom_Remove_Tooltip"));
 
             if (removeClicked)
             {
@@ -173,7 +165,7 @@ internal sealed class GroupsTab : IToggleableTab
         for (var i = 0; i < group.Members.Count; ++i)
         {
             using var id = ImRaii.PushId(i);
-            if (ImGuiComponents.IconButton(FontAwesomeIcon.Trash))
+            if (SettingsUi.DangerButton(FontAwesomeIcon.Trash, Loc.Get("Groups_Custom_Player_Remove_Tooltip")))
             {
                 group.Members.RemoveAt(i);
                 break;
