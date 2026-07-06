@@ -233,12 +233,20 @@ public class SettingsWindow : Window
                 // Full-width invisible selectable, then icon + label (and, for toggleable tabs,
                 // a right-aligned switch) drawn on top so the whole row is clickable.
                 // AllowItemOverlap lets the toggle (drawn last, on top) steal the click when
-                // hovered instead of the row switching tabs. ID is index-based (not derived from
+                // hovered instead of the row switching tabs. AllowDoubleClick lets a double-click
+                // anywhere else on the row flip a toggleable tab's switch too (a bigger, more
+                // forgiving target than the switch itself). ID is index-based (not derived from
                 // tab.Name) so it stays stable across a language switch.
                 var cursor = ImGui.GetCursorPos();
                 if (ImGui.Selectable($"##tab-{sectionIndex}-{tabIndex}", currentTab == tab,
-                        ImGuiSelectableFlags.AllowItemOverlap, new Vector2(0, rowHeight)))
-                    currentTab = tab;
+                        ImGuiSelectableFlags.AllowItemOverlap | ImGuiSelectableFlags.AllowDoubleClick,
+                        new Vector2(0, rowHeight)))
+                {
+                    if (tab is IToggleableTab doubleClickTarget && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
+                        doubleClickTarget.Enabled = !doubleClickTarget.Enabled;
+                    else
+                        currentTab = tab;
+                }
 
                 using (ImRaii.PushFont(UiBuilder.IconFont))
                 {
