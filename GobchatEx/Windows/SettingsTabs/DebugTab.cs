@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
@@ -14,11 +16,12 @@ namespace GobchatEx.Windows.SettingsTabs;
 
 /// <summary>
 /// Dev page, split into an ImGui tab bar with one tab per test area: the Chat 2 message styling
-/// IPC (exercised through <see cref="ChatTwoStyleIpcTester"/>) and the native range dimming
-/// (<see cref="DebugRangePane"/>). Unlike the other pages everything here works live — against
-/// Chat 2 or the saved configuration — nothing is staged or persisted, and Save/Apply/Cancel
-/// don't affect it. Body strings stay unlocalized on purpose: developer tooling, not user-facing
-/// UI.
+/// IPC (exercised through <see cref="ChatTwoStyleIpcTester"/>), the native range dimming
+/// (<see cref="DebugRangePane"/>), live friend-group state (<see cref="DebugGroupsPane"/>), and
+/// glow/color macro probes printed to the native log. Unlike the other pages everything here
+/// works live — against Chat 2 or the saved configuration — nothing is staged or persisted, and
+/// Save/Apply/Cancel don't affect it. Body strings stay unlocalized on purpose: developer
+/// tooling, not user-facing UI.
 /// </summary>
 internal sealed class DebugTab : ISettingsTab
 {
@@ -27,6 +30,10 @@ internal sealed class DebugTab : ISettingsTab
     private readonly ChatTwoStyleIpcTester tester;
     private readonly DebugRangePane rangePane;
     private readonly DebugGroupsPane groupsPane;
+
+    private string customColorText = "GobchatEx custom color test";
+    private Vector4 customTextColor = new(1f, 1f, 1f, 1f);
+    private Vector4 customGlowColor = new(0.125f, 1f, 0.125f, 1f);
 
     public string Name => Loc.Get("Debug_TabName");
     public FontAwesomeIcon Icon => FontAwesomeIcon.Bug;
@@ -61,6 +68,198 @@ internal sealed class DebugTab : ISettingsTab
             if (groupsTab)
                 groupsPane.Draw();
         }
+
+        using (var glowTab = ImRaii.TabItem("Glow test"))
+        {
+            if (glowTab)
+                DrawGlowInjection();
+        }
+    }
+
+    // Exercises every EdgeColor/EdgeColorType parse path of the Chat 2 glow fix in one
+    // message. The native log renders the identical bytes with the game's renderer, so
+    // vanilla chat is the ground truth to compare Chat 2 against.
+    private void DrawGlowInjection()
+    {
+        ImGui.TextDisabled("Chat 2 glow test — compare the line against the native log");
+
+        if (ImGui.Button("Send EdgeColor test message"))
+        {
+            // Raw EdgeColor macro chunks (0x14), full envelope incl. 0x02/0x03 bytes.
+            // 3-byte packed int, no alpha byte (numeric 0x0020FF20) — common in-the-wild form.
+            var rawGreen = new RawPayload([0x02, 0x14, 0x05, 0xF6, 0x20, 0xFF, 0x20, 0x03]);
+            // 4-byte packed int with explicit alpha 0x80 (numeric 0x80FF40FF) — the reviewer's
+            // case; the game ignores edge-color alpha, so this must glow at full strength.
+            var rawPink = new RawPayload([0x02, 0x14, 0x06, 0xFE, 0x80, 0xFF, 0x40, 0xFF, 0x03]);
+            // edgecolor(gnum(4)) — global parameter push; resolved color depends on client
+            // state, but it must never pop the glow below it.
+            var rawGnum = new RawPayload([0x02, 0x14, 0x03, 0xE9, 0x05, 0x03]);
+            // edgecolor(stackcolor) — pops one push off the edge-color stack.
+            var pop = new RawPayload([0x02, 0x14, 0x02, 0xEC, 0x03]);
+
+            var b = new SeStringBuilder();
+            b.AddText("plain ");
+            b.AddUiGlow(500);        // sheet push (EdgeColorType / UIGlowPayload)
+            b.AddText("sheet ");
+            b.Add(rawGreen);         // raw push on top of a sheet glow — old parser popped here
+            b.AddText("raw-green ");
+            b.Add(rawPink);
+            b.AddText("raw-pink ");
+            b.Add(rawGnum);
+            b.AddText("gnum ");
+            b.Add(pop);
+            b.AddText("pink-again ");
+            b.Add(pop);
+            b.AddText("green-again ");
+            b.Add(pop);
+            b.AddText("sheet-again ");
+            b.AddUiGlowOff();        // sheet pop (EdgeColorType 0)
+            b.AddText("plain-again");
+            Plugin.ChatGui.Print(b.Build());
+        }
+
+        if (ImGui.Button("Send literal small-int test message"))
+        {
+            // Literal <edgecolor(0)> — small-int encoding, single byte value+1 = 0x01.
+            // Settles whether the game pushes a literal 0 (no glow, like the gnum-0 case)
+            // or duplicates the stack top (what Dalamud's reimplementation claims).
+            var litZero = new RawPayload([0x02, 0x14, 0x02, 0x01, 0x03]);
+            // Literal <edgecolor(200)> = numeric 0x000000C8, single byte 0xC9 — a barely
+            // visible dark blue; its job is structural (does it push?), not looks.
+            var lit200 = new RawPayload([0x02, 0x14, 0x02, 0xC9, 0x03]);
+            var pop = new RawPayload([0x02, 0x14, 0x02, 0xEC, 0x03]);
+
+            var b = new SeStringBuilder();
+            b.AddText("plain ");
+            b.AddUiGlow(500);            // sheet push as the outer reference glow
+            b.AddText("sheet ");
+            b.Add(litZero);
+            b.AddText("lit-zero ");
+            b.Add(lit200);
+            b.AddText("lit-200 ");
+            b.Add(pop);
+            b.AddText("after-pop1 ");
+            b.Add(pop);
+            b.AddText("after-pop2 ");
+            b.AddUiGlowOff();
+            b.AddText("plain-again");
+            Plugin.ChatGui.Print(b.Build());
+        }
+
+        if (ImGui.Button("Send sheet glow test message"))
+        {
+            // edgecolor(stackcolor) — the docs-recommended way to pop, even for sheet pushes
+            var pop = new RawPayload([0x02, 0x14, 0x02, 0xEC, 0x03]);
+
+            var b = new SeStringBuilder();
+            b.AddText("plain ");
+            b.AddUiGlow(500);        // sheet push #1
+            b.AddText("sheet1 ");
+            b.AddUiGlow(517);        // sheet push #2, nested — swap the row if the hue is too close to 500
+            b.AddText("sheet2 ");
+            b.AddUiGlowOff();        // EdgeColorType(0) → pops the inner sheet glow
+            b.AddText("sheet1-again ");
+            b.Add(pop);              // raw stackcolor popping a SHEET push (cross-family)
+            b.AddText("plain-again");
+            Plugin.ChatGui.Print(b.Build());
+        }
+
+        if (ImGui.Button("Send invalid sheet row"))
+        {
+            var b = new SeStringBuilder();
+            b.AddText("before ");
+            b.AddUiGlow(9999);       // row absent from the UIColor sheet
+            b.AddText("invalid-row ");
+            b.AddUiGlowOff();
+            b.AddText("after");
+            Plugin.ChatGui.Print(b.Build());
+        }
+
+        ImGui.Separator();
+        DrawCustomColorInjection();
+    }
+
+    // Free-form probe: raw Color (0x13) / EdgeColor (0x14) pushes with an arbitrary packed
+    // 0xAARRGGBB value from the pickers — no UIColor sheet involved. The game ignores the
+    // alpha byte for edge colors, so the alpha slider on the glow picker tests exactly that.
+    private void DrawCustomColorInjection()
+    {
+        ImGui.TextDisabled("Custom colors — raw Color/EdgeColor macros with arbitrary packed RGBA");
+
+        ImGui.SetNextItemWidth(320f * ImGuiHelpers.GlobalScale);
+        ImGui.InputText("Message text", ref customColorText, 256);
+
+        var pickerWidth = 210f * ImGuiHelpers.GlobalScale;
+        using (ImRaii.Group())
+        {
+            ImGui.TextUnformatted("Text color");
+            ImGui.SetNextItemWidth(pickerWidth);
+            ImGui.ColorPicker4("##debug-custom-text-color", ref customTextColor, ImGuiColorEditFlags.AlphaBar);
+            ImGui.TextDisabled($"packed 0x{PackAarrggbb(customTextColor):X8}");
+        }
+        ImGui.SameLine(0f, 24f * ImGuiHelpers.GlobalScale);
+        using (ImRaii.Group())
+        {
+            ImGui.TextUnformatted("Glow color");
+            ImGui.SetNextItemWidth(pickerWidth);
+            ImGui.ColorPicker4("##debug-custom-glow-color", ref customGlowColor, ImGuiColorEditFlags.AlphaBar);
+            ImGui.TextDisabled($"packed 0x{PackAarrggbb(customGlowColor):X8}");
+        }
+
+        if (ImGui.Button("Send custom color message"))
+        {
+            var text = string.IsNullOrWhiteSpace(customColorText) ? "GobchatEx custom color test" : customColorText;
+            var b = new SeStringBuilder();
+            b.Add(MakeColorMacro(ColorMacroCode, PackAarrggbb(customTextColor)));
+            b.Add(MakeColorMacro(EdgeColorMacroCode, PackAarrggbb(customGlowColor)));
+            b.AddText(text);
+            b.Add(new RawPayload([0x02, EdgeColorMacroCode, 0x02, 0xEC, 0x03]));   // edgecolor(stackcolor)
+            b.Add(new RawPayload([0x02, ColorMacroCode, 0x02, 0xEC, 0x03]));       // color(stackcolor)
+            Plugin.ChatGui.Print(b.Build());
+        }
+    }
+
+    private const byte ColorMacroCode = 0x13;
+    private const byte EdgeColorMacroCode = 0x14;
+
+    private static uint PackAarrggbb(Vector4 color)
+    {
+        static uint Channel(float value) => (uint)(Math.Clamp(value, 0f, 1f) * 255f + 0.5f);
+        return Channel(color.W) << 24 | Channel(color.X) << 16 | Channel(color.Y) << 8 | Channel(color.Z);
+    }
+
+    // Full macro envelope: 0x02, code, length expression, value expression, 0x03.
+    private static RawPayload MakeColorMacro(byte macroCode, uint packedColor)
+    {
+        var expression = EncodeIntExpression(packedColor);
+        var chunk = new List<byte> { 0x02, macroCode };
+        chunk.AddRange(EncodeIntExpression((uint)expression.Count));
+        chunk.AddRange(expression);
+        chunk.Add(0x03);
+        return new RawPayload([.. chunk]);
+    }
+
+    // SeString integer expression: values < 0xCF are a single byte (value + 1); larger
+    // values get a marker byte (0xF0 | nonzero-byte mask, minus 1) followed by the nonzero
+    // bytes of the big-endian value — zero bytes are skipped, never embedded.
+    private static List<byte> EncodeIntExpression(uint value)
+    {
+        if (value < 0xCF)
+            return [(byte)(value + 1)];
+
+        var bytes = new List<byte> { 0 };
+        var marker = 0xF0;
+        for (var i = 3; i >= 0; i--)
+        {
+            var b = (byte)(value >> (8 * i));
+            if (b == 0)
+                continue;
+            marker |= 1 << i;
+            bytes.Add(b);
+        }
+
+        bytes[0] = (byte)(marker - 1);
+        return bytes;
     }
 
     private void DrawChatTwoIpc()
