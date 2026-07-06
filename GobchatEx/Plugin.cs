@@ -10,6 +10,7 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Interface.Windowing;
 using GobchatEx.Chat;
+using GobchatEx.Config;
 using GobchatEx.Localization;
 using GobchatEx.Windows;
 

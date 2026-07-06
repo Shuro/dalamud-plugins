@@ -5,6 +5,7 @@ using Dalamud.Game.Text;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Services;
+using GobchatEx.Config;
 using GobchatEx.Core;
 
 namespace GobchatEx.Chat;

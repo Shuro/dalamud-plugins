@@ -4,6 +4,7 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin.Ipc;
+using GobchatEx.Config;
 using GobchatEx.Localization;
 
 namespace GobchatEx.Chat;

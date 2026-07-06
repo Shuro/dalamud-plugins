@@ -5,6 +5,7 @@ using Dalamud.Game.Chat;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
+using GobchatEx.Config;
 using GobchatEx.Core;
 
 namespace GobchatEx.Chat;

@@ -9,6 +9,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using GobchatEx.Chat;
+using GobchatEx.Config;
 using GobchatEx.Core;
 using GobchatEx.Localization;
 

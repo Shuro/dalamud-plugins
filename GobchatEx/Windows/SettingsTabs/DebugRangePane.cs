@@ -5,6 +5,7 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GobchatEx.Chat;
+using GobchatEx.Config;
 using GobchatEx.Core;
 using Lumina.Excel.Sheets;
 

@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
+using GobchatEx.Config;
 using GobchatEx.Localization;
 
 namespace GobchatEx.Chat;

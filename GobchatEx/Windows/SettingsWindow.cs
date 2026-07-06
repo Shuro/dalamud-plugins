@@ -7,6 +7,7 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using GobchatEx.Config;
 using GobchatEx.Localization;
 using GobchatEx.Windows.SettingsTabs;
 

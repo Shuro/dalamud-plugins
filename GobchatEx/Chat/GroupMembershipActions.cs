@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text.RegularExpressions;
+using GobchatEx.Config;
 using GobchatEx.Core;
 
 namespace GobchatEx.Chat;

@@ -3,6 +3,7 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 using GobchatEx.Chat;
+using GobchatEx.Config;
 using GobchatEx.Localization;
 
 namespace GobchatEx.Windows.SettingsTabs;

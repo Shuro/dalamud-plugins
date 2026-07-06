@@ -7,6 +7,7 @@ using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GobchatEx.Chat;
+using GobchatEx.Config;
 using GobchatEx.Localization;
 
 namespace GobchatEx.Windows.SettingsTabs;
