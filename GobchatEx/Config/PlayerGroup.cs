@@ -8,7 +8,8 @@ namespace GobchatEx.Config;
 /// One player group (Milestone 2): either a custom group matched by a <see cref="Members"/> list, or
 /// one of the game's seven fixed friend-list display groups matched by <see cref="FfGroup"/>
 /// (0=Star..6=Club). Sender-name recoloring uses <see cref="Foreground"/>/<see cref="Glow"/> the same
-/// way segment styles do; 0 means "do not recolor".
+/// way segment styles do — packed RGBA (0xRRGGBBAA), same format as <see cref="ChatTwoBackground"/>,
+/// rendered via a raw SeString Color/EdgeColor macro; 0 means "do not recolor".
 /// </summary>
 [Serializable]
 public class PlayerGroup
@@ -25,8 +26,8 @@ public class PlayerGroup
     /// </summary>
     public List<GroupMember> Members { get; set; } = [];
 
-    public ushort Foreground { get; set; }
-    public ushort Glow { get; set; }
+    public uint Foreground { get; set; }
+    public uint Glow { get; set; }
 
     /// <summary>
     /// Per-message background color rendered in Chat 2 (0xRRGGBBAA, 0 = none). Chat 2-only: the

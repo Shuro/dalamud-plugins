@@ -23,8 +23,8 @@ internal sealed class DebugRangePane
 {
     private readonly Plugin plugin;
 
-    // ImGui previews of the fade-step UIColor rows, decoded from the sheet's Dark field exactly
-    // like UiColorPicker. Resolved once; the sheet is static data.
+    // ImGui previews of the fade-step UIColor rows, decoded from the sheet's Dark field.
+    // Resolved once; the sheet is static data.
     private readonly Vector4[] stepPreviewColors;
 
     private float simulatedDistance = 20f;
@@ -147,17 +147,17 @@ internal sealed class DebugRangePane
             builder.AddUiForegroundOff();
             Plugin.ChatGui.Print(builder.Build());
 
-            // Second line in the dimmed emote color, to eyeball UiColorDimmer's darker-row
-            // mapping — colored spans keep their hue when faded.
-            var emoteRow = plugin.Configuration.Formatting.EmoteStyle.Foreground;
-            if (emoteRow == 0)
+            // Second line in the dimmed emote color, to eyeball UiColorDimmer.DimRgba —
+            // colored spans keep their hue when faded.
+            var emoteColor = plugin.Configuration.Formatting.EmoteStyle.Foreground;
+            if (emoteColor == 0)
                 continue;
 
-            var dimmedRow = UiColorDimmer.DimRow(emoteRow, step);
+            var dimmedColor = UiColorDimmer.DimRgba(emoteColor, step);
             var colored = new SeStringBuilder();
-            colored.AddUiForeground(dimmedRow);
-            colored.AddText($"GobchatEx range test — emote color at step {step} (row {emoteRow} → {dimmedRow})");
-            colored.AddUiForegroundOff();
+            colored.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.ColorMacroCode, SeStringColorMacro.ToOpaqueAarrggbb(dimmedColor)));
+            colored.AddText($"GobchatEx range test — emote color at step {step} (0x{emoteColor:X8} -> 0x{dimmedColor:X8})");
+            colored.Add(SeStringColorMacro.PopColor());
             Plugin.ChatGui.Print(colored.Build());
         }
     }

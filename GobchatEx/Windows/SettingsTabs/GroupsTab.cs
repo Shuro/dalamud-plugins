@@ -33,7 +33,6 @@ internal sealed class GroupsTab : IToggleableTab
 
     private readonly GroupsConfig config;
     private readonly ChatTwoStyleProvider chatTwoStyles;
-    private readonly UiColorPicker colorPicker = new();
     private string newGroupName = string.Empty;
 
     public GroupsTab(GroupsConfig config, ChatTwoStyleProvider chatTwoStyles)
@@ -84,12 +83,12 @@ internal sealed class GroupsTab : IToggleableTab
 
             ImGui.SameLine();
             var foreground = group.Foreground;
-            if (colorPicker.Draw("fg", ref foreground, glow: false))
+            if (SettingsUi.RgbaColorEdit("##fg", ref foreground, allowAlpha: false))
                 group.Foreground = foreground;
 
             ImGui.SameLine();
             var glow = group.Glow;
-            if (colorPicker.Draw("glow", ref glow, glow: true))
+            if (SettingsUi.RgbaColorEdit("##glow", ref glow, allowAlpha: false))
                 group.Glow = glow;
 
             ImGui.SameLine();
@@ -238,12 +237,12 @@ internal sealed class GroupsTab : IToggleableTab
 
             ImGui.TableNextColumn();
             var foreground = group.Foreground;
-            if (colorPicker.Draw("fg", ref foreground, glow: false))
+            if (SettingsUi.RgbaColorEdit("##fg", ref foreground, allowAlpha: false))
                 group.Foreground = foreground;
 
             ImGui.TableNextColumn();
             var glow = group.Glow;
-            if (colorPicker.Draw("glow", ref glow, glow: true))
+            if (SettingsUi.RgbaColorEdit("##glow", ref glow, allowAlpha: false))
                 group.Glow = glow;
 
             ImGui.TableNextColumn();
@@ -253,30 +252,20 @@ internal sealed class GroupsTab : IToggleableTab
 
     /// <summary>
     /// Swatch editing <see cref="PlayerGroup.ChatTwoBackground"/> (a literal RGBA value, not a
-    /// UIColor row — Chat 2 draws arbitrary colors). Right-click clears to "no background",
-    /// mirroring UiColorPicker's convention; disabled with a hint while Chat 2's styling IPC
-    /// isn't connected, since only Chat 2 can render it.
+    /// UIColor row — Chat 2 draws arbitrary colors) through the same <see cref="SettingsUi.RgbaColorEdit"/>
+    /// widget every other color field uses, with alpha allowed; disabled with a hint while Chat
+    /// 2's styling IPC isn't connected, since only Chat 2 can render it.
     /// </summary>
     private void DrawChatTwoBackgroundEdit(PlayerGroup group)
     {
         var connected = chatTwoStyles.IsConnected;
+        var background = group.ChatTwoBackground;
         using (ImRaii.Disabled(!connected))
         {
-            var background = RgbaColor.ToVector4(group.ChatTwoBackground);
-            if (ImGui.ColorEdit4("##chattwo-bg", ref background,
-                    ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreviewHalf))
-                group.ChatTwoBackground = RgbaColor.FromVector4(background);
-
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && group.ChatTwoBackground != 0)
-                group.ChatTwoBackground = 0;
-        }
-
-        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-        {
-            using (ImRaii.Tooltip())
-                ImGui.TextUnformatted(connected
-                    ? Loc.Get("Groups_ChatTwoBackground_Tooltip")
-                    : Loc.Get("ChatTwo_NotConnected_Tooltip"));
+            if (SettingsUi.RgbaColorEdit("##chattwo-bg", ref background, allowAlpha: true,
+                    tooltipOverride: connected ? Loc.Get("Groups_ChatTwoBackground_Tooltip") : Loc.Get("ChatTwo_NotConnected_Tooltip"),
+                    defaultAlpha: 0.2f))
+                group.ChatTwoBackground = background;
         }
     }
 

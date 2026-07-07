@@ -8,12 +8,17 @@ using Lumina.Excel.Sheets;
 namespace GobchatEx.Chat;
 
 /// <summary>
-/// Range-fade dimming that keeps colors (Milestone 3): a UIColor row is remapped to the sheet
-/// row closest (RGB distance) to that color darkened by the fade step's factor, so styled spans
-/// (RP highlighting, group names, pre-colored link text) fade down in their own hue instead of
-/// being flattened to grey. Text outside any color span gets the caller's grey step row, the
-/// pre-existing fade rendering. Only used from the chat-message pass on the framework thread,
-/// so the caches are deliberately lock-free.
+/// Range-fade dimming that keeps colors (Milestone 3). Two color families pass through here:
+/// pre-existing UIColor-row payloads the game itself embeds (item/map links etc.) still get
+/// remapped to the sheet row closest (RGB distance) to that color darkened by the fade step's
+/// factor, via <see cref="DimRow"/> — unrelated to this plugin's own recoloring, so it stays
+/// row-based. This plugin's own spans (RP highlighting, group names) are now raw RGBA <see
+/// cref="SeStringColorMacro"/> pushes: <see cref="PayloadRewriter"/> already dims them via <see
+/// cref="DimRgba"/> before building the macro, so <see cref="DimPayloads"/> only needs to
+/// recognize and pass them through unmodified (tracking push/pop depth so the plain-text
+/// detection below still works). Text outside any color span gets the caller's grey step row,
+/// the pre-existing fade rendering. Only used from the chat-message pass on the framework
+/// thread, so the caches are deliberately lock-free.
 /// </summary>
 internal static class UiColorDimmer
 {
@@ -26,8 +31,9 @@ internal static class UiColorDimmer
 
     /// <summary>
     /// Rewrites a payload list one fade step darker. Foreground and glow rows are remapped via
-    /// <see cref="DimRow"/>; text runs outside any color span (a UIForeground with row 0 pops
-    /// the game's color stack) are wrapped in <paramref name="uncoloredRow"/>.
+    /// <see cref="DimRow"/>; this plugin's own raw Color/EdgeColor macros pass through untouched
+    /// (already pre-dimmed by the caller); text runs outside any color span (a foreground pop —
+    /// row 0 or a raw <c>color(stackcolor)</c>) are wrapped in <paramref name="uncoloredRow"/>.
     /// </summary>
     public static List<Payload> DimPayloads(IReadOnlyList<Payload> payloads, int step, ushort uncoloredRow)
     {
@@ -56,6 +62,16 @@ internal static class UiColorDimmer
                     result.Add(new UIGlowPayload(DimRow(glow.ColorKey, step)));
                     break;
 
+                case RawPayload raw when IsColorMacro(raw, SeStringColorMacro.ColorMacroCode):
+                    foregroundDepth += IsColorMacroPop(raw) ? -1 : 1;
+                    foregroundDepth = Math.Max(0, foregroundDepth);
+                    result.Add(payload);
+                    break;
+
+                case RawPayload raw when IsColorMacro(raw, SeStringColorMacro.EdgeColorMacroCode):
+                    result.Add(payload);
+                    break;
+
                 case TextPayload { Text.Length: > 0 } when foregroundDepth == 0:
                     result.Add(new UIForegroundPayload(uncoloredRow));
                     result.Add(payload);
@@ -69,6 +85,34 @@ internal static class UiColorDimmer
         }
 
         return result;
+    }
+
+    /// <summary>Darkens a packed 0xRRGGBBAA color by a fade step's factor; alpha untouched, 0 stays 0.</summary>
+    public static uint DimRgba(uint rgbaColor, int step)
+    {
+        if (rgbaColor == 0)
+            return 0;
+
+        var factor = StepFactors[Math.Clamp(step, 0, StepFactors.Length - 1)];
+        var r = (uint)(((rgbaColor >> 24) & 255) * factor);
+        var g = (uint)(((rgbaColor >> 16) & 255) * factor);
+        var b = (uint)(((rgbaColor >> 8) & 255) * factor);
+        var a = rgbaColor & 255;
+        return (r << 24) | (g << 16) | (b << 8) | a;
+    }
+
+    // Sniffs the macro code byte without decoding the packed value — SeStringColorMacro already
+    // pre-dims before emission, so DimPayloads only needs to know "is this ours" for depth tracking.
+    private static bool IsColorMacro(RawPayload raw, byte macroCode)
+    {
+        var data = raw.Data;
+        return data.Length >= 2 && data[0] == 0x02 && data[1] == macroCode;
+    }
+
+    private static bool IsColorMacroPop(RawPayload raw)
+    {
+        var data = raw.Data;
+        return data.Length == 5 && data[^2] == 0xEC;
     }
 
     /// <summary>
@@ -85,13 +129,6 @@ internal static class UiColorDimmer
         DimCache[(row, step)] = dimmed;
         return dimmed;
     }
-
-    /// <summary>
-    /// The sheet row rendering closest to an arbitrary RGB color (components 0..1). Used by the
-    /// Formatting tab's "import from game" to map the game's channel colors — plain RGB values —
-    /// onto the UIColor rows SeString rewriting needs.
-    /// </summary>
-    internal static ushort NearestRow(Vector3 rgb) => FindNearest(rgb);
 
     private static Vector3 RowRgb(ushort row)
     {
@@ -122,7 +159,7 @@ internal static class UiColorDimmer
         return best;
     }
 
-    /// <summary>UIColor sheet as (row, RGB) pairs — Dark field, same decoding as UiColorPicker.</summary>
+    /// <summary>UIColor sheet as (row, RGB) pairs, decoded from the Dark field.</summary>
     private static List<(ushort Row, Vector3 Rgb)> Palette()
     {
         if (palette != null)

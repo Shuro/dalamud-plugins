@@ -9,9 +9,10 @@ namespace GobchatEx.Chat;
 /// Mechanically translates segmentation spans into a new payload list
 /// (pattern from ChatAlerts' ChatWatcher.HandleAlert): non-text payloads are
 /// copied through by reference, text runs are split per span, and every
-/// colored span emits its own balanced UIForeground/UIGlow on/off pair so
-/// colors never bracket foreign payloads or leak into following lines.
-/// All decisions (what is typed, which color applies) are made by callers.
+/// colored span emits its own balanced raw Color/EdgeColor push/pop pair
+/// (<see cref="SeStringColorMacro"/>) so colors never bracket foreign
+/// payloads or leak into following lines. All decisions (what is typed,
+/// which color applies) are made by callers.
 /// </summary>
 internal static class PayloadRewriter
 {
@@ -19,14 +20,17 @@ internal static class PayloadRewriter
     /// Builds the rewritten payload list. <paramref name="runPayloadIndices"/>,
     /// <paramref name="runTexts"/> and <paramref name="runSpans"/> are
     /// parallel lists describing the TextPayload runs of the message.
-    /// Styles map a segment type to UIColor rows; (0, 0) renders plain.
+    /// Styles map a segment type to packed RGBA colors; (0, 0) renders plain.
+    /// <paramref name="fadeStep"/>, when set, pre-dims each color via
+    /// <see cref="UiColorDimmer.DimRgba"/> before it's emitted.
     /// </summary>
     public static List<Payload> Rewrite(
         IReadOnlyList<Payload> payloads,
         IReadOnlyList<int> runPayloadIndices,
         IReadOnlyList<string> runTexts,
         IReadOnlyList<IReadOnlyList<SegmentSpan>> runSpans,
-        IReadOnlyDictionary<SegmentType, (ushort Foreground, ushort Glow)> styles)
+        IReadOnlyDictionary<SegmentType, (uint Foreground, uint Glow)> styles,
+        int? fadeStep = null)
     {
         var result = new List<Payload>(payloads.Count + (4 * runSpans.Count));
         var run = 0;
@@ -38,7 +42,7 @@ internal static class PayloadRewriter
                 continue;
             }
 
-            AppendRun(result, payloads[i], runTexts[run], runSpans[run], styles);
+            AppendRun(result, payloads[i], runTexts[run], runSpans[run], styles, fadeStep);
             ++run;
         }
 
@@ -56,7 +60,8 @@ internal static class PayloadRewriter
         IReadOnlyList<Payload> payloads,
         IReadOnlyList<int> runPayloadIndices,
         IReadOnlyList<string> runTexts,
-        (ushort Foreground, ushort Glow) style)
+        (uint Foreground, uint Glow) style,
+        int? fadeStep = null)
     {
         var result = new List<Payload>(payloads.Count + (4 * runPayloadIndices.Count));
         var run = 0;
@@ -71,7 +76,7 @@ internal static class PayloadRewriter
             if (style.Foreground == 0 && style.Glow == 0)
                 result.Add(new TextPayload(runTexts[run]));
             else
-                AppendColored(result, runTexts[run], style);
+                AppendColored(result, runTexts[run], style, fadeStep);
             ++run;
         }
 
@@ -83,7 +88,8 @@ internal static class PayloadRewriter
         Payload original,
         string text,
         IReadOnlyList<SegmentSpan> spans,
-        IReadOnlyDictionary<SegmentType, (ushort Foreground, ushort Glow)> styles)
+        IReadOnlyDictionary<SegmentType, (uint Foreground, uint Glow)> styles,
+        int? fadeStep)
     {
         // Untouched run: keep the original payload instead of re-creating it.
         if (spans.Count == 1 && spans[0].Type == SegmentType.Undefined)
@@ -103,20 +109,24 @@ internal static class PayloadRewriter
                 continue;
             }
 
-            AppendColored(result, sub, style);
+            AppendColored(result, sub, style, fadeStep);
         }
     }
 
-    private static void AppendColored(List<Payload> result, string text, (ushort Foreground, ushort Glow) style)
+    private static void AppendColored(
+        List<Payload> result, string text, (uint Foreground, uint Glow) style, int? fadeStep)
     {
-        if (style.Foreground != 0)
-            result.Add(new UIForegroundPayload(style.Foreground));
-        if (style.Glow != 0)
-            result.Add(new UIGlowPayload(style.Glow));
+        var foreground = fadeStep is { } fgStep ? UiColorDimmer.DimRgba(style.Foreground, fgStep) : style.Foreground;
+        var glow = fadeStep is { } glowStep ? UiColorDimmer.DimRgba(style.Glow, glowStep) : style.Glow;
+
+        if (foreground != 0)
+            result.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.ColorMacroCode, SeStringColorMacro.ToOpaqueAarrggbb(foreground)));
+        if (glow != 0)
+            result.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.EdgeColorMacroCode, SeStringColorMacro.ToOpaqueAarrggbb(glow)));
         result.Add(new TextPayload(text));
-        if (style.Glow != 0)
-            result.Add(UIGlowPayload.UIGlowOff);
-        if (style.Foreground != 0)
-            result.Add(UIForegroundPayload.UIForegroundOff);
+        if (glow != 0)
+            result.Add(SeStringColorMacro.PopEdgeColor());
+        if (foreground != 0)
+            result.Add(SeStringColorMacro.PopColor());
     }
 }

@@ -4,6 +4,8 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility.Raii;
+using GobchatEx.Core;
+using GobchatEx.Localization;
 
 namespace GobchatEx.Windows;
 
@@ -92,6 +94,75 @@ internal static class SettingsUi
         var changed = ToggleSwitch($"##{label}", ref value);
         ImGui.SameLine();
         ImGui.TextUnformatted(label);
+        return changed;
+    }
+
+    /// <summary>
+    /// A packed-RGBA (0xRRGGBBAA, <see cref="RgbaColor"/>) color swatch that opens ImGui's own
+    /// picker popup on click — replaces the old FFXIV-named-palette swatch grid now that both
+    /// vanilla and Chat 2 render arbitrary colors. Right-click clears to 0, the shared "no
+    /// color" sentinel every packed-color field uses; the swatch previews that sentinel as a
+    /// transparent checkerboard (real colors set through this widget are always fully opaque —
+    /// see below — so a checkered swatch is unambiguously "unset", never an actual dark color).
+    /// <paramref name="allowAlpha"/> false hides the alpha bar in the picker popup and forces
+    /// the stored alpha byte to 0xFF: vanilla ignores alpha on the raw Color/EdgeColor macros
+    /// Text/Glow render through, so there's nothing for the user to set there. Group backgrounds
+    /// (Chat 2-only) pass true and keep full alpha — <paramref name="defaultAlpha"/> seeds the
+    /// picker's starting alpha (only while <paramref name="value"/> is still the unset sentinel,
+    /// i.e. the user hasn't picked a color yet) so a freshly-chosen background doesn't default to
+    /// fully transparent and appear invisible; once a color is committed, further edits use its
+    /// real stored alpha. <paramref name="tooltipOverride"/> replaces the default "no recolor /
+    /// custom color" hover text — the Chat 2 background swatch uses it to explain the IPC
+    /// connection state instead, including while wrapped in <see cref="ImRaii.Disabled"/> (the
+    /// hover check below always allows disabled items through, which is a no-op when the widget
+    /// isn't disabled). Returns true when the value changed.
+    /// </summary>
+    public static bool RgbaColorEdit(
+        string id, ref uint value, bool allowAlpha, string? tooltipOverride = null, float defaultAlpha = 1f)
+    {
+        var swatchSize = new Vector2(ImGui.GetFrameHeight());
+        var stored = RgbaColor.ToVector4(value);
+
+        // The preview always reads the real (possibly zero) alpha via AlphaPreview, even when
+        // allowAlpha is false — ImGui strips alpha preview flags whenever NoAlpha is also set,
+        // so the "hide the alpha bar" edit-popup flags below can't also drive this preview.
+        var changed = false;
+        if (ImGui.ColorButton($"{id}-preview", stored, ImGuiColorEditFlags.AlphaPreview, swatchSize))
+            ImGui.OpenPopup($"{id}-popup");
+
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && value != 0)
+        {
+            value = 0;
+            changed = true;
+        }
+
+        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+        {
+            using (ImRaii.Tooltip())
+                ImGui.TextUnformatted(tooltipOverride ?? (value == 0
+                    ? Loc.Get("ColorPicker_NoRecolor_Tooltip")
+                    : Loc.Get("ColorPicker_Recolor_Tooltip")));
+        }
+
+        using (var popup = ImRaii.Popup($"{id}-popup"))
+        {
+            if (popup)
+            {
+                var edit = stored;
+                if (!allowAlpha)
+                    edit.W = 1f;
+                else if (value == 0)
+                    edit.W = defaultAlpha;
+
+                var editFlags = allowAlpha ? ImGuiColorEditFlags.AlphaBar : ImGuiColorEditFlags.NoAlpha;
+                if (ImGui.ColorPicker4($"{id}-picker", ref edit, editFlags))
+                {
+                    value = RgbaColor.FromVector4(edit);
+                    changed = true;
+                }
+            }
+        }
+
         return changed;
     }
 

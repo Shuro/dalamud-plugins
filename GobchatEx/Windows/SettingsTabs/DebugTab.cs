@@ -1,5 +1,4 @@
 #if DEBUG
-using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
@@ -51,6 +50,12 @@ internal sealed class DebugTab : ISettingsTab
         if (!tabBar)
             return;
 
+        using (var generalTab = ImRaii.TabItem("General"))
+        {
+            if (generalTab)
+                DrawGeneral();
+        }
+
         using (var ipcTab = ImRaii.TabItem("Chat 2 IPC"))
         {
             if (ipcTab)
@@ -73,6 +78,28 @@ internal sealed class DebugTab : ISettingsTab
         {
             if (glowTab)
                 DrawGlowInjection();
+        }
+    }
+
+    private void DrawGeneral()
+    {
+        ImGui.TextDisabled("General — misc one-off probes");
+
+        if (ImGui.Button("Send rainbow A-Z (Echo)"))
+        {
+            var pop = SeStringColorMacro.PopColor();
+
+            var b = new SeStringBuilder();
+            for (var i = 0; i < 26; i++)
+            {
+                var hue = i / 26f;
+                var rgb = ColorHelpers.HsvToRgb(new ColorHelpers.HsvaColor(hue, 1f, 1f, 1f));
+                b.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.ColorMacroCode, SeStringColorMacro.PackAarrggbb(rgb)));
+                b.AddText(((char)('A' + i)).ToString());
+                b.Add(pop);
+            }
+
+            Plugin.ChatGui.Print(new XivChatEntry { Message = b.Build(), Type = XivChatType.Echo });
         }
     }
 
@@ -195,7 +222,7 @@ internal sealed class DebugTab : ISettingsTab
             ImGui.TextUnformatted("Text color");
             ImGui.SetNextItemWidth(pickerWidth);
             ImGui.ColorPicker4("##debug-custom-text-color", ref customTextColor, ImGuiColorEditFlags.AlphaBar);
-            ImGui.TextDisabled($"packed 0x{PackAarrggbb(customTextColor):X8}");
+            ImGui.TextDisabled($"packed 0x{SeStringColorMacro.PackAarrggbb(customTextColor):X8}");
         }
         ImGui.SameLine(0f, 24f * ImGuiHelpers.GlobalScale);
         using (ImRaii.Group())
@@ -203,63 +230,20 @@ internal sealed class DebugTab : ISettingsTab
             ImGui.TextUnformatted("Glow color");
             ImGui.SetNextItemWidth(pickerWidth);
             ImGui.ColorPicker4("##debug-custom-glow-color", ref customGlowColor, ImGuiColorEditFlags.AlphaBar);
-            ImGui.TextDisabled($"packed 0x{PackAarrggbb(customGlowColor):X8}");
+            ImGui.TextDisabled($"packed 0x{SeStringColorMacro.PackAarrggbb(customGlowColor):X8}");
         }
 
         if (ImGui.Button("Send custom color message"))
         {
             var text = string.IsNullOrWhiteSpace(customColorText) ? "GobchatEx custom color test" : customColorText;
             var b = new SeStringBuilder();
-            b.Add(MakeColorMacro(ColorMacroCode, PackAarrggbb(customTextColor)));
-            b.Add(MakeColorMacro(EdgeColorMacroCode, PackAarrggbb(customGlowColor)));
+            b.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.ColorMacroCode, SeStringColorMacro.PackAarrggbb(customTextColor)));
+            b.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.EdgeColorMacroCode, SeStringColorMacro.PackAarrggbb(customGlowColor)));
             b.AddText(text);
-            b.Add(new RawPayload([0x02, EdgeColorMacroCode, 0x02, 0xEC, 0x03]));   // edgecolor(stackcolor)
-            b.Add(new RawPayload([0x02, ColorMacroCode, 0x02, 0xEC, 0x03]));       // color(stackcolor)
+            b.Add(SeStringColorMacro.PopEdgeColor());
+            b.Add(SeStringColorMacro.PopColor());
             Plugin.ChatGui.Print(b.Build());
         }
-    }
-
-    private const byte ColorMacroCode = 0x13;
-    private const byte EdgeColorMacroCode = 0x14;
-
-    private static uint PackAarrggbb(Vector4 color)
-    {
-        static uint Channel(float value) => (uint)(Math.Clamp(value, 0f, 1f) * 255f + 0.5f);
-        return Channel(color.W) << 24 | Channel(color.X) << 16 | Channel(color.Y) << 8 | Channel(color.Z);
-    }
-
-    // Full macro envelope: 0x02, code, length expression, value expression, 0x03.
-    private static RawPayload MakeColorMacro(byte macroCode, uint packedColor)
-    {
-        var expression = EncodeIntExpression(packedColor);
-        var chunk = new List<byte> { 0x02, macroCode };
-        chunk.AddRange(EncodeIntExpression((uint)expression.Count));
-        chunk.AddRange(expression);
-        chunk.Add(0x03);
-        return new RawPayload([.. chunk]);
-    }
-
-    // SeString integer expression: values < 0xCF are a single byte (value + 1); larger
-    // values get a marker byte (0xF0 | nonzero-byte mask, minus 1) followed by the nonzero
-    // bytes of the big-endian value — zero bytes are skipped, never embedded.
-    private static List<byte> EncodeIntExpression(uint value)
-    {
-        if (value < 0xCF)
-            return [(byte)(value + 1)];
-
-        var bytes = new List<byte> { 0 };
-        var marker = 0xF0;
-        for (var i = 3; i >= 0; i--)
-        {
-            var b = (byte)(value >> (8 * i));
-            if (b == 0)
-                continue;
-            marker |= 1 << i;
-            bytes.Add(b);
-        }
-
-        bytes[0] = (byte)(marker - 1);
-        return bytes;
     }
 
     private void DrawChatTwoIpc()

@@ -33,9 +33,9 @@ public sealed class ChatListener : IDisposable
 
     private MessageSegmenter _segmenter = null!;
     private HashSet<XivChatType> _channels = null!;
-    private Dictionary<SegmentType, (ushort Foreground, ushort Glow)> _styles = null!;
+    private Dictionary<SegmentType, (uint Foreground, uint Glow)> _styles = null!;
     private IReadOnlyList<GroupRule> _groupRules = [];
-    private Dictionary<string, (ushort Foreground, ushort Glow)> _groupStyles = new();
+    private Dictionary<string, (uint Foreground, uint Glow)> _groupStyles = new();
     private bool _enabled;
     private bool _rangeEnabled;
     private HashSet<XivChatType> _rangeChannels = [];
@@ -92,7 +92,7 @@ public sealed class ChatListener : IDisposable
     {
         _enabled = _config.Formatting.RpHighlightEnabled;
         _channels = [.. _config.Formatting.HighlightChannels];
-        _styles = new Dictionary<SegmentType, (ushort, ushort)>
+        _styles = new Dictionary<SegmentType, (uint, uint)>
         {
             [SegmentType.Say] = StyleTuple(_config.Formatting.SayStyle),
             [SegmentType.Emote] = StyleTuple(_config.Formatting.EmoteStyle),
@@ -130,7 +130,7 @@ public sealed class ChatListener : IDisposable
         }
 
         var rules = new List<GroupRule>(_config.Groups.Groups.Count + _config.Groups.FriendGroups.Count);
-        var styles = new Dictionary<string, (ushort Foreground, ushort Glow)>(rules.Capacity);
+        var styles = new Dictionary<string, (uint Foreground, uint Glow)>(rules.Capacity);
 
         foreach (var group in _config.Groups.Groups)
         {
@@ -201,8 +201,8 @@ public sealed class ChatListener : IDisposable
         return new MentionRules(wholeWords, partialWords, fuzzyWords, fuzzyLevel);
     }
 
-    private static (ushort Foreground, ushort Glow) StyleTuple(SegmentStyle style)
-        => style.Enabled ? (style.Foreground, style.Glow) : ((ushort)0, (ushort)0);
+    private static (uint Foreground, uint Glow) StyleTuple(SegmentStyle style)
+        => style.Enabled ? (style.Foreground, style.Glow) : (0u, 0u);
 
     private SegmentStyle StyleFor(SegmentType type)
         => type switch
@@ -221,9 +221,9 @@ public sealed class ChatListener : IDisposable
         var fadeStep = RangeFadeStep(message);
 
         if (_enabled && _channels.Contains(message.LogKind))
-            ApplyBodyHighlighting(message);
+            ApplyBodyHighlighting(message, fadeStep);
 
-        ApplySenderGroupColor(message);
+        ApplySenderGroupColor(message, fadeStep);
 
         if (fadeStep is { } step)
             ApplyFade(message, step);
@@ -287,7 +287,7 @@ public sealed class ChatListener : IDisposable
         message.Sender = new SeString(UiColorDimmer.DimPayloads(message.Sender.Payloads, step, uncolored));
     }
 
-    private void ApplyBodyHighlighting(IHandleableChatMessage message)
+    private void ApplyBodyHighlighting(IHandleableChatMessage message, int? fadeStep)
     {
         var payloads = message.Message.Payloads;
 
@@ -299,7 +299,7 @@ public sealed class ChatListener : IDisposable
         if (result == null)
             return;
 
-        var rewritten = PayloadRewriter.Rewrite(payloads, runIndices!, runTexts, result.RunSpans, _styles);
+        var rewritten = PayloadRewriter.Rewrite(payloads, runIndices!, runTexts, result.RunSpans, _styles, fadeStep);
         message.Message = new SeString(rewritten);
 
         if (result.HasMention)
@@ -311,7 +311,7 @@ public sealed class ChatListener : IDisposable
     /// <see cref="_enabled"/>/<see cref="_channels"/> (the RP-highlighting master switch and channel
     /// filter) — group coloring is its own feature and applies wherever a sender exists.
     /// </summary>
-    private void ApplySenderGroupColor(IHandleableChatMessage message)
+    private void ApplySenderGroupColor(IHandleableChatMessage message, int? fadeStep)
     {
         if (GroupingExcludedChannels.Contains(message.LogKind))
             return;
@@ -333,7 +333,7 @@ public sealed class ChatListener : IDisposable
         if (runTexts == null)
             return;
 
-        var rewritten = PayloadRewriter.RewriteUniform(payloads, runIndices!, runTexts, style);
+        var rewritten = PayloadRewriter.RewriteUniform(payloads, runIndices!, runTexts, style, fadeStep);
         message.Sender = new SeString(rewritten);
     }
 

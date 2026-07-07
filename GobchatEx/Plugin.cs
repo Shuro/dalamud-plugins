@@ -44,6 +44,13 @@ public sealed class Plugin : IDalamudPlugin
     private const string AliasCommand = "/gobchatex";
     private const string ShortAliasCommand = "/gex";
 
+    // Dalamud's native context-menu Prefix/PrefixColor is UIColor-sheet-row-only (an
+    // ImGui-side render, not a SeString we control) — unlike FormattingConfig's colors, which
+    // moved to packed RGBA rendered via our own raw Color/EdgeColor macros. Row 500 is the same
+    // orange hue as FormattingConfig.DefaultEmoteForeground, kept here as its own constant since
+    // the two can no longer share one value.
+    private const ushort SubmenuPrefixColorRow = 500;
+
     public Configuration Configuration { get; init; }
     public readonly WindowSystem WindowSystem = new("GobchatEx");
     internal ChatListener ChatListener { get; init; }
@@ -165,8 +172,8 @@ public sealed class Plugin : IDalamudPlugin
             // Boxed "G" for GobchatEx. Silences Dalamud's "no prefix" warning (ContextMenu.cs falls
             // back to its own default + logs otherwise).
             Prefix = SeIconChar.BoxedLetterG,
-            // GobchatEx's own orange accent (see FormattingConfig.DefaultEmoteForeground).
-            PrefixColor = FormattingConfig.DefaultEmoteForeground,
+            // GobchatEx's own orange accent (see SubmenuPrefixColorRow above).
+            PrefixColor = SubmenuPrefixColorRow,
             OnClicked = clicked => OpenGroupSubmenu(clicked, name, world),
         });
     }

@@ -6,8 +6,8 @@ using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using GobchatEx.Chat;
 using GobchatEx.Config;
+using GobchatEx.Core;
 using GobchatEx.Localization;
 
 namespace GobchatEx.Windows.SettingsTabs;
@@ -71,7 +71,6 @@ internal sealed class FormattingTab : IToggleableTab
     }
 
     private readonly FormattingConfig config;
-    private readonly UiColorPicker colorPicker = new();
 
     public FormattingTab(FormattingConfig config)
     {
@@ -116,7 +115,7 @@ internal sealed class FormattingTab : IToggleableTab
     }
 
     private void DrawSegmentRow(
-        string labelKey, SegmentStyle style, string delimiters, ushort defaultForeground, UiConfigOption? importOption)
+        string labelKey, SegmentStyle style, string delimiters, uint defaultForeground, UiConfigOption? importOption)
     {
         using var id = ImRaii.PushId(labelKey);
         var label = Loc.Get(labelKey);
@@ -154,12 +153,12 @@ internal sealed class FormattingTab : IToggleableTab
 
         ImGui.TableNextColumn();
         var foreground = style.Foreground;
-        if (colorPicker.Draw("fg", ref foreground, glow: false))
+        if (SettingsUi.RgbaColorEdit("##fg", ref foreground, allowAlpha: false))
             style.Foreground = foreground;
 
         ImGui.TableNextColumn();
         var glowColor = style.Glow;
-        if (colorPicker.Draw("glow", ref glowColor, glow: true))
+        if (SettingsUi.RgbaColorEdit("##glow", ref glowColor, allowAlpha: false))
             style.Glow = glowColor;
 
         ImGui.TableNextColumn();
@@ -177,11 +176,12 @@ internal sealed class FormattingTab : IToggleableTab
 
     /// <summary>
     /// The game's configured color for a chat channel (Character Configuration → Log Text
-    /// Color), mapped to the nearest UIColor row — SeString rewriting needs rows, not RGB.
-    /// The config value's low 24 bits are RGB; 0 means "not set" (same reading as Chat 2's
-    /// GetChannelColor). Null when unavailable, leaving the current color untouched.
+    /// Color), packed straight to RGBA — no more UIColor row snapping needed now that Text
+    /// colors render via a raw macro. The config value's low 24 bits are RGB; 0 means "not set"
+    /// (same reading as Chat 2's GetChannelColor). Null when unavailable, leaving the current
+    /// color untouched.
     /// </summary>
-    private static ushort? ImportGameChannelRow(UiConfigOption option)
+    private static uint? ImportGameChannelRow(UiConfigOption option)
     {
         if (!Plugin.GameConfig.TryGet(option, out uint value))
             return null;
@@ -190,10 +190,11 @@ internal sealed class FormattingTab : IToggleableTab
         if (rgb == 0)
             return null;
 
-        return UiColorDimmer.NearestRow(new Vector3(
+        return RgbaColor.FromVector4(new Vector4(
             ((rgb >> 16) & 255) / 255f,
             ((rgb >> 8) & 255) / 255f,
-            (rgb & 255) / 255f));
+            (rgb & 255) / 255f,
+            1f));
     }
 
     private void DrawChannels()

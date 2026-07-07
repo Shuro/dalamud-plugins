@@ -17,13 +17,13 @@ public class FormattingConfig
 
     public bool RpHighlightEnabled { get; set; } = true;
 
-    // Defaults picked by Shuro: Say 549 = F3F3F3 soft white, Emote 500 = FF7B1A
-    // orange, OOC 4 = 808080 grey, Mention 48 = AA81FF purple (values from the game's
-    // UIColor sheet). The Formatting tab's reset buttons restore these constants.
-    public const ushort DefaultSayForeground = 549;
-    public const ushort DefaultEmoteForeground = 500;
-    public const ushort DefaultOocForeground = 4;
-    public const ushort DefaultMentionForeground = 48;
+    // Defaults picked by Shuro, packed RGBA (0xRRGGBBAA): Say = F8F8F8 soft white, Emote =
+    // FF8000 the game's own emote-channel orange, OOC = 808080 grey, Mention = AA81FF purple.
+    // The Formatting tab's reset buttons restore these constants.
+    public const uint DefaultSayForeground = 0xF8F8F8FF;
+    public const uint DefaultEmoteForeground = 0xFF8000FF;
+    public const uint DefaultOocForeground = 0x808080FF;
+    public const uint DefaultMentionForeground = 0xAA81FFFF;
 
     public SegmentStyle SayStyle { get; set; } = new() { Foreground = DefaultSayForeground };
     public SegmentStyle EmoteStyle { get; set; } = new() { Foreground = DefaultEmoteForeground };

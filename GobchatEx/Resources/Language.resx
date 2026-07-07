@@ -235,8 +235,7 @@
     <data name="ChatTwo_Policy_Column_Hiding"><value>Hiding</value></data>
 
     <data name="ColorPicker_NoRecolor_Tooltip"><value>No recolor. Click to choose a color.</value></data>
-    <data name="ColorPicker_Recolor_Tooltip"><value>UIColor row {0}. Right-click to clear.</value></data>
-    <data name="ColorPicker_Swatch_Tooltip"><value>UIColor row {0}</value></data>
+    <data name="ColorPicker_Recolor_Tooltip"><value>Custom color. Right-click to clear.</value></data>
 
     <data name="Sound_EffectName"><value>Sound Effect {0}</value></data>
 

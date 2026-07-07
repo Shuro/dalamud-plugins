@@ -235,8 +235,7 @@
     <data name="ChatTwo_Policy_Column_Hiding"><value>Verstecken</value></data>
 
     <data name="ColorPicker_NoRecolor_Tooltip"><value>Keine Einfärbung. Klicken, um eine Farbe zu wählen.</value></data>
-    <data name="ColorPicker_Recolor_Tooltip"><value>UIColor-Zeile {0}. Rechtsklick zum Zurücksetzen.</value></data>
-    <data name="ColorPicker_Swatch_Tooltip"><value>UIColor-Zeile {0}</value></data>
+    <data name="ColorPicker_Recolor_Tooltip"><value>Eigene Farbe. Rechtsklick zum Zurücksetzen.</value></data>
 
     <data name="Sound_EffectName"><value>Soundeffekt {0}</value></data>
 
