@@ -19,7 +19,7 @@ SDK: `Dalamud.NET.Sdk/15.0.0` — pins TargetFramework and implicitly references
 - InteropGenerator.Runtime
 
 No NuGet PackageReferences of its own. `packages.lock.json` checked in
-(Plogon/CI requirement). Manifest: GobchatEx/GobchatEx.json.
+(Plogon/CI requirement). Manifest: GobchatEx/GobchatExPlugin.json.
 
 ## Dalamud services used (Plugin.cs)
 

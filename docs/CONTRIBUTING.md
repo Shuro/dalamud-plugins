@@ -26,7 +26,7 @@ policy that applies to every PR.
 <!-- AUTO-GENERATED from GobchatEx/GobchatEx.csproj and tests/GobchatEx.Core.Tests/GobchatEx.Core.Tests.csproj -->
 | Command | Description |
 | ------- | ----------- |
-| `dotnet build` | Build plugin + tests; plugin output in `GobchatEx/bin/Debug/` (Release also packs `bin/Release/GobchatEx/latest.zip`) |
+| `dotnet build` | Build plugin + tests; plugin output in `GobchatEx/bin/Debug/` (Release also packs `bin/Release/GobchatExPlugin/latest.zip`) |
 | `dotnet test` | Run the Core unit tests (xunit; no game install needed) |
 | `dotnet test --collect "Code Coverage;Format=cobertura"` | Tests with coverage — use this built-in collector; coverlet cannot instrument net10.0 and silently reports 0 lines |
 | `dotnet format` | Apply the `.editorconfig` style rules |

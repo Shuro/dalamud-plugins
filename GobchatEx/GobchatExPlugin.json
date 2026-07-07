@@ -7,7 +7,7 @@
   "ApplicableVersion": "any",
   "Tags": ["Chat", "Social", "Roleplay", "RP"],
   "CategoryTags": ["social"],
-  "IconUrl": "https://raw.githubusercontent.com/Shuro/GobchatEx-plugin/main/data/icon.png",
+  "IconUrl": "https://raw.githubusercontent.com/Shuro/GobchatEx-plugin/main/GobchatEx/images/icon.png",
   "AcceptsFeedback": true,
   "FeedbackMessage": "Open an issue on GitHub or ping the author in the Dalamud Discord."
 }

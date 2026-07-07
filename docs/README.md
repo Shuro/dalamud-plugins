@@ -51,6 +51,18 @@ and follows Dalamud's language unless overridden.
   name on any world). `... clear` empties the group; `g` is a shorthand
   for `group`.
 
+## Installing
+
+There's no official [DalamudPluginsD17](https://github.com/goatcorp/DalamudPluginsD17)
+listing yet. Until then, install via this repo's custom plugin repository:
+
+1. In-game: `/xlsettings` → Experimental → Custom Plugin Repositories.
+2. Add: `https://raw.githubusercontent.com/Shuro/GobchatEx-plugin/main/repo.json`
+3. `/xlplugins` → search "GobchatEx" → Install.
+
+Custom repositories get minimal support from the Dalamud team itself — if
+you hit an install issue, open a GitHub issue here first.
+
 ## Building locally
 
 This project uses the `Dalamud.NET.Sdk`, which auto-references everything
@@ -62,12 +74,12 @@ dotnet build
 ```
 
 That produces `GobchatEx/bin/Debug/` — the plugin DLL plus its manifest
-(`GobchatEx.json`), icon, and the German satellite. (A Release build
-additionally packs `bin/Release/GobchatEx/latest.zip` for distribution —
+(`GobchatExPlugin.json`), icon, and the German satellite. (A Release build
+additionally packs `bin/Release/GobchatExPlugin/latest.zip` for distribution —
 not needed for dev loading.) To load it in-game:
 
 1. `/xlsettings` → Experimental → "Dev Plugin Locations" → add the full path
-   to `GobchatEx.dll` inside that folder.
+   to `GobchatExPlugin.dll` inside that folder.
 2. `/xlplugins` → Dev Tools → Installed Dev Plugins → enable.
 3. While iterating, enable **Automatic Reloading** on the plugin's row
    under Installed Dev Plugins — Dalamud then reloads the plugin whenever

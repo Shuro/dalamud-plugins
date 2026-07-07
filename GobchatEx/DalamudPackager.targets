@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Project-level override of DalamudPackager's default targets (the nupkg's
+  build\DalamudPackager.targets imports this file instead of its own targets
+  when it exists). Mirrors the defaults from
+  %USERPROFILE%\.nuget\packages\dalamudpackager\15.0.0\build\DalamudPackager.targets
+  verbatim, with one addition: VersionComponents="3" so the packaged manifest
+  gets a 3-component AssemblyVersion (e.g. 0.8.0 instead of 0.8.0.0).
+  Re-diff against the nupkg file after SDK/DalamudPackager version bumps.
+-->
+<Project>
+    <Target Name="GobchatExDalamudPackagerDebug"
+            AfterTargets="Build"
+            Condition="'$(Configuration)' == 'Debug'">
+        <DalamudPackager ProjectDir="$(ProjectDir)"
+                         OutputPath="$(OutputPath)"
+                         AssemblyName="$(AssemblyName)"
+                         MakeZip="false"
+                         VersionComponents="3"
+                         Author="$(Author)"
+                         Name="$(Name)"
+                         MinimumDalamudVersion="$(MinimumDalamudVersion)"
+                         Punchline="$(Punchline)"
+                         Description="$(Description)"
+                         ApplicableVersion="$(ApplicableVersion)"
+                         RepoUrl="$(RepoUrl)"
+                         Tags="$(Tags)"
+                         CategoryTags="$(CategoryTags)"
+                         DalamudApiLevel="$(DalamudApiLevel)"
+                         LoadRequiredState="$(LoadRequiredState)"
+                         LoadSync="$(LoadSync)"
+                         CanUnloadAsync="$(CanUnloadAsync)"
+                         LoadPriority="$(LoadPriority)"
+                         ImageUrls="$(ImageUrls)"
+                         IconUrl="$(IconUrl)"
+                         Changelog="$(Changelog)"
+                         AcceptsFeedback="$(AcceptsFeedback)"
+                         FeedbackMessage="$(FeedbackMessage)" />
+    </Target>
+
+    <Target Name="GobchatExDalamudPackagerRelease"
+            AfterTargets="Build"
+            Condition="'$(Configuration)' == 'Release'">
+        <DalamudPackager ProjectDir="$(ProjectDir)"
+                         OutputPath="$(OutputPath)"
+                         AssemblyName="$(AssemblyName)"
+                         MakeZip="true"
+                         VersionComponents="3"
+                         Author="$(Author)"
+                         Name="$(Name)"
+                         MinimumDalamudVersion="$(MinimumDalamudVersion)"
+                         Punchline="$(Punchline)"
+                         Description="$(Description)"
+                         ApplicableVersion="$(ApplicableVersion)"
+                         RepoUrl="$(RepoUrl)"
+                         Tags="$(Tags)"
+                         CategoryTags="$(CategoryTags)"
+                         DalamudApiLevel="$(DalamudApiLevel)"
+                         LoadRequiredState="$(LoadRequiredState)"
+                         LoadSync="$(LoadSync)"
+                         CanUnloadAsync="$(CanUnloadAsync)"
+                         LoadPriority="$(LoadPriority)"
+                         ImageUrls="$(ImageUrls)"
+                         IconUrl="$(IconUrl)"
+                         Changelog="$(Changelog)"
+                         AcceptsFeedback="$(AcceptsFeedback)"
+                         FeedbackMessage="$(FeedbackMessage)" />
+    </Target>
+</Project>

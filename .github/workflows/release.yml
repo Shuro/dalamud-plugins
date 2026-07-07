@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  release:
+    # GobchatEx.csproj targets net10.0-windows (Dalamud.NET.Sdk); it will not
+    # build on non-Windows runners.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag matches project version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag.TrimStart("v")
+          [xml]$csproj = Get-Content "GobchatEx/GobchatEx.csproj"
+          $projectVersion = ($csproj.Project.PropertyGroup | Select-Object -First 1).Version
+          if ($version -ne $projectVersion) {
+            Write-Error "Tag '$tag' (version '$version') does not match <Version>$projectVersion</Version> in GobchatEx.csproj. Bump the csproj version and re-tag."
+            exit 1
+          }
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Download Dalamud dev assemblies
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://goatcorp.github.io/dalamud-distrib/latest.zip -OutFile dalamud.zip
+          Expand-Archive -Path dalamud.zip -DestinationPath "$env:AppData\XIVLauncher\addon\Hooks\dev"
+
+      - name: Restore (locked)
+        run: dotnet restore GobchatEx.slnx --locked-mode
+
+      - name: Build Release package
+        run: dotnet build GobchatEx.slnx -c Release --no-restore
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          gh release create "${{ github.ref_name }}" `
+            "GobchatEx/bin/Release/GobchatExPlugin/latest.zip" `
+            --title "${{ github.ref_name }}" `
+            --notes "See commit history for changes." `
+            --repo "${{ github.repository }}"
+
+      - name: Generate repo.json
+        shell: pwsh
+        run: |
+          ./scripts/generate-repo.ps1 `
+            -ManifestPath "GobchatEx/bin/Release/GobchatExPlugin/GobchatExPlugin.json" `
+            -DownloadUrl "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/latest.zip" `
+            -OutputPath "$env:RUNNER_TEMP/repo.json"
+
+      - name: Commit repo.json to main
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout main
+          git pull --rebase origin main
+          Copy-Item -Path "$env:RUNNER_TEMP/repo.json" -Destination "repo.json" -Force
+          git add repo.json
+          if (git status --porcelain repo.json) {
+            git commit -m "chore: update repo.json for ${{ github.ref_name }}"
+            git push origin main
+          } else {
+            Write-Host "repo.json unchanged, nothing to commit."
+          }

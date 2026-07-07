@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Dalamud.NET.Sdk/15.0.0">
   <PropertyGroup>
-    <Version>0.0.0.1</Version>
+    <Version>0.8.0</Version>
+    <AssemblyName>GobchatExPlugin</AssemblyName>
+    <RootNamespace>GobchatEx</RootNamespace>
     <Description>Roleplay Highlighting in the native chat. Mentions notification with sound effects and more.</Description>
     <PackageProjectUrl>https://github.com/Shuro/GobchatEx-plugin</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
@@ -22,12 +24,27 @@
     Manifest fields (Name, Author, Punchline, Description, RepoUrl, Tags,
     CategoryTags, ApplicableVersion, IconUrl, ImageUrls, Changelog, etc.) can
     be added directly to this <PropertyGroup> in v14+. The companion
-    GobchatEx.json file is kept as the source of truth here for clarity, but
+    GobchatExPlugin.json file is kept as the source of truth here for clarity, but
     you can collapse it into this csproj if you prefer a single place.
+
+    Versioning is 3-component (major.minor.patch). The DalamudPackager.targets
+    file next to this csproj pins the packaged manifest's AssemblyVersion to
+    3 components (VersionComponents="3"); bump only <Version> above.
+
+    The manifest's InternalName is not a settable field — DalamudPackager
+    derives it from <AssemblyName>. It is permanent after the first
+    DalamudPluginsD17 submission, so it's pinned explicitly here rather than
+    left to default to the project filename.
   -->
 
   <ItemGroup>
-    <Content Include="..\data\icon.png">
+    <!--
+      <Link> flattens the copied file to the output root (icon.png) even
+      though the source lives under images\ — AboutTab.cs loads it via
+      Path.Combine(AssemblyLocation.DirectoryName, "icon.png").
+    -->
+    <Content Include="images\icon.png">
+      <Link>icon.png</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
