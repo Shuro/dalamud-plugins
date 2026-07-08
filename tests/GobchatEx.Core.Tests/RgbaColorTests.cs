@@ -58,4 +58,28 @@ public sealed class RgbaColorTests
             RgbaColor.FromVector4(RgbaColor.ToVector4(packed)).Should().Be(packed);
         }
     }
+
+    [Fact]
+    public void FromGameConfigColor_ReordersRrGgBbToRrGgBbAaWithOpaqueAlpha()
+    {
+        // GameConfig's low 24 bits are already 0xRRGGBB; only alpha needs adding.
+        RgbaColor.FromGameConfigColor(0x123456u).Should().Be(0x123456FFu);
+    }
+
+    [Fact]
+    public void FromGameConfigColor_IgnoresHighByte()
+    {
+        // Dalamud's GameConfig uint values can carry unrelated flag bits above the color —
+        // only the low 24 bits are the RGB payload.
+        RgbaColor.FromGameConfigColor(0xFF123456u).Should().Be(0x123456FFu);
+    }
+
+    [Fact]
+    public void FromGameConfigColor_ZeroRgb_ReturnsNull_TheUnsetSentinel()
+    {
+        // WHY: 0 is Dalamud's "no color configured" convention (same reading Chat 2's
+        // GetChannelColor uses) — misreading it as opaque black would silently render every
+        // unconfigured channel in black instead of falling back to a sensible default.
+        RgbaColor.FromGameConfigColor(0u).Should().BeNull();
+    }
 }

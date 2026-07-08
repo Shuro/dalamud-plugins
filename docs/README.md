@@ -138,7 +138,25 @@ highlighted-channels list first, and add a mention trigger word. Then:
     step instead of your normal color, and vanishes (still visible, darkest
     step) once they're beyond the cut-off. Say something that mentions your
     trigger word from beyond the cut-off — with "mentions ignore range" on,
-    it renders normally instead of dimmed.
+    it renders normally instead of dimmed. The Range tab also offers Custom
+    Emote, Standard Emote, Yell and Shout — unformatted text on any of them
+    fades using that channel's own configured Log Text Color (Character
+    Configuration → Log Text Color) by default, darkened the same way, so
+    Yell stays yellowish and Shout stays orange-red instead of collapsing
+    into Say's grey; only channels with no game color configured fall back
+    to a shared grey. If Chat 2 is currently installed *and loaded* and has
+    its own customized color for that channel (its "Chat colours" page),
+    that color is preferred instead — read directly from Chat 2's own
+    config file, not live, so a color change there is picked up next time
+    GEX's settings commit or you relog. Disabling or uninstalling Chat 2
+    drops back to vanilla's color immediately (checked via Dalamud's
+    installed-plugins list, not just whether the file exists — Chat 2's
+    config file persists on disk even after it's disabled). Debug page →
+    Range dimming → Step buttons
+    demonstrate all of this directly without needing an alt: the
+    "Unformatted text per channel" line prints one segment per channel in
+    its own faded color, labeled with which source won (Chat 2 / vanilla /
+    fallback).
 11. Only if testing the Chat 2 styling integration (Milestone 3.5): load
     Chat 2's `local/dev-combined` fork build, open the ChatTwo tab in
     settings — it should show connected. Give a custom group a Chat 2
@@ -146,6 +164,11 @@ highlighted-channels list first, and add a mention trigger word. Then:
     Chat 2's window (not the native log, which can't draw backgrounds).
     Repeat step 10's distance test with Chat 2 open — messages should fade
     to true partial transparency there instead of a darkened color step.
+    Separately (works with any Chat 2 build, not just the fork): customize
+    a channel's color on Chat 2's own "Chat colours" page, leave another
+    channel at default, then use step 10's Debug page buttons — the
+    customized channel's segment should be labeled "(Chat 2)" and show that
+    exact color faded; the untouched channel should still show "(vanilla)".
 
 ## Contributing
 

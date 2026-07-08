@@ -21,4 +21,16 @@ public static class RgbaColor
         ((rgba >> 16) & 255) / 255f,
         ((rgba >> 8) & 255) / 255f,
         (rgba & 255) / 255f);
+
+    /// <summary>
+    /// Converts a Dalamud <c>IGameConfig</c> chat-color value (low 24 bits 0xRRGGBB, e.g.
+    /// UiConfigOption.ColorSay) to this type's 0xRRGGBBAA format, alpha forced opaque. Null when
+    /// unset (rgb == 0) — Dalamud's GameConfig convention for "no color configured", same reading
+    /// Chat 2's GetChannelColor uses.
+    /// </summary>
+    public static uint? FromGameConfigColor(uint raw)
+    {
+        var rgb = raw & 0xFFFFFFu;
+        return rgb == 0 ? null : (rgb << 8) | 0xFF;
+    }
 }

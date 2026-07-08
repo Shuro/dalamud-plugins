@@ -16,8 +16,11 @@ namespace GobchatEx.Windows.SettingsTabs;
 /// configuration (Debug page convention — config-read-only, body strings unlocalized). Three tools:
 /// a distance simulator over the pure <see cref="RangeFade"/> math, a live object-table view of
 /// what the filter would assign each nearby player right now, and test-message injection printing
-/// native chat lines in each fade-step color — <see cref="ChatListener.FadeStepColors"/> is a
-/// provisional pick, and legibility depends on the user's chat theme.
+/// native chat lines in each fade-step color — RP-highlight colors are provisional picks and
+/// legibility depends on the user's chat theme, while the per-channel native colors come from
+/// <see cref="ChatListener.ResolveChannelColorWithSource"/> (Chat 2's own customized color when on
+/// file, else the player's vanilla Log Text Color settings) and are labeled with whichever source
+/// won.
 /// </summary>
 internal sealed class DebugRangePane
 {
@@ -28,6 +31,7 @@ internal sealed class DebugRangePane
     private readonly Vector4[] stepPreviewColors;
 
     private float simulatedDistance = 20f;
+    private bool showFromToColors;
 
     public DebugRangePane(Plugin plugin)
     {
@@ -130,36 +134,118 @@ internal sealed class DebugRangePane
     private void DrawInjection()
     {
         ImGui.TextDisabled("Test messages — printed to the native log to judge step legibility");
-
-        if (ImGui.Button("Uncolored reference"))
-            Plugin.ChatGui.Print("GobchatEx range test — uncolored reference");
+        ImGui.Checkbox("Also print From -> To hex reference lines", ref showFromToColors);
 
         for (var step = 0; step < ChatListener.FadeStepColors.Length; step++)
         {
-            ImGui.SameLine();
-            if (!ImGui.Button($"Step {step}"))
-                continue;
+            if (step > 0)
+                ImGui.SameLine();
 
-            var row = ChatListener.FadeStepColors[step];
-            var builder = new SeStringBuilder();
-            builder.AddUiForeground(row);
-            builder.AddText($"GobchatEx range test — fade step {step} (UIColor row {row})");
-            builder.AddUiForegroundOff();
-            Plugin.ChatGui.Print(builder.Build());
-
-            // Second line in the dimmed emote color, to eyeball UiColorDimmer.DimRgba —
-            // colored spans keep their hue when faded.
-            var emoteColor = plugin.Configuration.Formatting.EmoteStyle.Foreground;
-            if (emoteColor == 0)
-                continue;
-
-            var dimmedColor = UiColorDimmer.DimRgba(emoteColor, step);
-            var colored = new SeStringBuilder();
-            colored.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.ColorMacroCode, SeStringColorMacro.ToOpaqueAarrggbb(dimmedColor)));
-            colored.AddText($"GobchatEx range test — emote color at step {step} (0x{emoteColor:X8} -> 0x{dimmedColor:X8})");
-            colored.Add(SeStringColorMacro.PopColor());
-            Plugin.ChatGui.Print(colored.Build());
+            if (ImGui.Button($"Step {step}"))
+                PrintRangeTestMessage(step);
         }
+    }
+
+    /// <summary>
+    /// One "GEX range test" line mixing all four highlight categories at <paramref name="step"/>,
+    /// each with Foreground and Glow dimmed independently via <see cref="UiColorDimmer.DimRgba"/> —
+    /// eyeballs the exact colors and glow a real faded message would use. A category with no
+    /// configured Foreground renders its span as plain default-colored text instead of being
+    /// omitted, so the line's wording is identical across configurations. A second line then shows
+    /// plain, unformatted text per range-filterable channel, each in that channel's own configured
+    /// color (<see cref="PrintChannelNativeFade"/>) — the fix for GEX previously collapsing every
+    /// channel's unmarked text into one shared grey. When <see cref="showFromToColors"/> is set,
+    /// also prints one "Category: 0xFROM -> 0xTO" line per highlight category underneath, with FROM
+    /// in the category's base Foreground color and TO in that color dimmed to <paramref name="step"/>.
+    /// </summary>
+    private void PrintRangeTestMessage(int step)
+    {
+        var formatting = plugin.Configuration.Formatting;
+        var emote = (formatting.EmoteStyle.Foreground, formatting.EmoteStyle.Glow);
+        var say = (formatting.SayStyle.Foreground, formatting.SayStyle.Glow);
+        var ooc = (formatting.OocStyle.Foreground, formatting.OocStyle.Glow);
+        var mention = (formatting.MentionStyle.Foreground, formatting.MentionStyle.Glow);
+
+        var builder = new SeStringBuilder();
+        AppendFadeSegment(builder, emote, step, "GEX range test - ");
+        AppendFadeSegment(builder, say, step, "\"say\"");
+        AppendFadeSegment(builder, emote, step, " ");
+        AppendFadeSegment(builder, ooc, step, "((ooc))");
+        AppendFadeSegment(builder, emote, step, " ");
+        AppendFadeSegment(builder, mention, step, "Mention");
+        AppendFadeSegment(builder, emote, step, $" at step {step}");
+        Plugin.ChatGui.Print(builder.Build());
+
+        PrintChannelNativeFade(step);
+
+        if (!showFromToColors)
+            return;
+
+        PrintFromTo("Emote", emote, step);
+        PrintFromTo("Say", say, step);
+        PrintFromTo("Ooc", ooc, step);
+        PrintFromTo("Mention", mention, step);
+    }
+
+    // A category's Foreground/Glow of 0 means disabled/unset — skip pushing that macro instead of
+    // pushing a meaningless (would-render-transparent) color. Mirrors PayloadRewriter.AppendColored's
+    // independent Foreground/Glow push-then-pop nesting (Color outermost, EdgeColor innermost).
+    private static void AppendFadeSegment(SeStringBuilder builder, (uint Foreground, uint Glow) style, int step, string text)
+    {
+        var foreground = style.Foreground == 0 ? 0 : UiColorDimmer.DimRgba(style.Foreground, step);
+        var glow = style.Glow == 0 ? 0 : UiColorDimmer.DimRgba(style.Glow, step);
+
+        if (foreground != 0)
+            builder.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.ColorMacroCode, SeStringColorMacro.ToOpaqueAarrggbb(foreground)));
+        if (glow != 0)
+            builder.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.EdgeColorMacroCode, SeStringColorMacro.ToOpaqueAarrggbb(glow)));
+        builder.AddText(text);
+        if (glow != 0)
+            builder.Add(SeStringColorMacro.PopEdgeColor());
+        if (foreground != 0)
+            builder.Add(SeStringColorMacro.PopColor());
+    }
+
+    /// <summary>
+    /// One line, one segment per range-filterable channel (<see
+    /// cref="ChatListener.RangeChannelColorOptions"/>), each showing plain unformatted text dimmed
+    /// from that channel's own configured chat color via <see
+    /// cref="ChatListener.ResolveChannelColorWithSource"/> (passing <c>liveChatTwoRead: true</c> so
+    /// a Chat 2 color edited moments ago shows up immediately, unlike production's cached read) —
+    /// proves Yell/Shout/Emote keep their own hue instead of falling back to a shared grey, and
+    /// labels which tier won (Chat 2's own customized color, vanilla's Log Text Color, or the
+    /// last-resort fallback grey) so the priority is directly verifiable without inspecting Chat
+    /// 2's config file by hand.
+    /// </summary>
+    private void PrintChannelNativeFade(int step)
+    {
+        var builder = new SeStringBuilder();
+        builder.AddText("Unformatted text per channel - ");
+
+        var first = true;
+        foreach (var channel in ChatListener.RangeChannelColorOptions.Keys)
+        {
+            if (!first)
+                builder.AddText(" | ");
+            first = false;
+
+            var (native, source) = plugin.ChatListener.ResolveChannelColorWithSource(channel, liveChatTwoRead: true);
+            AppendFadeSegment(builder, (native, 0u), step, $"{channel} ({source})");
+        }
+
+        Plugin.ChatGui.Print(builder.Build());
+    }
+
+    private static void PrintFromTo(string label, (uint Foreground, uint Glow) style, int step)
+    {
+        var dimmed = UiColorDimmer.DimRgba(style.Foreground, step);
+
+        var builder = new SeStringBuilder();
+        builder.AddText($"{label}: ");
+        AppendFadeSegment(builder, style, 0, $"0x{style.Foreground:X8}");
+        builder.AddText(" -> ");
+        AppendFadeSegment(builder, style, step, $"0x{dimmed:X8}");
+        Plugin.ChatGui.Print(builder.Build());
     }
 
     /// <summary>One outcome line/cell: full, hidden, or the fade step in its actual color.</summary>
@@ -171,16 +257,17 @@ internal sealed class DebugRangePane
             return;
         }
 
+        var step = ChatListener.ResolveFadeStep(visibility);
+
         if (visibility == 0)
         {
-            ImGui.TextColored(stepPreviewColors[^1],
+            ImGui.TextColored(stepPreviewColors[step],
                 "0% — beyond cut-off: darkest step (Vanilla never removes; Chat 2 may hide render-only)");
             return;
         }
 
-        var step = RangeFade.FadeStep(visibility, ChatListener.FadeStepColors.Length);
         ImGui.TextColored(stepPreviewColors[step],
-            $"{visibility}% — fade step {step} (UIColor row {ChatListener.FadeStepColors[step]})");
+            $"{visibility}% — fade step {step} (reference shade — real channels keep their own hue, see test messages below)");
     }
 
     private static Vector4 DecodeRgba(uint rgba) => new(

@@ -16,15 +16,21 @@ namespace GobchatEx.Chat;
 /// cref="SeStringColorMacro"/> pushes: <see cref="PayloadRewriter"/> already dims them via <see
 /// cref="DimRgba"/> before building the macro, so <see cref="DimPayloads"/> only needs to
 /// recognize and pass them through unmodified (tracking push/pop depth so the plain-text
-/// detection below still works). Text outside any color span gets the caller's grey step row,
-/// the pre-existing fade rendering. Only used from the chat-message pass on the framework
-/// thread, so the caches are deliberately lock-free.
+/// detection below still works). Text outside any color span gets the caller-supplied
+/// channel-native color (<see cref="ChatListener.ResolveChannelColor"/> — the player's own Log
+/// Text Color for that channel, e.g. Yell's yellow, Shout's orange), darkened the same way this
+/// plugin's own colors are, via <see cref="DimRgba"/> — so a plain, unformatted Yell or Shout
+/// message keeps its own hue while fading, instead of collapsing to one shared grey regardless
+/// of channel. Only used from the chat-message pass on the framework thread, so the caches are
+/// deliberately lock-free.
 /// </summary>
 internal static class UiColorDimmer
 {
-    // Darkening factor per fade step, 0 = lightest. Provisional picks; tune with the Debug
-    // page's Range dimming injection buttons if a step is illegible on some chat theme.
-    private static readonly float[] StepFactors = [0.7f, 0.5f, 0.3f];
+    // Darkening factor per fade step, 0 = lightest — an exact no-op identity multiplier (the
+    // Debug page's "Step 0" button relies on this; production never dims at step 0 itself).
+    // Provisional picks; tune with the Debug page's Range dimming injection buttons if a step is
+    // illegible on some chat theme.
+    private static readonly float[] StepFactors = [1.0f, 0.84f, 0.68f, 0.52f, 0.36f, 0.20f];
 
     private static readonly Dictionary<(ushort Row, int Step), ushort> DimCache = new();
     private static List<(ushort Row, Vector3 Rgb)>? palette;
@@ -33,12 +39,16 @@ internal static class UiColorDimmer
     /// Rewrites a payload list one fade step darker. Foreground and glow rows are remapped via
     /// <see cref="DimRow"/>; this plugin's own raw Color/EdgeColor macros pass through untouched
     /// (already pre-dimmed by the caller); text runs outside any color span (a foreground pop —
-    /// row 0 or a raw <c>color(stackcolor)</c>) are wrapped in <paramref name="uncoloredRow"/>.
+    /// row 0 or a raw <c>color(stackcolor)</c>) are wrapped in <paramref name="uncoloredColor"/>
+    /// (the message's channel-native color, config-storage 0xRRGGBBAA, not yet dimmed — dimmed
+    /// here via <see cref="DimRgba"/> and pushed as a raw Color macro, same as this plugin's own
+    /// styles) instead of one shared grey, so plain text keeps that channel's own hue.
     /// </summary>
-    public static List<Payload> DimPayloads(IReadOnlyList<Payload> payloads, int step, ushort uncoloredRow)
+    public static List<Payload> DimPayloads(IReadOnlyList<Payload> payloads, int step, uint uncoloredColor)
     {
         var result = new List<Payload>(payloads.Count + 8);
         var foregroundDepth = 0;
+        var dimmedUncolored = DimRgba(uncoloredColor, step);
 
         foreach (var payload in payloads)
         {
@@ -73,10 +83,12 @@ internal static class UiColorDimmer
                     break;
 
                 case TextPayload { Text.Length: > 0 } when foregroundDepth == 0:
-                    result.Add(new UIForegroundPayload(uncoloredRow));
+                {
+                    result.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.ColorMacroCode, SeStringColorMacro.ToOpaqueAarrggbb(dimmedUncolored)));
                     result.Add(payload);
-                    result.Add(new UIForegroundPayload(0));
+                    result.Add(SeStringColorMacro.PopColor());
                     break;
+                }
 
                 default:
                     result.Add(payload);

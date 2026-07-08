@@ -1,4 +1,3 @@
-using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Config;
 using Dalamud.Game.Text;
@@ -176,26 +175,11 @@ internal sealed class FormattingTab : IToggleableTab
 
     /// <summary>
     /// The game's configured color for a chat channel (Character Configuration → Log Text
-    /// Color), packed straight to RGBA — no more UIColor row snapping needed now that Text
-    /// colors render via a raw macro. The config value's low 24 bits are RGB; 0 means "not set"
-    /// (same reading as Chat 2's GetChannelColor). Null when unavailable, leaving the current
-    /// color untouched.
+    /// Color) — no more UIColor row snapping needed now that Text colors render via a raw
+    /// macro. Null when unavailable or unset, leaving the current color untouched.
     /// </summary>
     private static uint? ImportGameChannelRow(UiConfigOption option)
-    {
-        if (!Plugin.GameConfig.TryGet(option, out uint value))
-            return null;
-
-        var rgb = value & 0xFFFFFF;
-        if (rgb == 0)
-            return null;
-
-        return RgbaColor.FromVector4(new Vector4(
-            ((rgb >> 16) & 255) / 255f,
-            ((rgb >> 8) & 255) / 255f,
-            (rgb & 255) / 255f,
-            1f));
-    }
+        => Plugin.GameConfig.TryGet(option, out uint value) ? RgbaColor.FromGameConfigColor(value) : null;
 
     private void DrawChannels()
     {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Game.Chat;
+using Dalamud.Game.Config;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
@@ -39,12 +40,86 @@ public sealed class ChatListener : IDisposable
     private bool _enabled;
     private bool _rangeEnabled;
     private HashSet<XivChatType> _rangeChannels = [];
+    private Dictionary<XivChatType, uint> _chatTwoChannelColors = [];
 
-    // Progressively darker grey UIColor rows for the partial-visibility fade steps (native chat
-    // has no per-line opacity). Provisional picks from the low grey ramp of the UIColor sheet;
-    // tune during the in-game smoke test if a step is illegible on some chat theme. Internal so
-    // the Debug page's range pane can preview and print exactly these rows.
-    internal static readonly ushort[] FadeStepColors = [3, 4, 5];
+    // Six fade-step buckets: index 0 is a never-applied "full visibility" reference (production
+    // always bypasses ApplyFade for visibility==100 via RangeFadeStep's null return; kept purely
+    // so ResolveFadeStep and the Debug page have a coherent 0-5 range), 1-4 are the four
+    // partial-fade buckets, 5 is the darkest/beyond-cut-off step. No longer a per-message text
+    // color (see ResolveChannelColor) — these UIColor rows now only back the Debug page's
+    // reference-shade swatches (stepPreviewColors) and ResolveFadeStep's bucket count. Rows 3-5
+    // are the original trio (shipped since Milestone 3, tuned in-game); 1, 2, 6 remain UNVERIFIED
+    // guesses extending the ramp. Internal so the Debug page's range pane can preview these rows.
+    internal static readonly ushort[] FadeStepColors = [1, 2, 3, 4, 5, 6];
+
+    // The player's own Log Text Color per range-filterable channel (Character Configuration →
+    // Log Text Color), read live via ResolveChannelColor so a mid-session change is picked up
+    // immediately — these are the only 5 channels the Range tab offers (RangeTab.cs:32-39).
+    // Internal so the Debug page's range pane can preview the same resolution.
+    internal static readonly Dictionary<XivChatType, UiConfigOption> RangeChannelColorOptions = new()
+    {
+        [XivChatType.Say] = UiConfigOption.ColorSay,
+        [XivChatType.CustomEmote] = UiConfigOption.ColorEmoteUser,
+        [XivChatType.StandardEmote] = UiConfigOption.ColorEmote,
+        [XivChatType.Yell] = UiConfigOption.ColorYell,
+        [XivChatType.Shout] = UiConfigOption.ColorShout,
+    };
+
+    // Used only when a channel has no RangeChannelColorOptions entry or the game config read
+    // fails/is unset — shouldn't happen in practice since RangeFadeStep already gates on
+    // _rangeChannels, which the Range tab only ever populates from that same channel set.
+    internal const uint FallbackFadeColor = 0x808080FF;
+
+    /// <summary>
+    /// The channel's own configured chat color (config-storage 0xRRGGBBAA, not yet dimmed) —
+    /// what a plain, unformatted message on that channel fades from, so Yell stays yellowish and
+    /// Shout stays orange-red instead of every channel collapsing into one shared grey. Prefers
+    /// Chat 2's own customized color for that channel when one is on file (<see
+    /// cref="_chatTwoChannelColors"/>, refreshed in <see cref="SettingsChanged"/>) — an explicit
+    /// Color macro permanently overrides Chat 2's own per-channel rendering, so baking in
+    /// vanilla's color instead would mismatch every non-faded message on that channel for a Chat 2
+    /// user who customized it. Falls back to the vanilla <see cref="RangeChannelColorOptions"/>
+    /// read, then <see cref="FallbackFadeColor"/> when neither is available.
+    /// </summary>
+    internal uint ResolveChannelColor(XivChatType channel) => ResolveChannelColorWithSource(channel).Color;
+
+    /// <summary>
+    /// Same resolution as <see cref="ResolveChannelColor"/>, also reporting which tier won —
+    /// used only by the Debug page's range pane to label each channel's color source.
+    /// <paramref name="liveChatTwoRead"/> re-reads Chat 2's config file on the spot instead of
+    /// trusting <see cref="_chatTwoChannelColors"/>'s cache (refreshed only on <see
+    /// cref="SettingsChanged"/>) — production never sets this, since a per-message file read would
+    /// defeat the point of caching, but a manually-clicked Debug button is infrequent enough that a
+    /// live read costs nothing and avoids the cache showing a Chat 2 edit made moments ago as still
+    /// "vanilla".
+    /// </summary>
+    internal (uint Color, string Source) ResolveChannelColorWithSource(XivChatType channel, bool liveChatTwoRead = false)
+    {
+        var chatTwoColors = liveChatTwoRead ? ChatTwoChannelColors.Read() : _chatTwoChannelColors;
+
+        if (chatTwoColors.TryGetValue(channel, out var chatTwoColor) && chatTwoColor != 0)
+            return (chatTwoColor, "Chat 2");
+
+        if (RangeChannelColorOptions.TryGetValue(channel, out var option)
+            && Plugin.GameConfig.TryGet(option, out uint raw)
+            && RgbaColor.FromGameConfigColor(raw) is { } color)
+            return (color, "vanilla");
+
+        return (FallbackFadeColor, "fallback");
+    }
+
+    /// <summary>
+    /// Resolves the 0-5 fade step for 0 &lt;= visibility &lt; 100. Callers special-case
+    /// visibility == <see cref="RangeFade.MaxVisibility"/> themselves — 100 never reaches here
+    /// (<see cref="RangeFadeStep"/> bypasses fading entirely; the Debug page's range pane prints
+    /// "fully visible" instead). visibility == 0 maps straight to the darkest entry; 1-4 come
+    /// from splitting the open interval into four buckets via <see cref="RangeFade.FadeStep"/>,
+    /// offset by one so step 0 stays reserved as the Debug page's unreachable-in-production
+    /// reference.
+    /// </summary>
+    internal static int ResolveFadeStep(int visibility) => visibility == 0
+        ? FadeStepColors.Length - 1
+        : 1 + RangeFade.FadeStep(visibility, FadeStepColors.Length - 2);
 
     private static readonly MentionRules NoMentionRules = new([], [], [], FuzzyMatchLevel.Conservative);
 
@@ -104,6 +179,7 @@ public sealed class ChatListener : IDisposable
 
         _rangeEnabled = _config.RangeFilter.RangeFilterEnabled;
         _rangeChannels = [.. _config.RangeFilter.RangeFilterChannels];
+        _chatTwoChannelColors = ChatTwoChannelColors.Read();
 
         // Mention detection also runs highlight-disabled when the sound alert needs it (the
         // rewriter then renders those spans plain via (0, 0)) or when the range filter's
@@ -240,7 +316,7 @@ public sealed class ChatListener : IDisposable
         ApplySenderGroupColor(message, fadeStep);
 
         if (fadeStep is { } step)
-            ApplyFade(message, step);
+            ApplyFade(message, step, message.LogKind);
     }
 
     /// <summary>
@@ -269,9 +345,7 @@ public sealed class ChatListener : IDisposable
         if (_config.RangeFilter.RangeFilterMentionsIgnoreRange && HasMention(message))
             return null;
 
-        return visibility == 0
-            ? FadeStepColors.Length - 1
-            : RangeFade.FadeStep(visibility, FadeStepColors.Length);
+        return ResolveFadeStep(visibility);
     }
 
     /// <summary>
@@ -292,11 +366,13 @@ public sealed class ChatListener : IDisposable
     /// <summary>
     /// Dims sender and body one fade step: colored spans (RP highlighting, group names,
     /// pre-colored link text) keep their hue via UiColorDimmer's darker-row mapping, text
-    /// outside any color span falls back to the step's flat grey row.
+    /// outside any color span falls back to <paramref name="channel"/>'s own configured chat
+    /// color (<see cref="ResolveChannelColor"/>), darkened the same way — so it keeps its hue
+    /// instead of every channel collapsing into one shared grey.
     /// </summary>
-    private static void ApplyFade(IHandleableChatMessage message, int step)
+    private void ApplyFade(IHandleableChatMessage message, int step, XivChatType channel)
     {
-        var uncolored = FadeStepColors[step];
+        var uncolored = ResolveChannelColor(channel);
         message.Message = new SeString(UiColorDimmer.DimPayloads(message.Message.Payloads, step, uncolored));
         message.Sender = new SeString(UiColorDimmer.DimPayloads(message.Sender.Payloads, step, uncolored));
     }
