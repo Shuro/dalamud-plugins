@@ -35,16 +35,4 @@ public class PlayerGroup
     /// (Milestone 3.5) and its settings UI is disabled while that IPC isn't connected.
     /// </summary>
     public uint ChatTwoBackground { get; set; }
-
-    public PlayerGroup Clone() => new()
-    {
-        Id = Id,
-        Name = Name,
-        Active = Active,
-        FfGroup = FfGroup,
-        Members = [.. Members], // GroupMember is an immutable record; a shallow copy is a deep copy
-        Foreground = Foreground,
-        Glow = Glow,
-        ChatTwoBackground = ChatTwoBackground,
-    };
 }

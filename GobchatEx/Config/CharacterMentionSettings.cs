@@ -25,19 +25,4 @@ public class CharacterMentionSettings
     public bool MatchFuzzy { get; set; }
     public FuzzyMatchLevel FuzzyLevel { get; set; } = FuzzyMatchLevel.Conservative;
     public List<string> CustomWords { get; set; } = [];
-
-    public CharacterMentionSettings Clone() => new()
-    {
-        Name = Name,
-        Active = Active,
-        MatchFullName = MatchFullName,
-        MatchFirstName = MatchFirstName,
-        MatchLastName = MatchLastName,
-        MatchFirstNamePartial = MatchFirstNamePartial,
-        MatchLastNamePartial = MatchLastNamePartial,
-        MatchMiqote = MatchMiqote,
-        MatchFuzzy = MatchFuzzy,
-        FuzzyLevel = FuzzyLevel,
-        CustomWords = [.. CustomWords],
-    };
 }

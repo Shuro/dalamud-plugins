@@ -5,8 +5,11 @@ namespace GobchatEx.Core.Tests;
 
 public sealed class MessageSegmenterTests
 {
+    private static MentionRules WholeWordRules(params string[] triggers)
+        => new([.. triggers], [], [], FuzzyMatchLevel.Conservative);
+
     private static MessageSegmenter DefaultSegmenter(params string[] triggers)
-        => new(DefaultRules.All, triggers);
+        => new(DefaultRules.All, WholeWordRules(triggers));
 
     private static (string Text, SegmentType Type)[] SegmentSingleRun(
         MessageSegmenter segmenter, string text, out bool hasMention,
@@ -93,7 +96,7 @@ public sealed class MessageSegmenterTests
     public void ExcludedRules_DoNotParse()
     {
         var sayOnly = new MessageSegmenter(
-            [new TokenRule(SegmentType.Say, ["\""], ["\""])], []);
+            [new TokenRule(SegmentType.Say, ["\""], ["\""])], WholeWordRules());
         sayOnly.Segment(["*emote* only"]).Should().BeNull();
     }
 

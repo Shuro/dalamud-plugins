@@ -53,11 +53,6 @@ public sealed class MentionMatcher
     private readonly IReadOnlyList<string> _fuzzyWords; // pre-normalized: NFKC-folded, apostrophe-folded, lowercased
     private readonly FuzzyMatchLevel _fuzzyLevel;
 
-    public MentionMatcher(IEnumerable<string> triggers)
-        : this(new MentionRules([.. triggers], [], [], FuzzyMatchLevel.Conservative))
-    {
-    }
-
     public MentionMatcher(MentionRules rules)
     {
         _wholePatterns = BuildPatterns(rules.WholeWords, wholeWord: true);

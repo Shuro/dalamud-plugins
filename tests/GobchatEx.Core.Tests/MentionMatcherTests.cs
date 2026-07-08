@@ -6,8 +6,11 @@ namespace GobchatEx.Core.Tests;
 
 public sealed class MentionMatcherTests
 {
+    private static MentionRules WholeWordRules(params string[] triggers)
+        => new([.. triggers], [], [], FuzzyMatchLevel.Conservative);
+
     private static (string Text, SegmentType Type)[] Find(string text, params string[] triggers)
-        => Render(text, new MentionMatcher(triggers).FindMentions(text));
+        => Render(text, new MentionMatcher(WholeWordRules(triggers)).FindMentions(text));
 
     private static (string Text, SegmentType Type)[] FindRules(string text, MentionRules rules)
         => Render(text, new MentionMatcher(rules).FindMentions(text));
@@ -86,7 +89,7 @@ public sealed class MentionMatcherTests
     [Fact]
     public void EmptyAndWhitespaceTriggers_AreFiltered()
     {
-        var matcher = new MentionMatcher(["", "   "]);
+        var matcher = new MentionMatcher(WholeWordRules("", "   "));
         matcher.HasTriggers.Should().BeFalse();
         matcher.FindMentions("anything at all").Should().BeEmpty();
     }
@@ -94,7 +97,7 @@ public sealed class MentionMatcherTests
     [Fact]
     public void NoTriggers_MatcherIsInert()
     {
-        var matcher = new MentionMatcher([]);
+        var matcher = new MentionMatcher(WholeWordRules());
         matcher.HasTriggers.Should().BeFalse();
         matcher.FindMentions("anything").Should().BeEmpty();
     }
