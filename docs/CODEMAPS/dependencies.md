@@ -1,4 +1,4 @@
-<!-- Generated: 2026-07-06 | Files scanned: 57 | Token estimate: ~600 -->
+<!-- Generated: 2026-07-09 | Files scanned: 56 | Token estimate: ~650 -->
 
 # Dependencies
 
@@ -13,9 +13,13 @@ SDK: `Dalamud.NET.Sdk/15.0.0` — pins TargetFramework and implicitly references
 - FFXIVClientStructs — `UIGlobals.PlayChatSoundEffect` (Chat/SoundPlayer.cs)
   and `InfoProxyFriendList` friend-list snapshot (Chat/FriendGroupLookup.cs,
   Windows/SettingsTabs/DebugGroupsPane.cs)
-- Lumina / Lumina.Excel — UIColor sheet (Windows/UiColorPicker.cs,
-  Chat/UiColorDimmer.cs, Windows/SettingsTabs/DebugRangePane.cs), World
-  sheet (Chat/FriendGroupLookup.cs)
+- Lumina / Lumina.Excel — UIColor sheet, now dim-only (Chat/UiColorDimmer.cs
+  darker-row remap of game-embedded link colors, Windows/SettingsTabs/
+  DebugRangePane.cs swatches — the plugin's own colors are raw RGBA since
+  v0.8.x, Core/RgbaColor + Chat/SeStringColorMacro), World sheet
+  (Chat/FriendGroupLookup.cs)
+- Newtonsoft.Json (ships with Dalamud) — config persistence; JObject parse of
+  Chat 2's config file (Chat/ChatTwoChannelColors.cs)
 - InteropGenerator.Runtime
 
 No NuGet PackageReferences of its own. `packages.lock.json` checked in
@@ -31,7 +35,8 @@ detection) · IPlayerState (CharacterName for per-character mentions,
 CurrentWorld/HomeWorld for friend + range lookups) · IObjectTable
 (LocalPlayer + player enumeration for the range filter's distance lookups)
 · IDataManager (Excel sheets) · IGameConfig (Formatting tab's "import game
-channel color") · IFramework (RunOnFrameworkThread for friend-list refresh;
+channel color"; range fade's channel-native text color,
+ChatListener.ResolveChannelColor) · IFramework (RunOnFrameworkThread for friend-list refresh;
 periodic distance-snapshot refresh for Chat 2 styling) · IAddonLifecycle
 ("FriendList" addon PostRequestedUpdate → live friend-group refresh,
 Chat/FriendListAddonListener) · IPluginLog · plus injected-but-idle:
@@ -54,6 +59,13 @@ ITargetManager, ITextureProvider, INotificationManager.
 Both are inert when Chat 2 is not installed or the IPC gate is unsupported;
 re-probed on `ChatTwo.Available` and on Dalamud's `ActivePluginsChanged`
 (Chat 2 disable/unload has no IPC callback of its own).
+
+- **Chat 2 channel colors (file read, NOT IPC)** — Chat/ChatTwoChannelColors.cs
+  reads stock Chat 2's persisted per-channel colors straight from ChatTwo.json
+  in the shared pluginConfigs folder (works without the fork PRs). Gated on a
+  live `IDalamudPluginInterface.InstalledPlugins` IsLoaded check; convention
+  not contract — degrades to empty on any failure. Feeds the range fade's
+  channel-native color (ChatListener.ResolveChannelColor).
 
 ## Tests (tests/GobchatEx.Core.Tests.csproj)
 

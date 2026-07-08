@@ -36,3 +36,13 @@ consume the same spans.
   pair, so foreign payloads merely split text runs.
 - Message-history recoloring is out of reach: only messages arriving while
   the plugin is loaded are highlighted.
+
+## Amendment (2026-07-08)
+
+The "UIColor sheet rows only" consequence no longer holds: raw SeString
+Color/EdgeColor macros (`0x13`/`0x14`) proved to carry arbitrary packed RGB
+in both vanilla chat and Chat 2's renderer, so configuration now stores
+packed RGBA values and the UI offers a full color picker
+(`Chat/SeStringColorMacro.cs`, commit `9417191`). The decision itself —
+native-log rewriting, no overlay — is unchanged; the sheet remains in use
+only for dimming colors the game itself embeds.

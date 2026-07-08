@@ -90,8 +90,10 @@ Fade or hide chat from far-away players (great on crowded RP servers):
 - Distances from Dalamud `IObjectTable` positions at message time (replaces
   the app's memory-reader actor manager)
 - Native chat has no per-line opacity, so fading maps to darkened color
-  steps that keep each segment's hue (colored spans are remapped to the
-  nearest darker UIColor row); beyond the cutoff the message dims to the
+  steps that keep each segment's hue (the plugin's own colors darken in
+  place; the game's embedded link colors remap to the nearest darker
+  UIColor row; plain text fades in the channel's own configured color);
+  beyond the cutoff the message dims to the
   darkest step — never suppressed, because `PreventOriginal` marks the
   message handled and it would then also vanish from Chat 2's history and
   any event-fed chat logger

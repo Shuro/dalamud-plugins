@@ -22,8 +22,12 @@ in configured channels are recolored per segment —
   "fancy font" text is unicode-folded before matching. Optionally plays a
   game sound effect (`<se.1>`–`<se.16>`) with a per-sound cooldown.
 
-Colors come from the game's UIColor palette (swatch picker in the config
-window; right-click a swatch to clear). Delimiters may span item/player
+On `/say` and `/em`, text outside any delimiter counts as said or emoted
+too — an unquoted `/say` line still renders in the Say color (while that
+style is enabled). Colors are free RGB values (color-picker swatches in the
+config window; right-click a swatch to clear, each row has a
+reset-to-default, and Say/Emote can import the color the game itself uses
+for that channel). Delimiters may span item/player
 links; an unclosed delimiter colors to the end of the message (matching the
 original [GobchatEx](https://github.com/Shuro/GobchatEx) overlay's rules).
 The message-rewriting approach follows
@@ -103,9 +107,11 @@ by hand). Setup: the **Echo** channel is *not* highlighted by default
 highlighted-channels list first, and add a mention trigger word. Then:
 
 1. `/echo he said "hi" and *waves* ((brb)) YourTriggerWord` — expect the
-   emote, OOC and mention segments to recolor. The default Say color is
-   white (UIColor row 1), so quotes only stand out in channels whose base
-   color isn't white.
+   emote, OOC and mention segments to recolor. The default Say color is a
+   soft white (`F8F8F8`), so quotes only stand out in channels whose base
+   color isn't white. Also send an unquoted line with `/say` — the whole
+   line renders in the Say color (unmarked `/say` text is implicitly Say;
+   likewise `/em` and the Emote color).
 2. Repeat with an item link (Ctrl-click an item into the message) inside the
    quotes — the link keeps working and the quote color resumes after it.
 3. Send the line twice — the next chat line must render in normal colors

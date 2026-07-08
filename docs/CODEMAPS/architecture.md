@@ -1,4 +1,4 @@
-<!-- Generated: 2026-07-06 (post per-file config split) | Files scanned: 55 | Token estimate: ~1500 -->
+<!-- Generated: 2026-07-09 (post raw-RGBA color rework) | Files scanned: 56 | Token estimate: ~1500 -->
 
 # GobchatEx Roleplay Suite Architecture
 
@@ -18,9 +18,10 @@ GobchatEx/
 ├── Config/              Configuration aggregate + one section class per feature
 │                        (GeneralConfig … TabsConfig), each persisted to its own
 │                        JSON file (general.json … tabs.json, per-file Version);
-│                        element types SegmentStyle/CharacterMentionSettings/PlayerGroup;
-│                        Serialize() shared by SaveSection() and the settings
-│                        window's change detection
+│                        element types SegmentStyle/CharacterMentionSettings/PlayerGroup
+│                        — all colors stored as packed RGBA 0xRRGGBBAA (Core/RgbaColor),
+│                        0 = "no color"; Serialize() shared by SaveSection() and the
+│                        settings window's change detection
 ├── Core/                matching/math engine — Dalamud-FREE (ADR 0002, test-enforced)
 ├── Chat/                Dalamud-facing: chat rewrite, groups, range, sound, Chat 2 IPC
 ├── Localization/        Loc.cs ResourceManager wrapper (also Dalamud-free)
@@ -32,13 +33,17 @@ GobchatEx/
 
 Subscribed on `IChatGui.CheckMessageHandled` (fires after every plugin's
 ChatMessage pass). Three passes in `Chat/ChatListener.OnChatMessage`, in
-order — distance/mention outcome is computed first but fade is applied last
-so it darkens the already-recolored text instead of flattening it:
+order — the fade step is computed first and threaded into passes 1–2 (so
+their colors emit pre-dimmed), then applied to everything else last:
 
 ```text
 1. Body highlighting        gate: RpHighlightEnabled + channel set
    → Core/MessageSegmenter.Segment → SegmentParser (OOC>Emote>Say) → MentionMatcher
-   → Chat/PayloadRewriter.Rewrite  spans → balanced UIForeground/UIGlow pairs
+     channel default type: text left unmarked on /say → Say, /em → Emote
+     (ChatListener.DefaultTypeFor, only while that style is enabled)
+   → Chat/PayloadRewriter.Rewrite  spans → balanced raw Color/EdgeColor macro
+     pairs (SeStringColorMacro, packed RGBA — not UIColor rows), pre-dimmed
+     via UiColorDimmer.DimRgba when a fade step applies
    → SoundPlayer.TryPlay on mention (cooldown)
 
 2. Sender group coloring    independent of the RP master switch/channels
@@ -49,13 +54,27 @@ so it darkens the already-recolored text instead of flattening it:
 3. Range fade (Milestone 3) gate: RangeFilterEnabled + channel set
    → Chat/SenderDistance.Resolve (IObjectTable positions) → Core/RangeFade.CalculateVisibility
    → mentions bypass (segment-without-rewrite probe) → Chat/UiColorDimmer.DimPayloads
-     (remaps colored spans to a nearer darker UIColor row; grey fallback elsewhere)
+     (plugin's own RGBA macros pass through pre-dimmed; game-embedded UIColor
+     rows remap to the nearest darker sheet row; plain text wraps in the
+     channel's own color — ResolveChannelColor — darkened the same way)
    Never suppresses (PreventOriginal would also hide the message from Chat 2's
    history/any logger) — beyond cutoff renders at the darkest step instead.
 ```
 
-Derived state (segmenter, channel sets, style/group lookups) is rebuilt only
-in `ChatListener.SettingsChanged()` (and on Login/Logout), never per message.
+Derived state (segmenter, channel sets, style/group lookups, cached Chat 2
+channel colors) is rebuilt only in `ChatListener.SettingsChanged()` (and on
+Login/Logout), never per message.
+
+## Colors (raw RGBA)
+
+All plugin-applied colors are packed 0xRRGGBBAA uints rendered as raw SeString
+Color (0x13) / EdgeColor (0x14) macros (`Chat/SeStringColorMacro` — envelope +
+integer-expression encoding, push/pop pairs), bypassing the UIColor sheet.
+Proven against vanilla chat and Chat 2's renderer via the Debug page's probes;
+vanilla ignores the alpha byte, so production forces it opaque.
+`Core/RgbaColor` converts Vector4↔packed and IGameConfig's 0xRRGGBB chat
+colors → packed. The UIColor sheet only remains for dimming rows the *game*
+embeds (links) and Debug swatches.
 
 ## Chat 2 Styling Integration (Milestone 3.5)
 
@@ -91,14 +110,26 @@ pass's darkened color steps).
 
 `Core/RangeFade.cs` — pure distance→visibility math (0–100, linear ramp
 between fade-out and cut-off radii, ported from the app). Native log has no
-per-line opacity, so partial visibility quantizes to one of a few darker
-color steps (`ChatListener.FadeStepColors`); `Chat/UiColorDimmer` remaps
-already-colored spans to the nearest darker UIColor row so hue survives the
-fade instead of flattening to grey. `Chat/SenderDistance.cs` resolves a
-sender's distance from `IObjectTable` positions (both single-lookup, for the
-native pass, and a full snapshot for the Chat 2 provider's message thread).
-Mentions optionally bypass the filter entirely (a far-away mention still
-shows). Configurable per-channel scope, defaults Say/Emote/StandardEmote.
+per-line opacity, so partial visibility quantizes to one of six fade steps,
+each a darkening multiplier (`UiColorDimmer.StepFactors`, 1.0→0.20; step 0
+is a Debug-only identity reference — `ChatListener.FadeStepColors` rows now
+only back the Debug page's swatches). Per step, `Chat/UiColorDimmer`:
+multiplies the plugin's own RGBA colors darker (`DimRgba`; PayloadRewriter
+pre-dims before emitting macros), remaps game-embedded UIColor-row payloads
+to the sheet row nearest the darkened color (`DimRow`, memoized), and wraps
+text outside any color span in the channel's own chat color darkened the
+same way — a fading Yell stays yellowish instead of collapsing to shared
+grey. `ChatListener.ResolveChannelColor` resolves that channel color:
+Chat 2's customized per-channel color when on file (`Chat/ChatTwoChannelColors`
+reads ChatTwo.json straight off disk — no IPC, gated on
+`InstalledPlugins`.IsLoaded, cached in `SettingsChanged`, degrades to empty
+on any failure) → the player's vanilla Log Text Color (IGameConfig, per
+channel: Say/CustomEmote/StandardEmote/Yell/Shout) → grey fallback.
+`Chat/SenderDistance.cs` resolves a sender's distance from `IObjectTable`
+positions (both single-lookup, for the native pass, and a full snapshot for
+the Chat 2 provider's message thread). Mentions optionally bypass the filter
+entirely (a far-away mention still shows). Configurable per-channel scope,
+defaults Say/Emote/StandardEmote.
 
 ## Mentions (Milestone 1)
 
@@ -149,7 +180,7 @@ UI language unless GeneralConfig.LanguageOverride is set; re-resolved via
 
 ## Settings UI (Windows/)
 
-- SettingsWindow.cs (419) — nav rail: General (GeneralTab, Logs placeholder) /
+- SettingsWindow.cs (359) — nav rail: General (GeneralTab, Logs placeholder) /
   Roleplay (FormattingTab, MentionsTab, GroupsTab, RangeTab, ChatTwoTab) /
   divider / Debug (`#if DEBUG`) / About. Native collapse enabled; title-bar Ko-fi button
   ordered via `Priority` to sit left of Dalamud's own options button.
@@ -157,38 +188,41 @@ UI language unless GeneralConfig.LanguageOverride is set; re-resolved via
   per-section JSON-snapshot compare (Update tick + OnClose/Dispose flush)
   persists only the section files that changed and applies once —
   no Save/Apply/Cancel. Debug builds show live Chat 2 connect/disconnect status.
-- SettingsUi.cs (115) — shared tab widgets: section headers, green/red
-  `ToggleSwitch` (custom-drawn; Dalamud's ToggleButton hardcodes gray),
-  Ctrl+Shift-gated `DangerButton` for destructive actions.
-- FormattingTab.cs (233) — segment colors gain per-row reset-to-default and
-  (Say/Emote only) "import from the game's own channel color" buttons,
-  nearest-UIColor-row matched via `UiColorDimmer.NearestRow`.
-- GroupsTab.cs (294) / RangeTab.cs (143) / ChatTwoTab.cs (105) — group CRUD
+- SettingsUi.cs (176) — shared tab widgets: section headers, warnings,
+  green/red `ToggleSwitch` (custom-drawn; Dalamud's ToggleButton hardcodes
+  gray), `RgbaColorEdit` packed-RGBA swatch/picker (replaced the old
+  UIColor-sheet picker window), Ctrl+Shift-gated `DangerButton`.
+- FormattingTab.cs (186) — segment colors gain per-row reset-to-default and
+  (Say/Emote only) "import from the game's own channel color" buttons —
+  now a direct RGBA conversion (`RgbaColor.FromGameConfigColor`), no
+  nearest-row matching.
+- GroupsTab.cs (236) / RangeTab.cs (114) / ChatTwoTab.cs (86) — group CRUD
   plus Chat 2 background swatch; range distance sliders plus Chat 2 fade/hide
   toggles; per-Chat-2-tab suppress-flag table. All three disable Chat
   2-only controls with a hint while `ChatTwoStyleProvider.IsConnected` is false.
-- UiColorPicker.cs (150) — UIColor sheet swatch popup, sorted greys-first
-  then hue band then light→dark (raw sheet order is unusable); duplicate
-  rows collapsed to one swatch.
-- DebugTab.cs (458, `#if DEBUG`) — tab bar over `ChatTwoStyleIpcTester`,
-  DebugRangePane.cs (190: distance simulator, live nearby-player table, test
-  message injection), DebugGroupsPane.cs (67: live FriendGroupLookup dump),
+- DebugTab.cs (379, `#if DEBUG`) — tab bar over `ChatTwoStyleIpcTester`,
+  DebugRangePane.cs (235: distance simulator, live nearby-player table, test
+  message injection, per-channel color-source labels with live Chat 2 re-read,
+  dimming-step injection), DebugGroupsPane.cs (55: live FriendGroupLookup dump),
   plus glow/color macro probes printed to the native log.
 
 ## Key Files
 
-- GobchatEx/Chat/ChatTwoStyleProvider.cs (457) — Chat 2 styling IPC producer + snapshot
-- GobchatEx/Chat/ChatListener.cs (414) — 3-pass event subscription, config-derived caches
-- GobchatEx/Chat/ChatTwoStyleIpcTester.cs (254, DEBUG) — manual IPC exerciser
-- GobchatEx/Core/MentionMatcher.cs (180) — compiled regexes + fuzzy tokens, interval merge
-- GobchatEx/Core/PlayerMentionResolver.cs (145) — name parts → whole/partial word lists
-- GobchatEx/Chat/UiColorDimmer.cs (147) — hue-preserving darker-row remap for fade steps
-- GobchatEx/Core/MessageSegmenter.cs (125) — pipeline orchestration + mention overlay
-- GobchatEx/Chat/PayloadRewriter.cs (122) — span → payload translation (+ RewriteUniform)
-- GobchatEx/Core/SegmentParser.cs (112) — one TokenRule pass; ported from Gobchat
-- GobchatEx/Chat/SenderDistance.cs (99) — object-table distance lookup + snapshot
-- GobchatEx/Core/GroupMatcher.cs (90) — ordered first-match group resolution
-- GobchatEx/Core/RangeFade.cs (41) — pure distance→visibility/fade-step math
+- GobchatEx/Chat/ChatListener.cs (431) — 3-pass event subscription, config caches, channel-color resolution
+- GobchatEx/Chat/ChatTwoStyleProvider.cs (381) — Chat 2 styling IPC producer + snapshot
+- GobchatEx/Chat/ChatTwoStyleIpcTester.cs (222, DEBUG) — manual IPC exerciser
+- GobchatEx/Chat/UiColorDimmer.cs (168) — fade-step dimming: RGBA multiply, UIColor-row remap, channel-color wrap
+- GobchatEx/Core/MentionMatcher.cs (158) — compiled regexes + fuzzy tokens, interval merge
+- GobchatEx/Core/PlayerMentionResolver.cs (131) — name parts → whole/partial word lists
+- GobchatEx/Core/MessageSegmenter.cs (126) — pipeline orchestration + mention overlay + channel default type
+- GobchatEx/Chat/PayloadRewriter.cs (120) — span → raw color-macro payload translation (+ RewriteUniform)
+- GobchatEx/Core/SegmentParser.cs (99) — one TokenRule pass; ported from Gobchat
+- GobchatEx/Chat/SenderDistance.cs (82) — object-table distance lookup + snapshot
+- GobchatEx/Chat/ChatTwoChannelColors.cs (81) — Chat 2 per-channel colors off its config file (no IPC)
+- GobchatEx/Core/GroupMatcher.cs (75) — ordered first-match group resolution
+- GobchatEx/Chat/SeStringColorMacro.cs (60) — raw Color/EdgeColor (0x13/0x14) macro envelopes
+- GobchatEx/Core/RangeFade.cs (37) — pure distance→visibility/fade-step math
+- GobchatEx/Core/RgbaColor.cs (32) — 0xRRGGBBAA packing + GameConfig conversion
 
 ## Testing
 
