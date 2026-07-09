@@ -1,5 +1,8 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Game.Text;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
@@ -12,7 +15,8 @@ namespace GobchatEx.Windows;
 /// <summary>
 /// Small shared widgets for the settings tabs: accent-colored section
 /// headers (Dalamud's ImGui bindings have no SeparatorText), labelled
-/// green/red toggle switches, and Ctrl+Shift-gated destructive buttons.
+/// green/red toggle switches, Ctrl+Shift-gated destructive buttons,
+/// hover tooltips, and the 3-column channel checkbox grids.
 /// </summary>
 internal static class SettingsUi
 {
@@ -136,13 +140,9 @@ internal static class SettingsUi
             changed = true;
         }
 
-        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-        {
-            using (ImRaii.Tooltip())
-                ImGui.TextUnformatted(tooltipOverride ?? (value == 0
-                    ? Loc.Get("ColorPicker_NoRecolor_Tooltip")
-                    : Loc.Get("ColorPicker_Recolor_Tooltip")));
-        }
+        Tooltip(tooltipOverride ?? (value == 0
+            ? Loc.Get("ColorPicker_NoRecolor_Tooltip")
+            : Loc.Get("ColorPicker_Recolor_Tooltip")));
 
         using (var popup = ImRaii.Popup($"{id}-popup"))
         {
@@ -189,12 +189,56 @@ internal static class SettingsUi
                 : ImGuiComponents.IconButtonWithText(icon, label);
         }
 
-        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-        {
-            using (ImRaii.Tooltip())
-                ImGui.TextUnformatted(tooltip);
-        }
+        Tooltip(tooltip);
 
         return clicked;
     }
+
+    /// <summary>
+    /// Standard hover tooltip for the previous item. Uses AllowWhenDisabled so it also shows
+    /// while the item sits inside ImRaii.Disabled (a no-op for enabled items).
+    /// </summary>
+    public static void Tooltip(string text)
+    {
+        if (!ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            return;
+
+        using (ImRaii.Tooltip())
+            ImGui.TextUnformatted(text);
+    }
+
+    /// <summary>
+    /// A 3-column checkbox grid toggling each choice's channel in <paramref name="channels"/>
+    /// (a live config list, mutated in place). A non-null HelpKey draws a help marker after
+    /// that checkbox (the Range tab's engine-limit note).
+    /// </summary>
+    public static void ChannelGrid(
+        string id, (string LabelKey, XivChatType Type, string? HelpKey)[] choices, List<XivChatType> channels)
+    {
+        using var table = ImRaii.Table(id, 3);
+        if (!table)
+            return;
+
+        foreach (var (labelKey, type, helpKey) in choices)
+        {
+            ImGui.TableNextColumn();
+            var active = channels.Contains(type);
+            var changed = ImGui.Checkbox(Loc.Get(labelKey), ref active);
+            if (helpKey != null)
+                ImGuiComponents.HelpMarker(Loc.Get(helpKey));
+
+            if (!changed)
+                continue;
+
+            if (active)
+                channels.Add(type);
+            else
+                channels.Remove(type);
+        }
+    }
+
+    /// <summary>Overload without per-item help markers (the Formatting tab's grids).</summary>
+    public static void ChannelGrid(
+        string id, (string LabelKey, XivChatType Type)[] choices, List<XivChatType> channels)
+        => ChannelGrid(id, [.. choices.Select(c => (c.LabelKey, c.Type, (string?)null))], channels);
 }

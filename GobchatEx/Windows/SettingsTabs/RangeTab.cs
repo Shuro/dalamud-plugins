@@ -4,7 +4,6 @@ using Dalamud.Game.Text;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using GobchatEx.Chat;
 using GobchatEx.Config;
 using GobchatEx.Localization;
@@ -27,15 +26,15 @@ internal sealed class RangeTab : IToggleableTab
 
     // Only proximity channels are offered: range-filtering a server-wide channel (party, FC,
     // linkshells) would hide messages based on where the sender happens to be standing.
-    // Say/Emote carry an info marker: the game engine only delivers them up to ~20 yalms,
-    // so distances configured beyond that never see a message on these channels.
-    private static readonly (string LabelKey, XivChatType Type, bool EngineLimited)[] Channels =
+    // Say/Emote carry the engine-limit help marker: the game engine only delivers them up to
+    // ~20 yalms, so distances configured beyond that never see a message on these channels.
+    private static readonly (string LabelKey, XivChatType Type, string? HelpKey)[] Channels =
     [
-        ("Formatting_Channel_Say", XivChatType.Say, true),
-        ("Formatting_Channel_Emote", XivChatType.CustomEmote, true),
-        ("Formatting_Channel_StandardEmote", XivChatType.StandardEmote, false),
-        ("Formatting_Channel_Yell", XivChatType.Yell, false),
-        ("Formatting_Channel_Shout", XivChatType.Shout, false),
+        ("Formatting_Channel_Say", XivChatType.Say, "Range_EngineLimit_Tooltip"),
+        ("Formatting_Channel_Emote", XivChatType.CustomEmote, "Range_EngineLimit_Tooltip"),
+        ("Formatting_Channel_StandardEmote", XivChatType.StandardEmote, null),
+        ("Formatting_Channel_Yell", XivChatType.Yell, null),
+        ("Formatting_Channel_Shout", XivChatType.Shout, null),
     ];
 
     public string Name => Loc.Get("Range_TabName");
@@ -68,7 +67,7 @@ internal sealed class RangeTab : IToggleableTab
 
         ImGuiHelpers.ScaledDummy(10f);
         SettingsUi.SectionHeader(Loc.Get("Range_Channels_Header"), Loc.Get("Range_Channels_Tooltip"));
-        DrawChannels();
+        SettingsUi.ChannelGrid("##range-channels", Channels, config.RangeFilterChannels);
 
         ImGuiHelpers.ScaledDummy(10f);
         SettingsUi.SectionHeader(Loc.Get("Range_ChatTwo_Header"), Loc.Get("Range_ChatTwo_Header_Tooltip"));
@@ -104,30 +103,6 @@ internal sealed class RangeTab : IToggleableTab
         {
             config.RangeFilterCutOff = cutOff;
             config.RangeFilterFadeOut = Math.Min(config.RangeFilterFadeOut, cutOff);
-        }
-    }
-
-    private void DrawChannels()
-    {
-        using var table = ImRaii.Table("##range-channels", 3);
-        if (!table)
-            return;
-
-        foreach (var (labelKey, type, engineLimited) in Channels)
-        {
-            ImGui.TableNextColumn();
-            var active = config.RangeFilterChannels.Contains(type);
-            var changed = ImGui.Checkbox(Loc.Get(labelKey), ref active);
-            if (engineLimited)
-                ImGuiComponents.HelpMarker(Loc.Get("Range_EngineLimit_Tooltip"));
-
-            if (!changed)
-                continue;
-
-            if (active)
-                config.RangeFilterChannels.Add(type);
-            else
-                config.RangeFilterChannels.Remove(type);
         }
     }
 }

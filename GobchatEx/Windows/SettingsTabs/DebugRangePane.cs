@@ -43,7 +43,7 @@ internal sealed class DebugRangePane
         for (var i = 0; i < stepPreviewColors.Length; i++)
         {
             stepPreviewColors[i] = sheet.TryGetRow(ChatListener.FadeStepColors[i], out var row)
-                ? DecodeRgba(row.Dark)
+                ? RgbaColor.ToVector4(row.Dark)
                 : new Vector4(0.5f, 0.5f, 0.5f, 1f);
         }
     }
@@ -270,11 +270,5 @@ internal sealed class DebugRangePane
         ImGui.TextColored(stepPreviewColors[step],
             $"{visibility}% — fade step {step} (reference shade — real channels keep their own hue, see test messages below)");
     }
-
-    private static Vector4 DecodeRgba(uint rgba) => new(
-        ((rgba >> 24) & 255) / 255f,
-        ((rgba >> 16) & 255) / 255f,
-        ((rgba >> 8) & 255) / 255f,
-        (rgba & 255) / 255f);
 }
 #endif

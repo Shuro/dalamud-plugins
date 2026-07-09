@@ -151,13 +151,9 @@ internal sealed class GroupsTab : IToggleableTab
         using (ImRaii.Disabled(!hasTarget))
             addClicked = ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Crosshairs, Loc.Get("Groups_Custom_AddTarget"));
 
-        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-        {
-            using (ImRaii.Tooltip())
-                ImGui.TextUnformatted(hasTarget
-                    ? string.Format(Loc.Get("Groups_Custom_AddTarget_Tooltip"), FormatMember(targetName, targetWorld))
-                    : Loc.Get("Groups_Custom_NoPlayerTarget"));
-        }
+        SettingsUi.Tooltip(hasTarget
+            ? string.Format(Loc.Get("Groups_Custom_AddTarget_Tooltip"), GroupMembershipActions.FormatPlayer(targetName, targetWorld))
+            : Loc.Get("Groups_Custom_NoPlayerTarget"));
 
         if (addClicked && hasTarget)
             TryAddPlayer(group, targetName, targetWorld);
@@ -173,12 +169,9 @@ internal sealed class GroupsTab : IToggleableTab
 
             ImGui.SameLine();
             var member = group.Members[i];
-            ImGui.TextUnformatted(FormatMember(member.Player, member.World));
+            ImGui.TextUnformatted(GroupMembershipActions.FormatPlayer(member.Player, member.World));
         }
     }
-
-    private static string FormatMember(string name, string? world)
-        => string.IsNullOrEmpty(world) ? name : $"{name} [{world}]";
 
     /// <summary>Only a real player character counts — excludes NPCs, monsters, minions, etc.</summary>
     private static bool TryGetTargetedPlayer(out string name, out string? world)

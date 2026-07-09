@@ -105,7 +105,7 @@ internal static class GroupCommandHandler
 
     private static void ExecuteAdd(Plugin plugin, PlayerGroup group, string name, string? world)
     {
-        var display = FormatPlayer(name, world);
+        var display = GroupMembershipActions.FormatPlayer(name, world);
         var actions = new GroupMembershipActions(plugin, name, world);
         Plugin.ChatGui.Print(actions.AddToGroup(group)
             ? string.Format(Loc.Get("Commands_Group_Added"), display, group.Name)
@@ -114,7 +114,7 @@ internal static class GroupCommandHandler
 
     private static void ExecuteRemove(Plugin plugin, PlayerGroup group, string name, string? world)
     {
-        var display = FormatPlayer(name, world);
+        var display = GroupMembershipActions.FormatPlayer(name, world);
         var actions = new GroupMembershipActions(plugin, name, world);
         Plugin.ChatGui.Print(actions.RemoveFromGroup(group)
             ? string.Format(Loc.Get("Commands_Group_Removed"), display, group.Name)
@@ -141,5 +141,4 @@ internal static class GroupCommandHandler
         Plugin.ChatGui.Print(string.Format(Loc.Get("Commands_Group_List"), string.Join(", ", entries)));
     }
 
-    private static string FormatPlayer(string name, string? world) => world == null ? name : $"{name} [{world}]";
 }

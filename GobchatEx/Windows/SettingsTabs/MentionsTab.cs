@@ -108,7 +108,7 @@ internal sealed class MentionsTab : IToggleableTab
         var submitted = ImGui.InputTextWithHint("##newTrigger", Loc.Get("Mentions_Trigger_Hint"), ref newTrigger, 64,
             ImGuiInputTextFlags.EnterReturnsTrue);
         ImGui.SameLine();
-        if ((ImGui.Button(Loc.Get("Mentions_Trigger_Add")) || submitted) && TryAddTrigger(newTrigger))
+        if ((ImGui.Button(Loc.Get("Mentions_Trigger_Add")) || submitted) && TryAddUnique(config.MentionTriggers, newTrigger))
             newTrigger = string.Empty;
 
         if (config.MentionTriggers.Count == 0)
@@ -143,15 +143,16 @@ internal sealed class MentionsTab : IToggleableTab
         }
     }
 
-    private bool TryAddTrigger(string input)
+    /// <summary>Trims, rejects empty input and case-insensitive duplicates, then appends. True when added.</summary>
+    private static bool TryAddUnique(List<string> list, string input)
     {
-        var trigger = input.Trim();
-        if (trigger.Length == 0)
+        var value = input.Trim();
+        if (value.Length == 0)
             return false;
-        if (config.MentionTriggers.Any(t => t.Equals(trigger, StringComparison.OrdinalIgnoreCase)))
+        if (list.Any(x => x.Equals(value, StringComparison.OrdinalIgnoreCase)))
             return false;
 
-        config.MentionTriggers.Add(trigger);
+        list.Add(value);
         return true;
     }
 
@@ -313,7 +314,7 @@ internal sealed class MentionsTab : IToggleableTab
         newCustomWordByCharacter[character.Name] = newWord;
 
         ImGui.SameLine();
-        if ((ImGui.Button($"{Loc.Get("Mentions_Trigger_Add")}##word") || submitted) && TryAddCustomWord(character, newWord))
+        if ((ImGui.Button($"{Loc.Get("Mentions_Trigger_Add")}##word") || submitted) && TryAddUnique(character.CustomWords, newWord))
             newCustomWordByCharacter[character.Name] = string.Empty;
 
         for (var i = 0; i < character.CustomWords.Count; ++i)
@@ -330,15 +331,4 @@ internal sealed class MentionsTab : IToggleableTab
         }
     }
 
-    private static bool TryAddCustomWord(CharacterMentionSettings character, string input)
-    {
-        var word = input.Trim();
-        if (word.Length == 0)
-            return false;
-        if (character.CustomWords.Any(w => w.Equals(word, StringComparison.OrdinalIgnoreCase)))
-            return false;
-
-        character.CustomWords.Add(word);
-        return true;
-    }
 }

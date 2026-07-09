@@ -74,6 +74,13 @@ internal sealed class GroupMembershipActions
         return true;
     }
 
+    /// <summary>
+    /// Shared "Name [World]" display form for chat-command output and the Groups tab;
+    /// an absent or empty world renders the bare name.
+    /// </summary>
+    internal static string FormatPlayer(string name, string? world)
+        => string.IsNullOrEmpty(world) ? name : $"{name} [{world}]";
+
     private void Persist() => Persist(plugin);
 
     private static void Persist(Plugin plugin)

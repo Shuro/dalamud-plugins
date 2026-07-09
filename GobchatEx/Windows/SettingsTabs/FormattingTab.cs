@@ -148,7 +148,7 @@ internal sealed class FormattingTab : IToggleableTab
                     && ImportGameChannelRow(option) is { } gameRow)
                     style.Foreground = gameRow;
 
-                DrawActionTooltip(Loc.Get("Formatting_ImportGame_Tooltip"));
+                SettingsUi.Tooltip(Loc.Get("Formatting_ImportGame_Tooltip"));
             }
         }
 
@@ -166,15 +166,6 @@ internal sealed class FormattingTab : IToggleableTab
         ImGui.TextDisabled(delimiters);
     }
 
-    private static void DrawActionTooltip(string text)
-    {
-        if (!ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            return;
-
-        using (ImRaii.Tooltip())
-            ImGui.TextUnformatted(text);
-    }
-
     /// <summary>
     /// The game's configured color for a chat channel (Character Configuration → Log Text
     /// Color) — no more UIColor row snapping needed now that Text colors render via a raw
@@ -185,37 +176,17 @@ internal sealed class FormattingTab : IToggleableTab
 
     private void DrawChannels()
     {
-        DrawChannelGrid("##channels-main", MainChannels);
+        SettingsUi.ChannelGrid("##channels-main", MainChannels, config.HighlightChannels);
 
         if (ImGui.CollapsingHeader(Loc.Get("Formatting_Channels_Linkshells")))
-            DrawChannelGrid("##channels-ls", LinkshellChannels);
+            SettingsUi.ChannelGrid("##channels-ls", LinkshellChannels, config.HighlightChannels);
 
         if (ImGui.CollapsingHeader(Loc.Get("Formatting_Channels_CrossworldLinkshells")))
-            DrawChannelGrid("##channels-cwls", CrossworldLinkshellChannels);
+            SettingsUi.ChannelGrid("##channels-cwls", CrossworldLinkshellChannels, config.HighlightChannels);
 
         ImGuiHelpers.ScaledDummy(2f);
         if (SettingsUi.DangerButton(FontAwesomeIcon.Undo, Loc.Get("Formatting_Channels_ResetDefaults"),
                 Loc.Get("Formatting_Channels_ResetDefaults_Tooltip")))
             config.HighlightChannels = [.. FormattingConfig.DefaultHighlightChannels];
-    }
-
-    private void DrawChannelGrid(string id, (string LabelKey, XivChatType Type)[] choices)
-    {
-        using var table = ImRaii.Table(id, 3);
-        if (!table)
-            return;
-
-        foreach (var (labelKey, type) in choices)
-        {
-            ImGui.TableNextColumn();
-            var active = config.HighlightChannels.Contains(type);
-            if (!ImGui.Checkbox(Loc.Get(labelKey), ref active))
-                continue;
-
-            if (active)
-                config.HighlightChannels.Add(type);
-            else
-                config.HighlightChannels.Remove(type);
-        }
     }
 }
