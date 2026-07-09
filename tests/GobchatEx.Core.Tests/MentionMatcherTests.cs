@@ -180,6 +180,47 @@ public sealed class MentionMatcherTests
     }
 
     [Fact]
+    public void FuzzyWord_CurlyApostropheInMessage_MatchesStraightApostropheTrigger()
+    {
+        // FFXIV chat often carries the typographic apostrophe (’, U+2019 — IME or
+        // copy-paste) while the configured name uses the straight one; the apostrophe fold
+        // must make them the same token, and the original curly text must be highlighted.
+        var rules = new MentionRules(WholeWords: [], PartialWords: [], FuzzyWords: ["Khit'to"], FuzzyMatchLevel.Conservative);
+
+        FindRules("hi Khit’to there", rules).Should().Equal(
+            ("Khit’to", SegmentType.Mention));
+    }
+
+    [Fact]
+    public void FuzzyLevel_Balanced_GrantsTwoEditsOnLongWords()
+    {
+        // "Elisabet" is two edits from "Elizabeth" (substitution + deletion); Conservative
+        // caps every word at one edit. The match existing only at Balanced proves the
+        // configured level is wired through to the distance budget — this fails if the
+        // matcher hardcoded Conservative.
+        const string text = "hey Elisabet there";
+        MentionRules Rules(FuzzyMatchLevel level) => new([], [], ["Elizabeth"], level);
+
+        FindRules(text, Rules(FuzzyMatchLevel.Conservative)).Should().BeEmpty();
+        FindRules(text, Rules(FuzzyMatchLevel.Balanced)).Should().Equal(
+            ("Elisabet", SegmentType.Mention));
+    }
+
+    [Fact]
+    public void FuzzyLevel_Aggressive_FuzzyMatchesFourLetterWords()
+    {
+        // Four-letter words are exact-only at Conservative and Balanced (no fuzzy budget);
+        // only Aggressive grants them one edit — this fails if the matcher hardcoded any
+        // other level.
+        const string text = "hi Nore there";
+        MentionRules Rules(FuzzyMatchLevel level) => new([], [], ["Nora"], level);
+
+        FindRules(text, Rules(FuzzyMatchLevel.Balanced)).Should().BeEmpty();
+        FindRules(text, Rules(FuzzyMatchLevel.Aggressive)).Should().Equal(
+            ("Nore", SegmentType.Mention));
+    }
+
+    [Fact]
     public void FuzzyAndWholeWord_OverlappingMatch_MergesToOneSpan()
     {
         // The same word configured both as an exact trigger and a fuzzy candidate must not produce two

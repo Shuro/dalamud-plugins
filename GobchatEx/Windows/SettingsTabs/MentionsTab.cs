@@ -209,8 +209,9 @@ internal sealed class MentionsTab : IToggleableTab
     }
 
     /// <summary>
-    /// Reads <see cref="Plugin.PlayerState"/> directly (pure Dalamud, no ClientStructs needed) so alts
-    /// can be pre-configured before their first auto-learned login.
+    /// Reads <see cref="Plugin.PlayerState"/> directly (pure Dalamud, no ClientStructs needed).
+    /// This button is the only way characters get remembered — the app's login auto-learn was
+    /// not ported.
     /// </summary>
     private void DrawAddCurrentCharacterButton()
     {

@@ -41,6 +41,7 @@ public sealed class ChatListener : IDisposable
     private bool _rangeEnabled;
     private HashSet<XivChatType> _rangeChannels = [];
     private Dictionary<XivChatType, uint> _chatTwoChannelColors = [];
+    private bool _chatMessageErrorLogged;
 
     // Six fade-step buckets: index 0 is a never-applied "full visibility" reference (production
     // always bypasses ApplyFade for visibility==100 via RangeFadeStep's null return; kept purely
@@ -157,7 +158,22 @@ public sealed class ChatListener : IDisposable
         // the friend-list snapshot now. Plugin construction is only framework-thread when the
         // manifest sets LoadSync (ours doesn't), and Refresh reads a game struct, so dispatch.
         if (Plugin.ClientState.IsLoggedIn)
-            _ = Plugin.Framework.RunOnFrameworkThread(_friendGroups.Refresh);
+        {
+            _ = Plugin.Framework.RunOnFrameworkThread(() =>
+            {
+                try
+                {
+                    _friendGroups.Refresh();
+                }
+                catch (Exception ex)
+                {
+                    // Fire-and-forget dispatch: without this, a throw here (ClientStructs read,
+                    // Excel lookup) would vanish into the discarded task and friend-group
+                    // coloring would stay silently empty for the whole session.
+                    Plugin.Log.Error(ex, "Initial friend-list refresh failed; friend-group coloring stays empty until the next refresh");
+                }
+            });
+        }
 
         SettingsChanged();
         Plugin.ChatGui.CheckMessageHandled += OnChatMessage;
@@ -184,6 +200,7 @@ public sealed class ChatListener : IDisposable
     /// <summary>Call after any configuration change (and Save()).</summary>
     public void SettingsChanged()
     {
+        _chatMessageErrorLogged = false;
         _enabled = _config.Formatting.RpHighlightEnabled;
         _channels = [.. _config.Formatting.HighlightChannels];
         _styles = new Dictionary<SegmentType, (uint, uint)>
@@ -210,11 +227,8 @@ public sealed class ChatListener : IDisposable
         BuildGroupRules();
     }
 
-    /// <summary>
-    /// Custom groups first (so they take precedence over friend groups on the same sender, per
-    /// GroupMatcher's first-match-wins order), then the 7 friend groups sorted by FfGroup defensively
-    /// (they're always seeded 0..6 in order, but a hand-edited config shouldn't break precedence).
-    /// </summary>
+    // Rule ordering (the precedence invariant) lives in GroupRuleBuilder, shared with the Chat 2
+    // provider; only the foreground/glow style lookup is native-pass-specific.
     private void BuildGroupRules()
     {
         if (!_config.Groups.GroupsEnabled)
@@ -224,22 +238,12 @@ public sealed class ChatListener : IDisposable
             return;
         }
 
-        var rules = new List<GroupRule>(_config.Groups.Groups.Count + _config.Groups.FriendGroups.Count);
-        var styles = new Dictionary<string, (uint Foreground, uint Glow)>(rules.Capacity);
+        _groupRules = GroupRuleBuilder.Build(_config.Groups, snapshotMembers: false);
 
-        foreach (var group in _config.Groups.Groups)
-        {
-            rules.Add(new GroupRule(group.Id, group.Active, FfGroup: null, group.Members));
+        var styles = new Dictionary<string, (uint Foreground, uint Glow)>(_groupRules.Count);
+        foreach (var group in _config.Groups.Groups.Concat(_config.Groups.FriendGroups))
             styles[group.Id] = (group.Foreground, group.Glow);
-        }
 
-        foreach (var group in _config.Groups.FriendGroups.OrderBy(g => g.FfGroup))
-        {
-            rules.Add(new GroupRule(group.Id, group.Active, group.FfGroup, Members: []));
-            styles[group.Id] = (group.Foreground, group.Glow);
-        }
-
-        _groupRules = rules;
         _groupStyles = styles;
     }
 
@@ -322,7 +326,34 @@ public sealed class ChatListener : IDisposable
         _ => SegmentType.Undefined,
     };
 
+    /// <summary>
+    /// Top-level guard, mirroring <see cref="ChatTwoStyleProvider"/>'s Evaluate: if any pass
+    /// throws, the message reverts to its pre-pass state (never left half-styled — the passes
+    /// replace Message/Sender with new SeString instances, so the original references stay
+    /// valid) and the error logs once instead of Dalamud's own per-subscriber catch printing
+    /// an unattributed error for every chat line.
+    /// </summary>
     private void OnChatMessage(IHandleableChatMessage message)
+    {
+        var originalMessage = message.Message;
+        var originalSender = message.Sender;
+        try
+        {
+            OnChatMessageCore(message);
+        }
+        catch (Exception ex)
+        {
+            message.Message = originalMessage;
+            message.Sender = originalSender;
+            if (_chatMessageErrorLogged)
+                return;
+
+            _chatMessageErrorLogged = true;
+            Plugin.Log.Warning(ex, "Chat formatting failed; messages render unformatted until the next settings change");
+        }
+    }
+
+    private void OnChatMessageCore(IHandleableChatMessage message)
     {
         // Range outcome first (the distance and mention probe read the raw message), but styling
         // still runs for dimmed messages — the fade then darkens the styled colors in place
@@ -516,19 +547,21 @@ public sealed class ChatListener : IDisposable
     }
 
     /// <summary>
-    /// Heuristic own-message check: TellOutgoing and Echo are unconditionally self (a Tell you sent,
-    /// or a local-only /echo print that carries no sender at all — Dalamud's own self-test identifies
-    /// Echo messages purely by Message text for the same reason); otherwise the sender text must
-    /// contain the local player's name (tolerant of party number prefixes and cross-world suffixes).
+    /// TellOutgoing and Echo are unconditionally self: a Tell you sent, or a local-only /echo
+    /// print that carries no sender at all — Dalamud's own self-test identifies Echo messages
+    /// purely by Message text for the same reason. Internal so the Chat 2 provider applies the
+    /// same channel rule before calling the shared <see cref="SelfSender"/> heuristic.
+    /// </summary>
+    internal static bool IsSelfChannel(XivChatType type)
+        => type is XivChatType.TellOutgoing or XivChatType.Echo;
+
+    /// <summary>
+    /// Heuristic own-message check (see <see cref="SelfSender"/> for the shared string rule).
     /// Only the sound is suppressed for own messages, never the highlighting.
     /// </summary>
     private static bool IsFromSelf(IHandleableChatMessage message)
-    {
-        if (message.LogKind is XivChatType.TellOutgoing or XivChatType.Echo)
-            return true;
-
-        var localName = Plugin.ObjectTable.LocalPlayer?.Name.TextValue;
-        return !string.IsNullOrEmpty(localName)
-            && message.Sender.TextValue.Contains(localName, StringComparison.Ordinal);
-    }
+        => SelfSender.IsSelf(
+            IsSelfChannel(message.LogKind),
+            message.Sender.TextValue,
+            Plugin.ObjectTable.LocalPlayer?.Name.TextValue);
 }

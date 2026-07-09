@@ -20,9 +20,10 @@ public class MentionsConfig
     public List<string> MentionTriggers { get; set; } = [];
 
     /// <summary>
-    /// Master switch for player-name mentions (Milestone 1). Characters are
-    /// auto-learned at login but added inactive; this only gates whether
-    /// any of them are matched at all.
+    /// Master switch for player-name mentions (Milestone 1). Characters are added
+    /// manually via the Mentions tab's add-current-character button (the app's login
+    /// auto-learn was not ported); this only gates whether any of them are matched
+    /// at all.
     /// </summary>
     public bool PlayerMentionsEnabled { get; set; } = true;
 

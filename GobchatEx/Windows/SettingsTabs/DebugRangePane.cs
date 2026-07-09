@@ -1,3 +1,4 @@
+#if DEBUG
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Objects.SubKinds;
@@ -276,3 +277,4 @@ internal sealed class DebugRangePane
         ((rgba >> 8) & 255) / 255f,
         (rgba & 255) / 255f);
 }
+#endif

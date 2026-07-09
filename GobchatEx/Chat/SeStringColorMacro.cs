@@ -11,7 +11,8 @@ namespace GobchatEx.Chat;
 /// native 0xAARRGGBB with alpha forced opaque — vanilla ignores the alpha byte on both codes, so
 /// production callers (which never expose an alpha picker for these) don't need to carry one
 /// through. The Debug page's own alpha-testing probes pack their own arbitrary alpha via
-/// <see cref="PackAarrggbb"/> directly instead, since they're deliberately testing that byte.
+/// <c>PackAarrggbb</c> (Debug-only member) directly instead, since they're deliberately
+/// testing that byte.
 /// </summary>
 internal static class SeStringColorMacro
 {
@@ -21,12 +22,14 @@ internal static class SeStringColorMacro
     /// <summary>0xRRGGBBAA (RgbaColor's config format) -> 0xAARRGGBB, alpha forced opaque.</summary>
     public static uint ToOpaqueAarrggbb(uint rgbaColor) => 0xFF000000u | (rgbaColor >> 8);
 
+#if DEBUG
     /// <summary>Packs an ImGui Vector4 (0..1 per channel) into 0xAARRGGBB, alpha included as-is.</summary>
     public static uint PackAarrggbb(System.Numerics.Vector4 color)
     {
         static uint Channel(float value) => (uint)(System.Math.Clamp(value, 0f, 1f) * 255f + 0.5f);
         return (Channel(color.W) << 24) | (Channel(color.X) << 16) | (Channel(color.Y) << 8) | Channel(color.Z);
     }
+#endif
 
     /// <summary>Full macro envelope: 0x02, code, length expression, value expression, 0x03.</summary>
     public static RawPayload MakeColorMacro(byte macroCode, uint packedAarrggbb)

@@ -82,12 +82,45 @@ public sealed class UnicodeNormalizerTests
     }
 
     [Fact]
-    public void NormalizeWithMap_UnpairedSurrogate_DoesNotThrow()
+    public void NormalizeWithMap_MapHasOneEntryPerNormalizedCharPlusSentinel()
     {
-        var loneHighSurrogate = "\uD83D"; // high surrogate with no following low surrogate
+        // The map contract consumers rely on: map[i] is the original index of normalized
+        // char i, plus a final sentinel equal to the original length — callers index
+        // map[match.End] unconditionally, so a map one entry short would throw (or
+        // mis-highlight) on any match touching the end of the text.
+        var original = "hi " + ToMathBold("Alice");
 
-        var act = () => UnicodeNormalizer.NormalizeWithMap(loneHighSurrogate);
+        var (text, map) = UnicodeNormalizer.NormalizeWithMap(original);
 
-        act.Should().NotThrow();
+        text.Should().Be("hi Alice");
+        map.Should().NotBeNull();
+        map!.Length.Should().Be(text.Length + 1);
+        map[^1].Should().Be(original.Length);
+    }
+
+    [Fact]
+    public void NormalizeWithMap_UnpairedSurrogate_FallsBackToIdentityWithNullMap()
+    {
+        // Chat text is decoded from raw game memory, so a corrupted lone surrogate must
+        // not crash matching. Pinned invariant: un-normalizable text is treated as already
+        // normalized — the original text comes back verbatim with a null map (identity
+        // indices), so matching still runs safely on original indices. Even foldable
+        // content in the same string stays unfolded rather than risking a corrupt map.
+        // (In-code strings, not [InlineData]: xUnit's theory-data serialization corrupts
+        // unpaired surrogates, silently replacing the very case under test.)
+        string[] corrupted =
+        [
+            "\uD83D",                   // lone high surrogate, nothing else
+            "hi \uD83D yo",             // embedded in plain text
+            ToMathBold("A") + "\uD83D", // foldable math-bold followed by a lone surrogate
+        ];
+
+        foreach (var input in corrupted)
+        {
+            var (text, map) = UnicodeNormalizer.NormalizeWithMap(input);
+
+            text.Should().Be(input);
+            map.Should().BeNull();
+        }
     }
 }

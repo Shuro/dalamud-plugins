@@ -1,3 +1,4 @@
+#if DEBUG
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
@@ -65,3 +66,4 @@ internal sealed class DebugGroupsPane
         }
     }
 }
+#endif

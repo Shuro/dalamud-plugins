@@ -71,7 +71,13 @@ internal sealed class ChatTwoStyleProvider : IDisposable
     private volatile Snapshot? _snapshot;
     private volatile List<PlayerDistance>? _playerDistances;
     private long _nextDistanceRefresh;
+#if DEBUG
     private bool _suspended;
+#else
+    // Suspension (Debug tester gate handover, settings-footer disconnect) only exists in Debug
+    // builds; a const lets the reads below compile away instead of #if-gating every consumer.
+    private const bool _suspended = false;
+#endif
     private bool _disposed;
     private bool _evaluateErrorLogged;
 
@@ -113,8 +119,18 @@ internal sealed class ChatTwoStyleProvider : IDisposable
             if (_disposed)
                 return;
 
-            RebuildSnapshot();
-            TryConnect();
+            try
+            {
+                RebuildSnapshot();
+                TryConnect();
+            }
+            catch (Exception ex)
+            {
+                // Fire-and-forget dispatch: without this, a throw here would vanish into the
+                // discarded task and IsConnected would stay false for the whole session —
+                // indistinguishable from "Chat 2 not installed".
+                Plugin.Log.Error(ex, "Chat 2 style provider bootstrap failed; styling stays disconnected until the next settings change or Chat 2 reload");
+            }
         });
     }
 
@@ -153,6 +169,7 @@ internal sealed class ChatTwoStyleProvider : IDisposable
         SendTabPolicies();
     }
 
+#if DEBUG
     /// <summary>
     /// Stops providing styles while the Debug tester owns the (single-provider) gate. The tester's
     /// own registration already displaced ours in Chat 2; this only prevents an automatic
@@ -190,6 +207,7 @@ internal sealed class ChatTwoStyleProvider : IDisposable
 
         IsConnected = false;
     }
+#endif
 
     private void OnAvailable() => TryConnect();
 
@@ -267,8 +285,11 @@ internal sealed class ChatTwoStyleProvider : IDisposable
         {
             IsConnected = _styleVersion.InvokeFunc() == SupportedStyleVersion;
         }
-        catch
+        catch (Exception ex)
         {
+            // Expected whenever Chat 2 isn't installed or loaded — Verbose keeps it out of
+            // normal logs while still leaving a trace if a real IPC regression hides here.
+            Plugin.Log.Verbose(ex, "ChatTwo.StyleVersion probe failed (Chat 2 not available?)");
             IsConnected = false;
         }
 
@@ -312,22 +333,17 @@ internal sealed class ChatTwoStyleProvider : IDisposable
     /// </summary>
     private void RebuildSnapshot()
     {
+        // Rule ordering (the precedence invariant) lives in GroupRuleBuilder, shared with the
+        // native pass; snapshotMembers because Evaluate reads these on Chat 2's thread while
+        // GroupMembershipActions mutates the live lists on the framework thread.
         var rules = new List<GroupRule>();
         var backgrounds = new Dictionary<string, uint>();
 
         if (_config.Groups.GroupsEnabled)
         {
-            foreach (var group in _config.Groups.Groups)
-            {
-                rules.Add(new GroupRule(group.Id, group.Active, FfGroup: null, [.. group.Members]));
+            rules = GroupRuleBuilder.Build(_config.Groups, snapshotMembers: true);
+            foreach (var group in _config.Groups.Groups.Concat(_config.Groups.FriendGroups))
                 backgrounds[group.Id] = group.ChatTwoBackground;
-            }
-
-            foreach (var group in _config.Groups.FriendGroups.OrderBy(g => g.FfGroup))
-            {
-                rules.Add(new GroupRule(group.Id, group.Active, group.FfGroup, Members: []));
-                backgrounds[group.Id] = group.ChatTwoBackground;
-            }
         }
 
         var rangeActive = _config.RangeFilter.RangeFilterEnabled;
@@ -381,15 +397,17 @@ internal sealed class ChatTwoStyleProvider : IDisposable
         if (snapshot == null)
             return (0, 1f);
 
-        // Same identity completion as ChatListener.ResolveWorldlessSender: senderName/-World come
-        // from the sender's PlayerPayload and are empty for the local player's own posts (no
-        // payload; senderRaw may carry a party-number prefix). Other world-less senders stand on
-        // the current world.
+        // Same identity completion as ChatListener.ResolveWorldlessSender, via the shared
+        // SelfSender heuristic (incl. its TellOutgoing/Echo channel rule, mapped through
+        // ChatListener.IsSelfChannel): senderName/-World come from the sender's PlayerPayload
+        // and are empty for the local player's own posts (no payload; senderRaw may carry a
+        // party-number prefix). Other world-less senders stand on the current world.
         var name = senderName;
         var world = senderWorld.Length > 0 ? senderWorld : null;
         if (name.Length == 0)
         {
-            if (snapshot.LocalName.Length > 0 && senderRaw.Contains(snapshot.LocalName, StringComparison.Ordinal))
+            if (snapshot.LocalName.Length > 0
+                && SelfSender.IsSelf(ChatListener.IsSelfChannel((XivChatType)chatType), senderRaw, snapshot.LocalName))
             {
                 name = snapshot.LocalName;
                 world ??= snapshot.LocalHomeWorld;

@@ -48,6 +48,15 @@ public sealed class RgbaColorTests
     }
 
     [Fact]
+    public void ToVector4_Zero_UnpacksToTransparentBlack_TheNoColorSentinel()
+    {
+        // 0 is the "no color" sentinel; when it does reach ToVector4 (e.g. seeding a color
+        // picker from an unset value) it must unpack to transparent black — the exact
+        // inverse of FromVector4's zero packing — not to some opaque fallback.
+        RgbaColor.ToVector4(0u).Should().Be(Vector4.Zero);
+    }
+
+    [Fact]
     public void RoundTrip_SurvivesForEveryByteValue()
     {
         // The settings UI round-trips group backgrounds through ToVector4 → ColorEdit4 →

@@ -22,8 +22,10 @@ internal sealed class FriendGroupLookup
     // _snapshot/_playerDistances fields.
     private volatile Dictionary<(string Name, string World), int> _index = new();
 
+#if DEBUG
     /// <summary>Read-only snapshot for the Debug page's Friend Groups pane; not for matching logic.</summary>
     public IReadOnlyDictionary<(string Name, string World), int> Entries => _index;
+#endif
 
     public unsafe void Refresh()
     {

@@ -221,7 +221,7 @@ internal sealed class GroupsTab : IToggleableTab
         ImGui.TableSetupColumn(Loc.Get("Formatting_Column_Glow"));
         ImGui.TableSetupColumn(Loc.Get("Groups_Column_ChatTwoBackground"));
 
-        foreach (var group in config.FriendGroups.OrderBy(g => g.FfGroup))
+        foreach (var group in GroupRuleBuilder.OrderedFriendGroups(config))
         {
             using var id = ImRaii.PushId(group.Id);
 

@@ -150,6 +150,17 @@ public sealed class PlayerMentionResolverTests
     }
 
     [Fact]
+    public void ResolveWords_Miqote_EqualLengthSegments_FirstOneWins()
+    {
+        // Tie-break pinned: with equal-length apostrophe segments the FIRST one is kept
+        // ("strictly longer" replacement) — the derived short name must be deterministic,
+        // not flip with implementation details of the scan.
+        var words = Resolve("Mira'lena Doe", false, false, false, null, miqote: true);
+
+        words.WholeWords.Should().Equal("Mira");
+    }
+
+    [Fact]
     public void ResolveWords_Miqote_AlongsideFirstName_KeepsBoth()
     {
         // Matching the whole forename and the Miqo'te short name are independent; both whole words show up.
