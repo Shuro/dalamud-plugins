@@ -1,22 +1,10 @@
-using System.Text;
 using GobchatEx.Core;
+using static GobchatEx.Core.Tests.SpanTestHelpers;
 
 namespace GobchatEx.Core.Tests;
 
 public sealed class GroupMatcherTests
 {
-    private static string ToMathBold(string ascii)
-    {
-        var sb = new StringBuilder();
-        foreach (var c in ascii)
-        {
-            if (c >= 'A' && c <= 'Z') sb.Append(char.ConvertFromUtf32(0x1D5D4 + (c - 'A')));
-            else if (c >= 'a' && c <= 'z') sb.Append(char.ConvertFromUtf32(0x1D5EE + (c - 'a')));
-            else sb.Append(c);
-        }
-        return sb.ToString();
-    }
-
     private static GroupMember Bare(string player) => new(player, World: null);
     private static GroupMember WithWorld(string player, string world) => new(player, world);
 

@@ -1,5 +1,5 @@
-using System.Text;
 using GobchatEx.Core;
+using static GobchatEx.Core.Tests.SpanTestHelpers;
 
 namespace GobchatEx.Core.Tests;
 
@@ -11,23 +11,6 @@ namespace GobchatEx.Core.Tests;
 /// </summary>
 public sealed class UnicodeNormalizerTests
 {
-    // Map ASCII letters to their Mathematical Sans-Serif Bold code points (each a surrogate pair),
-    // the headline real-world case ("𝗙𝗟𝗨𝗫" instead of "FLUX").
-    private static string ToMathBold(string ascii)
-    {
-        var sb = new StringBuilder();
-        foreach (var c in ascii)
-        {
-            if (c >= 'A' && c <= 'Z')
-                sb.Append(char.ConvertFromUtf32(0x1D5D4 + (c - 'A')));
-            else if (c >= 'a' && c <= 'z')
-                sb.Append(char.ConvertFromUtf32(0x1D5EE + (c - 'a')));
-            else
-                sb.Append(c);
-        }
-        return sb.ToString();
-    }
-
     [Fact]
     public void NormalizeWithMap_AlreadyAscii_ReturnsIdentityWithNullMap()
     {
