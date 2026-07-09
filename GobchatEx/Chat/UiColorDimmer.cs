@@ -82,6 +82,11 @@ internal static class UiColorDimmer
                     result.Add(payload);
                     break;
 
+                // Deliberately one push/pop pair per payload rather than bracketing contiguous
+                // depth-0 runs: colors must never wrap foreign payloads (the same invariant
+                // PayloadRewriter documents), adjacent depth-0 text payloads are rare, and this
+                // only runs on already-faded messages — coalescing would add run tracking for
+                // no measurable win.
                 case TextPayload { Text.Length: > 0 } when foregroundDepth == 0:
                 {
                     result.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.ColorMacroCode, SeStringColorMacro.ToOpaqueAarrggbb(dimmedUncolored)));

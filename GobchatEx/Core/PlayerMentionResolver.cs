@@ -124,7 +124,10 @@ public static class PlayerMentionResolver
     /// <summary>
     /// For an apostrophe forename (Seeker/Keeper Miqo'te names), the longest piece left after
     /// splitting on the apostrophe — the part actually used as a short name. Returns null when the
-    /// name has no apostrophe (so nothing extra is matched).
+    /// name has no apostrophe (so nothing extra is matched). Splits on the straight apostrophe
+    /// only, deliberately: FFXIV's naming rules allow only the straight form, so a curly variant
+    /// can't occur in a character name — unlike free-typed message text, where
+    /// MentionMatcher folds curly onto straight.
     /// </summary>
     private static string? LongestApostropheSegment(string firstName)
     {

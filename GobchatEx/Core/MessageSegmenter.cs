@@ -47,6 +47,10 @@ public sealed class MessageSegmenter
         var hasMention = false;
         if (_mentions.HasTriggers)
         {
+            // Mentions are matched per run, in isolation — unlike the token-rule passes, where
+            // SegmentParser carries open-delimiter state across runs. A trigger word split across
+            // two runs (rare: runs only break where a non-text payload interrupts the text)
+            // won't match.
             var overlaid = new List<IReadOnlyList<SegmentSpan>>(spans.Count);
             for (var run = 0; run < runTexts.Count; ++run)
             {

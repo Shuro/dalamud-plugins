@@ -46,6 +46,10 @@ public sealed class MentionMatcher
 {
     // Letters, combining marks, and apostrophes (straight + curly) make up a name token; FFXIV names
     // contain apostrophes ("Khit'to"), so they must stay part of the token rather than split it.
+    // Format (Cf) code points — zero-width space/joiner and kin — are neither part of a token here
+    // nor removed by UnicodeNormalizer's NFKC fold, so one embedded in a word splits the token and
+    // defeats whole-word and fuzzy matching alike. Accepted limitation: stripping Cf would
+    // complicate the normalizer's index map for input that hasn't shown up in practice.
     private static readonly Regex TokenRegex = new(@"[\p{L}\p{M}'’]+", RegexOptions.Compiled);
 
     private readonly IReadOnlyList<Regex> _wholePatterns;

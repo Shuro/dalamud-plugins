@@ -22,7 +22,9 @@ namespace GobchatEx.Core;
 /// Unicode NFKC normalization used for chat <em>matching only</em> (mentions, trigger groups) — the
 /// displayed text always stays original. NFKC folds compatibility variants back to their plain form,
 /// e.g. Mathematical Sans-Serif Bold "𝗙𝗟𝗨𝗫" (U+1D400–U+1D7FF) → "FLUX", so a rule written in plain
-/// ASCII still matches a message typed in those decorative code points.
+/// ASCII still matches a message typed in those decorative code points. NFKC does not remove
+/// Format (Cf) code points such as zero-width spaces/joiners; matching treats them as ordinary
+/// characters (see MentionMatcher's token regex for the accepted consequence).
 /// </summary>
 public static class UnicodeNormalizer
 {
