@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Dalamud.Game.Text;
 using Dalamud.Plugin;
 using Newtonsoft.Json.Linq;
@@ -43,12 +42,11 @@ namespace GobchatEx.Chat;
 /// </summary>
 internal static class ChatTwoChannelColors
 {
-    private const string ChatTwoInternalName = "ChatTwo";
-    private const string ChatTwoConfigFileName = ChatTwoInternalName + ".json";
+    private const string ChatTwoConfigFileName = ChatTwoStyleProvider.ChatTwoInternalName + ".json";
 
     internal static Dictionary<XivChatType, uint> Read()
     {
-        if (!IsChatTwoLoaded())
+        if (!ChatTwoStyleProvider.IsChatTwoLoaded())
             return [];
 
         var directory = Plugin.PluginInterface.ConfigFile.DirectoryName;
@@ -81,10 +79,4 @@ internal static class ChatTwoChannelColors
             return [];
         }
     }
-
-    // Stock IDalamudPluginInterface.InstalledPlugins, not the unmerged styling IPC's IsConnected
-    // handshake -- reliable regardless of whether Chat 2 has the custom fork PRs at all, since it
-    // only asks Dalamud "is a plugin named ChatTwo currently loaded", nothing Chat 2-specific.
-    private static bool IsChatTwoLoaded()
-        => Plugin.PluginInterface.InstalledPlugins.Any(plugin => plugin.InternalName == ChatTwoInternalName && plugin.IsLoaded);
 }

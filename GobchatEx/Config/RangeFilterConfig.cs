@@ -23,14 +23,12 @@ public class RangeFilterConfig
     /// <summary>Mentions bypass the range filter, so a far-away player calling your name still shows.</summary>
     public bool RangeFilterMentionsIgnoreRange { get; set; } = true;
 
-    public static readonly IReadOnlyList<XivChatType> DefaultRangeFilterChannels =
+    // Replace, not Reuse: same Json.NET default-list-append bug as FormattingConfig.HighlightChannels.
+    [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
+    public List<XivChatType> RangeFilterChannels { get; set; } =
     [
         XivChatType.Say,
         XivChatType.CustomEmote,
         XivChatType.StandardEmote,
     ];
-
-    // Replace, not Reuse: same Json.NET default-list-append bug as FormattingConfig.HighlightChannels.
-    [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
-    public List<XivChatType> RangeFilterChannels { get; set; } = [.. DefaultRangeFilterChannels];
 }

@@ -27,7 +27,7 @@ public class GroupsConfig
     public List<PlayerGroup> FriendGroups { get; set; } = CreateDefaultFriendGroups();
 
     /// <summary>Stable ids and <c>FfGroup</c> indices mirror FFXIVClientStructs' DisplayGroup enum (Star=1..Club=7, offset by -1).</summary>
-    public static List<PlayerGroup> CreateDefaultFriendGroups() =>
+    private static List<PlayerGroup> CreateDefaultFriendGroups() =>
     [
         new() { Id = "ffgroup-0", Name = "Star", FfGroup = 0 },
         new() { Id = "ffgroup-1", Name = "Circle", FfGroup = 1 },

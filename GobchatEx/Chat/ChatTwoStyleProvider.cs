@@ -33,6 +33,9 @@ internal sealed class ChatTwoStyleProvider : IDisposable
     internal const string ProviderGateName = "GobchatEx.MessageStyle";
     private const int SupportedStyleVersion = 1;
 
+    /// <summary>Chat 2's plugin internal name as Dalamud reports it (InstalledPlugins, ActivePluginsChanged).</summary>
+    internal const string ChatTwoInternalName = "ChatTwo";
+
     // Per-tab suppress-flags understood by ChatTwo.SetTabStylePolicies (see the IPC contract).
     internal const int SuppressBackground = 1;
     internal const int SuppressFade = 2;
@@ -83,6 +86,12 @@ internal sealed class ChatTwoStyleProvider : IDisposable
 
     /// <summary>Last StyleVersion query succeeded with a supported version. Read by the settings UI.</summary>
     internal bool IsConnected { get; private set; }
+
+    // Stock IDalamudPluginInterface.InstalledPlugins, not the unmerged styling IPC's IsConnected
+    // handshake — reliable regardless of whether Chat 2 has the custom fork PRs at all, since it
+    // only asks Dalamud "is a plugin named ChatTwo currently loaded", nothing Chat 2-specific.
+    internal static bool IsChatTwoLoaded()
+        => Plugin.PluginInterface.InstalledPlugins.Any(p => p.InternalName == ChatTwoInternalName && p.IsLoaded);
 
     /// <summary>Chat 2's tabs (persistent id → name), from GetTabs/TabsChanged. Read by the settings UI.</summary>
     internal Dictionary<Guid, string> KnownTabs { get; private set; } = [];
@@ -145,18 +154,25 @@ internal sealed class ChatTwoStyleProvider : IDisposable
         _available.Unsubscribe(OnAvailable);
 
         if (IsConnected && !_suspended)
-        {
-            try
-            {
-                _setProvider.InvokeAction(string.Empty);
-            }
-            catch
-            {
-                // Chat 2 already gone; nothing to unregister from.
-            }
-        }
+            TryUnregisterProvider();
 
         _provider.UnregisterFunc();
+    }
+
+    /// <summary>
+    /// Best-effort unregistration of our provider gate from Chat 2. Callers keep their own
+    /// guards (Dispose: connected and not suspended; Disconnect: connected).
+    /// </summary>
+    private void TryUnregisterProvider()
+    {
+        try
+        {
+            _setProvider.InvokeAction(string.Empty);
+        }
+        catch
+        {
+            // Chat 2 already gone; nothing to unregister from.
+        }
     }
 
     /// <summary>
@@ -194,16 +210,7 @@ internal sealed class ChatTwoStyleProvider : IDisposable
         _suspended = true;
 
         if (IsConnected)
-        {
-            try
-            {
-                _setProvider.InvokeAction(string.Empty);
-            }
-            catch
-            {
-                // Chat 2 already gone; nothing to unregister from.
-            }
-        }
+            TryUnregisterProvider();
 
         IsConnected = false;
     }
@@ -219,7 +226,7 @@ internal sealed class ChatTwoStyleProvider : IDisposable
     /// </summary>
     private void OnActivePluginsChanged(IActivePluginsChangedEventArgs args)
     {
-        if (IsConnected && args.AffectedInternalNames.Contains("ChatTwo"))
+        if (IsConnected && args.AffectedInternalNames.Contains(ChatTwoInternalName))
             TryConnect();
     }
 

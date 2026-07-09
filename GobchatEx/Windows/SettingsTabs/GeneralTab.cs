@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
@@ -57,8 +56,7 @@ internal sealed class GeneralTab : ISettingsTab
         if (now >= nextPluginScan)
         {
             nextPluginScan = now + PluginScanIntervalMs;
-            chatTwoLoaded = Plugin.PluginInterface.InstalledPlugins
-                .Any(p => p.InternalName == "ChatTwo" && p.IsLoaded);
+            chatTwoLoaded = ChatTwoStyleProvider.IsChatTwoLoaded();
         }
 
         var loaded = connected || chatTwoLoaded;
