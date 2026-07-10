@@ -42,6 +42,11 @@ internal sealed class AboutTab : ISettingsTab
         using (ImRaii.TextWrapPos(0f))
             ImGui.TextUnformatted(Loc.Get("About_Description"));
 
+        ImGuiHelpers.ScaledDummy(6f);
+        using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey))
+        using (ImRaii.TextWrapPos(0f))
+            ImGui.TextUnformatted(Loc.Get("About_Lineage"));
+
         ImGuiHelpers.ScaledDummy(10f);
         var repoLinkLabel = Loc.Get("About_RepoLink");
         ImGuiHelpers.CenterCursorFor(

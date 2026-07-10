@@ -4,6 +4,7 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
@@ -16,7 +17,8 @@ namespace GobchatEx.Windows;
 /// <summary>
 /// Settings window with a sectioned nav rail (General / Roleplay, divider,
 /// About); pages without plugin functionality yet are placeholders. Right
-/// side is the page content; a Ko-fi heart sits in the title bar. Edits
+/// side is the page content; a Ko-fi heart sits in the title bar and a
+/// Ko-fi button in the footer bar. Edits
 /// apply instantly: tabs write straight to the live configuration and the
 /// window commits (persists + applies) detected changes on a debounced
 /// tick — see <see cref="CommitIfChanged"/>. There are no Save/Cancel
@@ -33,8 +35,11 @@ public class SettingsWindow : Window
     /// </summary>
     private const long CommitDebounceMs = 500;
 
-    // Ko-fi brand red (#FF5E5B) for the title bar heart.
+    // Ko-fi brand red (#FF5E5B) for the title bar heart and the footer
+    // button background, with lighter/darker shades for hover/press.
     private static readonly Vector4 KofiIconColor = new(1f, 94f / 255f, 91f / 255f, 1f);
+    private static readonly Vector4 KofiHoveredColor = new(1f, 123f / 255f, 120f / 255f, 1f);
+    private static readonly Vector4 KofiActiveColor = new(224f / 255f, 73f / 255f, 70f / 255f, 1f);
 
     /// <summary>
     /// Keeps Ko-fi left of Dalamud's own pin/clickthrough/blur "options" button (fixed at
@@ -225,16 +230,11 @@ public class SettingsWindow : Window
 
                 ImGui.TableNextColumn();
 
-#if DEBUG
-                // Reserve one line below the tab content for the debug-only
-                // Chat 2 status row (height formula from ChatTwo's settings
-                // window).
+                // Reserve one line below the tab content for the footer bar
+                // (height formula from ChatTwo's settings window).
                 var style = ImGui.GetStyle();
                 var height = ImGui.GetContentRegionAvail().Y - style.FramePadding.Y * 2
                     - style.ItemSpacing.Y - style.ItemInnerSpacing.Y * 2 - ImGui.CalcTextSize("A").Y;
-#else
-                var height = ImGui.GetContentRegionAvail().Y;
-#endif
 
                 using var child = ImRaii.Child("##gobchatex-settings-tab", new Vector2(-1, height));
                 if (child)
@@ -242,8 +242,28 @@ public class SettingsWindow : Window
             }
         }
 
-#if DEBUG
         ImGui.Separator();
+        DrawFooter();
+    }
+
+    /// <summary>
+    /// Footer bar below the tab content: a Ko-fi button on the left (second
+    /// entry point besides the title-bar heart), plus the debug-only Chat 2
+    /// status row on the right — see <see cref="DrawChatTwoStatus"/>.
+    /// </summary>
+    private void DrawFooter()
+    {
+        // White heart + label on the Ko-fi red — the component renders both
+        // glyph and text with ImGuiCol.Text.
+        using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudWhite))
+        {
+            if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Heart, Loc.Get("Settings_KofiTooltip"),
+                    KofiIconColor, KofiActiveColor, KofiHoveredColor))
+                Dalamud.Utility.Util.OpenLink(KofiUrl);
+        }
+
+#if DEBUG
+        ImGui.SameLine();
         DrawChatTwoStatus();
 #endif
     }
@@ -360,9 +380,9 @@ public class SettingsWindow : Window
 
 #if DEBUG
     /// <summary>
-    /// Footer row below the tab content, debug builds only: Chat 2 styling connection state plus
-    /// a Connect/Disconnect toggle. Release builds have no footer — they rely on the automatic
-    /// connect (construction, ChatTwo.Available) and read the status from the General page's
+    /// Right-aligned part of the footer bar, debug builds only: Chat 2 styling connection state
+    /// plus a Connect/Disconnect toggle. Release builds rely on the automatic connect
+    /// (construction, ChatTwo.Available) and read the status from the General page's
     /// Optional plugins row; this manual override exists for testing. Acts on the live provider
     /// immediately without waiting for a commit tick — a connection isn't configuration.
     /// </summary>

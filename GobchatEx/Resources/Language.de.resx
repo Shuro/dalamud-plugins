@@ -207,6 +207,7 @@
 
     <data name="About_TabName"><value>Über</value></data>
     <data name="About_Description"><value>GobchatEx hebt Rollenspiel im normalen Chatverlauf hervor: wörtliche Rede, Emotes, OOC und Erwähnungs-Auslösewörter erhalten jeweils eigene Farben.</value></data>
+    <data name="About_Lineage"><value>Basiert auf der Idee von Gobchat von MarbleBag und GobchatEx von Shuro - statt eines externen Tools nun direkt als Dalamud-Plugin ins Spiel integriert.</value></data>
     <data name="About_RepoLink"><value>Quellcode &amp; Fehlermeldungen</value></data>
     <data name="About_ByAuthor"><value>von {0}</value></data>
 

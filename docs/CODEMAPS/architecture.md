@@ -180,14 +180,16 @@ UI language unless GeneralConfig.LanguageOverride is set; re-resolved via
 
 ## Settings UI (Windows/)
 
-- SettingsWindow.cs (359) — nav rail: General (GeneralTab, Logs placeholder) /
+- SettingsWindow.cs (377) — nav rail: General (GeneralTab, Logs placeholder) /
   Roleplay (FormattingTab, MentionsTab, GroupsTab, RangeTab, ChatTwoTab) /
   divider / Debug (`#if DEBUG`) / About. Native collapse enabled; title-bar Ko-fi button
-  ordered via `Priority` to sit left of Dalamud's own options button.
+  ordered via `Priority` to sit left of Dalamud's own options button; a second
+  Ko-fi button sits left in the footer bar.
   Instant-apply: each tab edits its live config section; a debounced
   per-section JSON-snapshot compare (Update tick + OnClose/Dispose flush)
   persists only the section files that changed and applies once —
-  no Save/Apply/Cancel. Debug builds show live Chat 2 connect/disconnect status.
+  no Save/Apply/Cancel. Debug builds add live Chat 2 connect/disconnect status
+  on the footer's right.
 - SettingsUi.cs (176) — shared tab widgets: section headers, warnings,
   green/red `ToggleSwitch` (custom-drawn; Dalamud's ToggleButton hardcodes
   gray), `RgbaColorEdit` packed-RGBA swatch/picker (replaced the old
