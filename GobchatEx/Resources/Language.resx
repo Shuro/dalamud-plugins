@@ -256,8 +256,7 @@
     <data name="Sound_EffectName"><value>Sound Effect {0}</value></data>
 
     <data name="Commands_Primary_Help"><value>Open the GobchatEx settings window.</value></data>
-    <data name="Commands_Alias_Help"><value>Alias for /gobchat — open the GobchatEx settings window.</value></data>
-    <data name="Commands_ShortAlias_Help"><value>Alias for /gobchat.</value></data>
+    <data name="Commands_Alias_Help"><value>Alias for /gex — open the GobchatEx settings window.</value></data>
 
     <data name="Commands_Group_InvalidSyntax"><value>Invalid syntax. Try: /gobchat group &lt;name or number&gt; add|remove|clear &lt;player&gt; [world]</value></data>
     <data name="Commands_Group_InvalidLocator"><value>No group found matching "{0}".</value></data>

@@ -40,9 +40,9 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IContextMenu ContextMenu { get; private set; } = null!;
     [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
 
-    private const string PrimaryCommand = "/gobchat";
+    private const string PrimaryCommand = "/gex";
     private const string AliasCommand = "/gobchatex";
-    private const string ShortAliasCommand = "/gex";
+    private const string LegacyAliasCommand = "/gobchat";
 
     // Dalamud's native context-menu Prefix/PrefixColor is UIColor-sheet-row-only (an
     // ImGui-side render, not a SeString we control) — unlike FormattingConfig's colors, which
@@ -85,19 +85,23 @@ public sealed class Plugin : IDalamudPlugin
         WindowSystem.AddWindow(QuickbarWindow);
 
         // Dalamud has no alias mechanism on CommandInfo, so each command
-        // name gets its own handler pointing at the same action.
+        // name gets its own handler pointing at the same action. DisplayOrder
+        // pins /gex first in the installer's command list regardless of
+        // alphabetical sort.
         CommandManager.AddHandler(PrimaryCommand, new CommandInfo(OnCommand)
         {
-            HelpMessage = Loc.Get("Commands_Primary_Help")
+            HelpMessage = Loc.Get("Commands_Primary_Help"),
+            DisplayOrder = 0
         });
         CommandManager.AddHandler(AliasCommand, new CommandInfo(OnCommand)
         {
-            HelpMessage = Loc.Get("Commands_Alias_Help")
+            HelpMessage = Loc.Get("Commands_Alias_Help"),
+            DisplayOrder = 1
         });
-        CommandManager.AddHandler(ShortAliasCommand, new CommandInfo(OnCommand)
+        CommandManager.AddHandler(LegacyAliasCommand, new CommandInfo(OnCommand)
         {
-            HelpMessage = Loc.Get("Commands_ShortAlias_Help"),
-            ShowInHelp = false
+            HelpMessage = Loc.Get("Commands_Alias_Help"),
+            DisplayOrder = 2
         });
 
         PluginInterface.UiBuilder.Draw += DrawUI;
@@ -142,7 +146,7 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.RemoveHandler(PrimaryCommand);
         CommandManager.RemoveHandler(AliasCommand);
-        CommandManager.RemoveHandler(ShortAliasCommand);
+        CommandManager.RemoveHandler(LegacyAliasCommand);
 
         PluginInterface.UiBuilder.Draw -= DrawUI;
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleSettingsUI;
