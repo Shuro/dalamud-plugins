@@ -48,6 +48,12 @@ internal sealed class GeneralTab : ISettingsTab
             DrawQuickbarHideOptions();
 
         ImGuiHelpers.ScaledDummy(10f);
+        var legacyEchoFallback = config.LegacyEchoCommandFallback;
+        if (SettingsUi.Toggle(Loc.Get("General_LegacyEchoFallback_Name"), ref legacyEchoFallback))
+            config.LegacyEchoCommandFallback = legacyEchoFallback;
+        ImGuiComponents.HelpMarker(Loc.Get("General_LegacyEchoFallback_Tooltip"));
+
+        ImGuiHelpers.ScaledDummy(10f);
         SettingsUi.SectionHeader(Loc.Get("General_OptionalPlugins_Header"), Loc.Get("General_OptionalPlugins_Tooltip"));
         DrawOptionalPlugins();
     }

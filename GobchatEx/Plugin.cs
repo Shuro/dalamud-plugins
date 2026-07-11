@@ -54,6 +54,7 @@ public sealed class Plugin : IDalamudPlugin
     public Configuration Configuration { get; init; }
     public readonly WindowSystem WindowSystem = new("GobchatEx");
     internal ChatListener ChatListener { get; init; }
+    internal LegacyCommandListener LegacyCommandListener { get; init; }
     internal FriendGroupLookup FriendGroups { get; } = new();
     internal FriendListAddonListener FriendListListener { get; init; }
     private ChatTwoContextMenuIntegration ChatTwoIntegration { get; init; }
@@ -112,6 +113,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.LanguageChanged += OnLanguageChanged;
 
         ChatListener = new ChatListener(Configuration, FriendGroups);
+        LegacyCommandListener = new LegacyCommandListener(this);
         FriendListListener = new FriendListAddonListener(FriendGroups);
         ContextMenu.OnMenuOpened += OnMenuOpened;
         ChatTwoIntegration = new ChatTwoContextMenuIntegration(this);
@@ -141,6 +143,7 @@ public sealed class Plugin : IDalamudPlugin
         ChatTwoIntegration.Dispose();
         ContextMenu.OnMenuOpened -= OnMenuOpened;
         FriendListListener.Dispose();
+        LegacyCommandListener.Dispose();
         ChatListener.Dispose();
         WindowSystem.RemoveAllWindows();
 
@@ -221,22 +224,7 @@ public sealed class Plugin : IDalamudPlugin
         clicked.OpenSubmenu(Loc.Get("Groups_ContextMenu_SubmenuName"), items);
     }
 
-    private void OnCommand(string command, string args)
-    {
-        var trimmed = args.TrimStart();
-        var firstSpace = trimmed.IndexOf(' ');
-        var firstWord = firstSpace < 0 ? trimmed : trimmed[..firstSpace];
-
-        if (firstWord.Equals("group", StringComparison.OrdinalIgnoreCase)
-            || firstWord.Equals("g", StringComparison.OrdinalIgnoreCase))
-        {
-            var rest = firstSpace < 0 ? string.Empty : trimmed[(firstSpace + 1)..];
-            GroupCommandHandler.Execute(this, rest);
-            return;
-        }
-
-        ToggleSettingsUI();
-    }
+    private void OnCommand(string command, string args) => CommandDispatcher.Execute(this, args);
 
     private void DrawUI() => WindowSystem.Draw();
     public void ToggleSettingsUI() => SettingsWindow.Toggle();

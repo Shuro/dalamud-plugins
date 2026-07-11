@@ -8,7 +8,7 @@ using GobchatEx.Localization;
 namespace GobchatEx.Chat;
 
 /// <summary>
-/// Parses "/gobchat group ..." (and its "g" alias, stripped by <see cref="Plugin.OnCommand"/> before
+/// Parses "/gobchat group ..." (and its "g" alias, stripped by <see cref="CommandDispatcher"/> before
 /// this is called). Grammar: "&lt;idx&gt; task player [world]" or "task &lt;idx&gt; player [world]" for
 /// a numeric locator — both orders, mirroring the old app's PlayerGroupCommandHandler exactly — plus
 /// "&lt;name&gt; task player [world]" for a group referenced by name. Name-locator-first only: a group
@@ -21,8 +21,9 @@ internal static class GroupCommandHandler
 {
     // Ported verbatim from PlayerGroupCommandHandler's name-tail pattern (the acute accent ´ is
     // written as a literal character here rather than a string escape, since verbatim strings don't
-    // process backslash escapes).
-    private const string NameTailPattern = @"\b(?<composite>(?<name>[ \w'`´-]+)(?<server>\s*\[\w+\])?)?";
+    // process backslash escapes). Internal so PlayerCommandHandler can build its own "name [world]"
+    // regex from the same fragment instead of duplicating the character class.
+    internal const string NameTailPattern = @"\b(?<composite>(?<name>[ \w'`´-]+)(?<server>\s*\[\w+\])?)?";
 
     private static readonly Regex IndexFirst = new(
         @"(?<locator>\d+)\b\s+\b(?<task>add|remove|clear)\b\s*.*?" + NameTailPattern,

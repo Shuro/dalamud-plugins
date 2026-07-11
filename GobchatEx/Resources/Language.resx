@@ -256,10 +256,10 @@
 
     <data name="Sound_EffectName"><value>Sound Effect {0}</value></data>
 
-    <data name="Commands_Primary_Help"><value>Open the GobchatEx settings window.</value></data>
+    <data name="Commands_Primary_Help"><value>Open the GobchatEx settings window. Type /gex help for the full command list.</value></data>
     <data name="Commands_Alias_Help"><value>Alias for /gex — open the GobchatEx settings window.</value></data>
 
-    <data name="Commands_Group_InvalidSyntax"><value>Invalid syntax. Try: /gobchat group &lt;name or number&gt; add|remove|clear &lt;player&gt; [world]</value></data>
+    <data name="Commands_Group_InvalidSyntax"><value>Invalid syntax. Try: /gex group &lt;name or number&gt; add|remove|clear &lt;player&gt; [world]</value></data>
     <data name="Commands_Group_InvalidLocator"><value>No group found matching "{0}".</value></data>
     <data name="Commands_Group_Added"><value>Added {0} to group {1}.</value></data>
     <data name="Commands_Group_AlreadyInGroup"><value>{0} is already in group {1}.</value></data>
@@ -269,4 +269,25 @@
     <data name="Commands_Group_Cleared"><value>Cleared all players from group {0}.</value></data>
     <data name="Commands_Group_ListEmpty"><value>No custom groups yet.</value></data>
     <data name="Commands_Group_List"><value>Groups: {0}</value></data>
+
+    <data name="Commands_Player_Count"><value>{0} player(s) nearby.</value></data>
+    <data name="Commands_Player_ListEmpty"><value>No other players nearby.</value></data>
+    <data name="Commands_Player_List"><value>Nearby players: {0}</value></data>
+    <data name="Commands_Player_Distance"><value>Distance to {0} is {1:0.00}y.</value></data>
+    <data name="Commands_Player_DistanceNotFound"><value>No nearby player found matching "{0}".</value></data>
+    <data name="Commands_Player_InvalidSyntax"><value>Invalid syntax. Try: /gex player count|list|distance &lt;name&gt; [world]</value></data>
+
+    <data name="Commands_Unknown"><value>Unknown command "{0}". Try /gex help.</value></data>
+
+    <data name="Commands_Help_Header"><value>GobchatEx commands:</value></data>
+    <data name="Commands_Help_Help"><value>/gex help - show this list.</value></data>
+    <data name="Commands_Help_ConfigOpen"><value>/gex config open - open the settings window.</value></data>
+    <data name="Commands_Help_Group"><value>/gex group &lt;number or name&gt; add|remove|clear &lt;player&gt; [world] - edit a custom group's player list.</value></data>
+    <data name="Commands_Help_GroupList"><value>/gex group list - list your custom groups with their numbers.</value></data>
+    <data name="Commands_Help_PlayerCount"><value>/gex player count - how many players are nearby.</value></data>
+    <data name="Commands_Help_PlayerList"><value>/gex player list - nearby players with their distance.</value></data>
+    <data name="Commands_Help_PlayerDistance"><value>/gex player distance &lt;name&gt; - your distance to one player.</value></data>
+
+    <data name="General_LegacyEchoFallback_Name"><value>Enable legacy /e gc commands</value></data>
+    <data name="General_LegacyEchoFallback_Tooltip"><value>When enabled, GobchatEx also recognizes old-style "/e gc ..." echo commands from the original desktop app, so existing macros keep working. Only your own local echo messages are read — nothing is sent to other players. Note: any echo text that happens to start with "gc " (yours or another plugin's) may trigger a harmless "Unknown command" reply; disable this if that becomes annoying.</value></data>
 </root>

@@ -36,4 +36,10 @@ public class GeneralConfig
 
     /// <summary>Hides the Quickbar while in combat.</summary>
     public bool QuickbarHideInBattle { get; set; } = true;
+
+    /// <summary>
+    /// Enables the legacy "/e gc ..." echo-command fallback from the pre-Dalamud standalone app, for
+    /// old macros. Defaults on since it's a compatibility feature, not an opt-in extra.
+    /// </summary>
+    public bool LegacyEchoCommandFallback { get; set; } = true;
 }

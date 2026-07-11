@@ -256,10 +256,10 @@
 
     <data name="Sound_EffectName"><value>Soundeffekt {0}</value></data>
 
-    <data name="Commands_Primary_Help"><value>Öffnet das GobchatEx-Einstellungsfenster.</value></data>
+    <data name="Commands_Primary_Help"><value>Öffnet das GobchatEx-Einstellungsfenster. /gex help zeigt die vollständige Befehlsliste.</value></data>
     <data name="Commands_Alias_Help"><value>Alias für /gex — öffnet das GobchatEx-Einstellungsfenster.</value></data>
 
-    <data name="Commands_Group_InvalidSyntax"><value>Ungültige Syntax. Versuch's mit: /gobchat group &lt;Name oder Nummer&gt; add|remove|clear &lt;Spieler&gt; [Welt]</value></data>
+    <data name="Commands_Group_InvalidSyntax"><value>Ungültige Syntax. Versuch's mit: /gex group &lt;Name oder Nummer&gt; add|remove|clear &lt;Spieler&gt; [Welt]</value></data>
     <data name="Commands_Group_InvalidLocator"><value>Keine Gruppe passend zu "{0}" gefunden.</value></data>
     <data name="Commands_Group_Added"><value>{0} zur Gruppe {1} hinzugefügt.</value></data>
     <data name="Commands_Group_AlreadyInGroup"><value>{0} ist bereits in Gruppe {1}.</value></data>
@@ -269,4 +269,25 @@
     <data name="Commands_Group_Cleared"><value>Alle Spieler aus Gruppe {0} entfernt.</value></data>
     <data name="Commands_Group_ListEmpty"><value>Noch keine eigenen Gruppen.</value></data>
     <data name="Commands_Group_List"><value>Gruppen: {0}</value></data>
+
+    <data name="Commands_Player_Count"><value>{0} Spieler in der Nähe.</value></data>
+    <data name="Commands_Player_ListEmpty"><value>Keine anderen Spieler in der Nähe.</value></data>
+    <data name="Commands_Player_List"><value>Spieler in der Nähe: {0}</value></data>
+    <data name="Commands_Player_Distance"><value>Entfernung zu {0} beträgt {1:0.00}y.</value></data>
+    <data name="Commands_Player_DistanceNotFound"><value>Kein Spieler in der Nähe passend zu "{0}" gefunden.</value></data>
+    <data name="Commands_Player_InvalidSyntax"><value>Ungültige Syntax. Versuch's mit: /gex player count|list|distance &lt;Name&gt; [Welt]</value></data>
+
+    <data name="Commands_Unknown"><value>Unbekannter Befehl "{0}". Versuch's mit /gex help.</value></data>
+
+    <data name="Commands_Help_Header"><value>GobchatEx-Befehle:</value></data>
+    <data name="Commands_Help_Help"><value>/gex help - zeigt diese Liste.</value></data>
+    <data name="Commands_Help_ConfigOpen"><value>/gex config open - öffnet das Einstellungsfenster.</value></data>
+    <data name="Commands_Help_Group"><value>/gex group &lt;Nummer oder Name&gt; add|remove|clear &lt;Spieler&gt; [Welt] - bearbeitet die Spielerliste einer eigenen Gruppe.</value></data>
+    <data name="Commands_Help_GroupList"><value>/gex group list - listet deine eigenen Gruppen mit ihren Nummern.</value></data>
+    <data name="Commands_Help_PlayerCount"><value>/gex player count - wie viele Spieler in der Nähe sind.</value></data>
+    <data name="Commands_Help_PlayerList"><value>/gex player list - Spieler in der Nähe mit ihrer Entfernung.</value></data>
+    <data name="Commands_Help_PlayerDistance"><value>/gex player distance &lt;Name&gt; - deine Entfernung zu einem Spieler.</value></data>
+
+    <data name="General_LegacyEchoFallback_Name"><value>Alte /e gc-Befehle aktivieren</value></data>
+    <data name="General_LegacyEchoFallback_Tooltip"><value>Wenn aktiviert, erkennt GobchatEx auch die alten "/e gc ..."-Echo-Befehle der ursprünglichen Desktop-App, damit bestehende Makros weiter funktionieren. Es werden nur deine eigenen lokalen Echo-Nachrichten gelesen — es wird nichts an andere Spieler gesendet. Hinweis: Echo-Text, der zufällig mit "gc " beginnt (von dir oder einem anderen Plugin), kann eine harmlose "Unbekannter Befehl"-Antwort auslösen; deaktiviere die Option, falls das stört.</value></data>
 </root>
