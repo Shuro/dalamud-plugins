@@ -4,7 +4,7 @@ Date: 2026-07-01
 
 ## Status
 
-Accepted
+Superseded by [4. Custom mention sound files via NAudio](0004-custom-sound-files-naudio.md)
 
 ## Context
 

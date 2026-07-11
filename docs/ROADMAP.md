@@ -61,7 +61,7 @@ app's mention engine (pure logic, unit-tested upstream):
 Complexity: medium. Extends the existing `MentionMatcher` / `MessageSegmenter`
 seam in `GobchatEx/Core/`.
 
-## Milestone 2 — Player groups — In progress
+## Milestone 2 — Player groups — Done
 
 Sort players into colored groups so friends and RP partners stand out:
 
@@ -82,7 +82,7 @@ around party/alliance prefixes).
 Group *background* tint — the most-requested group visual — needs Chat 2's
 styling IPC and lives in Milestone 3.5; the native log can't draw backgrounds.
 
-## Milestone 3 — Range filter — In progress
+## Milestone 3 — Range filter — Done
 
 Fade or hide chat from far-away players (great on crowded RP servers):
 
@@ -107,7 +107,7 @@ color steps, and render-only hiding — Milestone 3.5. The darkened-step
 dimming here stays permanently as the "lite variant": it is what renders
 whenever Chat 2's styling isn't available.
 
-## Milestone 3.5 — Chat 2 styling integration — In progress
+## Milestone 3.5 — Chat 2 styling integration — Built, awaiting upstream
 
 Backgrounds and per-line opacity can't be expressed in SeString, so the
 render support was upstreamed into Chat 2 as a message styling IPC
@@ -141,9 +141,10 @@ real transparency on top.
   fade/hide toggles in the Range tab, and a Chat 2 page with connection status
   plus per-tab allow/suppress switches fed by `ChatTwo.GetTabs`/`TabsChanged`
   and sent through `ChatTwo.SetTabStylePolicies` when edits commit.
-- Cleanup: retire the `local/dev-combined` Chat 2 build and the fork branches
-  once the PRs are merged and released; decide whether the Debug tab stays as
-  a diagnostics page or goes.
+- Cleanup — the only remaining item, blocked until upstream merges the PRs:
+  retire the `local/dev-combined` Chat 2 build and the fork branches once the
+  PRs are merged and released; decide whether the Debug tab stays as a
+  diagnostics page or goes.
 
 No hard dependency: without Chat 2 installed — or if the PRs stall (fork
 fallback, see project notes) — everything degrades to the native-log behavior
@@ -175,9 +176,11 @@ Complexity: low-medium.
 
 ## Backlog / opportunistic
 
-- Custom sound files for mention alerts (extend the `SoundPlayer` seam,
-  ADR 0003)
-- Localization (the app ships EN/DE strings)
+- Custom sound files for mention alerts — done (wav/mp3/ogg via NAudio with
+  a per-file volume slider and game-effect fallback,
+  [ADR 0004](adr/0004-custom-sound-files-naudio.md))
+- Localization — done (the settings UI ships EN/DE strings via
+  `GobchatEx/Localization/Loc.cs`, with resx fallback to English)
 
 ## Explicitly not migrating
 

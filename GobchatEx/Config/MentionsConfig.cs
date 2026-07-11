@@ -34,4 +34,21 @@ public class MentionsConfig
     public int MentionSoundEffect { get; set; } = 2;    // <se.2>
     public int MentionSoundCooldownMs { get; set; } = 5000;
     public bool SuppressSoundFromSelf { get; set; } = true;
+
+    /// <summary>
+    /// Play <see cref="MentionSoundFilePath"/> instead of the built-in
+    /// <see cref="MentionSoundEffect"/>. The game effect stays configured
+    /// underneath — it is also the fallback when the file fails to play
+    /// (ADR 0004).
+    /// </summary>
+    public bool MentionSoundUseCustomFile { get; set; }
+
+    /// <summary>Absolute path to a .wav/.mp3/.ogg file.</summary>
+    public string MentionSoundFilePath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Playback volume for the custom file only (0–1); game sound effects
+    /// follow the game's own sound-effects mixer instead.
+    /// </summary>
+    public float MentionSoundVolume { get; set; } = 1f;
 }

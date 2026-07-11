@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
+using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GobchatEx.Chat;
@@ -37,12 +39,30 @@ internal sealed class MentionsTab : IToggleableTab
     }
 
     private readonly MentionsConfig config;
+    private readonly SoundPlayer soundPlayer;
+    private readonly FileDialogManager fileDialog = new();
     private string newTrigger = string.Empty;
     private readonly Dictionary<string, string> newCustomWordByCharacter = new(StringComparer.OrdinalIgnoreCase);
 
-    public MentionsTab(MentionsConfig config)
+    // Alert sounds should stay short; anything longer gets a warning (the
+    // file still plays — it's advice, not a limit).
+    private static readonly TimeSpan MaxAlertDuration = TimeSpan.FromSeconds(5);
+
+    // Per-frame File.Exists (and the duration probe) would hit the disk while
+    // the tab is open, so the check runs once per distinct path (settings
+    // edits and dialog picks).
+    private string? checkedPath;
+    private bool checkedPathExists;
+    private TimeSpan? checkedPathDuration;
+
+    // A failed preview would otherwise be invisible (the error only lands in
+    // the log). Sticks until the path changes or a preview succeeds.
+    private bool previewFailed;
+
+    public MentionsTab(MentionsConfig config, SoundPlayer soundPlayer)
     {
         this.config = config;
+        this.soundPlayer = soundPlayer;
     }
 
     public void Draw()
@@ -61,6 +81,8 @@ internal sealed class MentionsTab : IToggleableTab
         SettingsUi.SectionHeader(Loc.Get("Mentions_Player_Header"),
             Loc.Get("Mentions_Player_Header_Tooltip"));
         DrawPlayerMentions();
+
+        fileDialog.Draw();
     }
 
     private void DrawSoundSettings()
@@ -72,6 +94,29 @@ internal sealed class MentionsTab : IToggleableTab
 
         using var disabled = ImRaii.Disabled(!config.MentionSoundEnabled);
 
+        if (ImGui.RadioButton(Loc.Get("Mentions_Sound_SourceGame"), !config.MentionSoundUseCustomFile))
+            config.MentionSoundUseCustomFile = false;
+        ImGui.SameLine();
+        if (ImGui.RadioButton(Loc.Get("Mentions_Sound_SourceFile"), config.MentionSoundUseCustomFile))
+            config.MentionSoundUseCustomFile = true;
+
+        if (config.MentionSoundUseCustomFile)
+            DrawCustomFileSettings();
+        else
+            DrawGameSoundSettings();
+
+        var cooldownSeconds = config.MentionSoundCooldownMs / 1000;
+        ImGui.SetNextItemWidth(180f * ImGuiHelpers.GlobalScale);
+        if (ImGui.SliderInt(Loc.Get("Mentions_Sound_Cooldown"), ref cooldownSeconds, 0, 30, "%d s"))
+            config.MentionSoundCooldownMs = cooldownSeconds * 1000;
+
+        var suppressSelf = config.SuppressSoundFromSelf;
+        if (SettingsUi.Toggle(Loc.Get("Mentions_Sound_SuppressSelf"), ref suppressSelf))
+            config.SuppressSoundFromSelf = suppressSelf;
+    }
+
+    private void DrawGameSoundSettings()
+    {
         ImGui.SetNextItemWidth(180f * ImGuiHelpers.GlobalScale);
         using (var combo = ImRaii.Combo("##soundEffect", GameSound.Name(config.MentionSoundEffect)))
         {
@@ -91,15 +136,59 @@ internal sealed class MentionsTab : IToggleableTab
         ImGui.SameLine();
         if (ImGuiComponents.IconButton(FontAwesomeIcon.Play))
             SoundPlayer.Play(config.MentionSoundEffect);
+    }
 
-        var cooldownSeconds = config.MentionSoundCooldownMs / 1000;
+    private void DrawCustomFileSettings()
+    {
+        var path = config.MentionSoundFilePath;
+        ImGui.SetNextItemWidth(280f * ImGuiHelpers.GlobalScale);
+        if (ImGui.InputTextWithHint("##soundFile", Loc.Get("Mentions_Sound_File_Hint"), ref path, 260))
+            config.MentionSoundFilePath = path;
+
+        ImGui.SameLine();
+        if (ImGuiComponents.IconButton(FontAwesomeIcon.FolderOpen))
+        {
+            fileDialog.OpenFileDialog(Loc.Get("Mentions_Sound_BrowseTitle"), "Audio{.wav,.mp3,.ogg}",
+                (ok, file) =>
+                {
+                    if (ok)
+                        config.MentionSoundFilePath = file;
+                });
+        }
+
+        SettingsUi.Tooltip(Loc.Get("Mentions_Sound_Browse_Tooltip"));
+
+        ImGui.SameLine();
+        if (ImGuiComponents.IconButton(FontAwesomeIcon.Play))
+            previewFailed = !soundPlayer.PlayFile(config.MentionSoundFilePath, config.MentionSoundVolume);
+
+        var volumePercent = (int)Math.Round(config.MentionSoundVolume * 100f);
         ImGui.SetNextItemWidth(180f * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderInt(Loc.Get("Mentions_Sound_Cooldown"), ref cooldownSeconds, 0, 30, "%d s"))
-            config.MentionSoundCooldownMs = cooldownSeconds * 1000;
+        if (ImGui.SliderInt(Loc.Get("Mentions_Sound_Volume"), ref volumePercent, 0, 100, "%d%%"))
+            config.MentionSoundVolume = volumePercent / 100f;
 
-        var suppressSelf = config.SuppressSoundFromSelf;
-        if (SettingsUi.Toggle(Loc.Get("Mentions_Sound_SuppressSelf"), ref suppressSelf))
-            config.SuppressSoundFromSelf = suppressSelf;
+        if (config.MentionSoundFilePath.Length == 0)
+            return;
+
+        CheckPathCached(config.MentionSoundFilePath);
+        if (!checkedPathExists)
+            SettingsUi.Warning(Loc.Get("Mentions_Sound_FileMissing"));
+        else if (previewFailed)
+            SettingsUi.Warning(Loc.Get("Mentions_Sound_PreviewFailed"));
+        else if (checkedPathDuration is { } duration && duration > MaxAlertDuration)
+            SettingsUi.Warning(string.Format(Loc.Get("Mentions_Sound_FileTooLong"),
+                duration.TotalSeconds, MaxAlertDuration.TotalSeconds));
+    }
+
+    private void CheckPathCached(string path)
+    {
+        if (checkedPath == path)
+            return;
+
+        checkedPath = path;
+        checkedPathExists = File.Exists(path);
+        checkedPathDuration = checkedPathExists ? SoundPlayer.GetDuration(path) : null;
+        previewFailed = false;
     }
 
     private void DrawTriggers()

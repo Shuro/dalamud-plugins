@@ -30,7 +30,7 @@ public sealed class ChatListener : IDisposable
 {
     private readonly Configuration _config;
     private readonly FriendGroupLookup _friendGroups;
-    private readonly SoundPlayer _soundPlayer = new();
+    private readonly SoundPlayer _soundPlayer;
 
     private MessageSegmenter _segmenter = null!;
     private HashSet<XivChatType> _channels = null!;
@@ -149,10 +149,11 @@ public sealed class ChatListener : IDisposable
     internal static readonly HashSet<XivChatType> GroupingExcludedChannels =
         [XivChatType.TellIncoming, XivChatType.TellOutgoing, XivChatType.Echo, XivChatType.ErrorMessage];
 
-    internal ChatListener(Configuration config, FriendGroupLookup friendGroups)
+    internal ChatListener(Configuration config, FriendGroupLookup friendGroups, SoundPlayer soundPlayer)
     {
         _config = config;
         _friendGroups = friendGroups;
+        _soundPlayer = soundPlayer;
 
         // A mid-session (re)load — plugin update or dev auto-reload — never fires Login, so seed
         // the friend-list snapshot now. Plugin construction is only framework-thread when the
@@ -543,7 +544,7 @@ public sealed class ChatListener : IDisposable
         if (_config.Mentions.SuppressSoundFromSelf && IsFromSelf(message))
             return;
 
-        _soundPlayer.TryPlay(_config.Mentions.MentionSoundEffect, _config.Mentions.MentionSoundCooldownMs);
+        _soundPlayer.TryPlay(_config.Mentions);
     }
 
     /// <summary>

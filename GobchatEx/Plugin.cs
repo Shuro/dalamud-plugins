@@ -56,6 +56,10 @@ public sealed class Plugin : IDalamudPlugin
     internal ChatListener ChatListener { get; init; }
     internal LegacyCommandListener LegacyCommandListener { get; init; }
     internal FriendGroupLookup FriendGroups { get; } = new();
+    // Shared by the chat handler and the Mentions tab's preview button, so
+    // both play through one NAudio pipeline. Created before SettingsWindow
+    // (which hands it to MentionsTab); disposed after ChatListener.
+    internal SoundPlayer SoundPlayer { get; } = new();
     internal FriendListAddonListener FriendListListener { get; init; }
     private ChatTwoContextMenuIntegration ChatTwoIntegration { get; init; }
 #if DEBUG
@@ -112,7 +116,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenMainUi += ToggleSettingsUI;
         PluginInterface.LanguageChanged += OnLanguageChanged;
 
-        ChatListener = new ChatListener(Configuration, FriendGroups);
+        ChatListener = new ChatListener(Configuration, FriendGroups, SoundPlayer);
         LegacyCommandListener = new LegacyCommandListener(this);
         FriendListListener = new FriendListAddonListener(FriendGroups);
         ContextMenu.OnMenuOpened += OnMenuOpened;
@@ -145,6 +149,7 @@ public sealed class Plugin : IDalamudPlugin
         FriendListListener.Dispose();
         LegacyCommandListener.Dispose();
         ChatListener.Dispose();
+        SoundPlayer.Dispose();
         WindowSystem.RemoveAllWindows();
 
         CommandManager.RemoveHandler(PrimaryCommand);
