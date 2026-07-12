@@ -93,15 +93,18 @@ internal sealed class FormattingTab : IToggleableTab
 
     private void DrawSegmentColors()
     {
-        using var table = ImRaii.Table("##segmentColors", 5, ImGuiTableFlags.SizingFixedFit);
+        using var table = ImRaii.Table("##segmentColors", 6,
+            ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.RowBg);
         if (!table)
             return;
 
+        ImGui.TableSetupColumn(Loc.Get("Groups_Friend_Column_Active"), ImGuiTableColumnFlags.WidthFixed);
         ImGui.TableSetupColumn(Loc.Get("Formatting_Column_Type"), ImGuiTableColumnFlags.WidthFixed, 90f * ImGuiHelpers.GlobalScale);
         ImGui.TableSetupColumn("##segment-actions", ImGuiTableColumnFlags.WidthFixed);
         ImGui.TableSetupColumn(Loc.Get("Formatting_Column_Color"));
-        ImGui.TableSetupColumn(Loc.Get("Formatting_Column_Glow"));
+        ImGui.TableSetupColumn(Loc.Get("Formatting_Column_TextGlow"));
         ImGui.TableSetupColumn(Loc.Get("Formatting_Column_Delimiters"), ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableHeadersRow();
 
         // Punctuation examples, not translated — they're syntax, not words. Say and Emote can
         // import the color the game itself uses for their channel (pattern from Chat 2's Chat
@@ -125,8 +128,12 @@ internal sealed class FormattingTab : IToggleableTab
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
         var enabled = style.Enabled;
-        if (ImGui.Checkbox(label, ref enabled))
+        if (SettingsUi.ToggleSwitch("##enabled", ref enabled))
             style.Enabled = enabled;
+
+        ImGui.TableNextColumn();
+        ImGui.AlignTextToFramePadding();
+        ImGui.TextUnformatted(label);
 
         using var disabled = ImRaii.Disabled(!style.Enabled);
 
@@ -164,7 +171,27 @@ internal sealed class FormattingTab : IToggleableTab
             style.Glow = glowColor;
 
         ImGui.TableNextColumn();
-        ImGui.TextDisabled(delimiters);
+        DrawDelimiterSample(style, delimiters);
+    }
+
+    /// <summary>
+    /// The delimiter examples double as a live preview of the foreground color only. Glow is
+    /// deliberately NOT previewed: ImGui has no text outlining, and drawlist shadow passes
+    /// (both 4- and 8-direction 1px outlines were tried) turn thin glyphs like quotation
+    /// marks into unreadable blobs at UI font size — the glow swatch next to the sample
+    /// already shows that color. Falls back to the disabled gray while the foreground is the
+    /// "no recolor" sentinel; TextColored routes through the style alpha, so ImRaii.Disabled
+    /// dims the sample like every other widget in the row.
+    /// </summary>
+    private static void DrawDelimiterSample(SegmentStyle style, string delimiters)
+    {
+        if (style.Foreground == 0)
+        {
+            ImGui.TextDisabled(delimiters);
+            return;
+        }
+
+        ImGui.TextColored(RgbaColor.ToVector4(style.Foreground), delimiters);
     }
 
     /// <summary>
@@ -184,10 +211,5 @@ internal sealed class FormattingTab : IToggleableTab
 
         if (ImGui.CollapsingHeader(Loc.Get("Formatting_Channels_CrossworldLinkshells")))
             SettingsUi.ChannelGrid("##channels-cwls", CrossworldLinkshellChannels, config.HighlightChannels);
-
-        ImGuiHelpers.ScaledDummy(2f);
-        if (SettingsUi.DangerButton(FontAwesomeIcon.Undo, Loc.Get("Formatting_Channels_ResetDefaults"),
-                Loc.Get("Formatting_Channels_ResetDefaults_Tooltip")))
-            config.HighlightChannels = [.. FormattingConfig.DefaultHighlightChannels];
     }
 }

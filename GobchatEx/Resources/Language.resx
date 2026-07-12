@@ -90,11 +90,11 @@
 
     <data name="Formatting_TabName"><value>Formatting</value></data>
     <data name="Formatting_ColorSelection_Header"><value>Color selection for text types</value></data>
-    <data name="Formatting_ColorSelection_Tooltip"><value>Each enabled type recolors matching chat text: Color is the text color, Glow its outline. Right-click a swatch to clear it.</value></data>
+    <data name="Formatting_ColorSelection_Tooltip"><value>Each enabled type recolors matching chat text: Text color tints the letters, Text glow their outline. Right-click a swatch to clear it.</value></data>
     <data name="Formatting_Column_Type"><value>Type</value></data>
-    <data name="Formatting_Column_Color"><value>Color</value></data>
-    <data name="Formatting_Column_Glow"><value>Glow</value></data>
-    <data name="Formatting_Column_Delimiters"><value>Delimiters</value></data>
+    <data name="Formatting_Column_Color"><value>Text color</value></data>
+    <data name="Formatting_Column_TextGlow"><value>Text glow</value></data>
+    <data name="Formatting_Column_Delimiters"><value>Examples (without glow)</value></data>
     <data name="Formatting_Segment_Say"><value>Say</value></data>
     <data name="Formatting_Segment_Emote"><value>Emote</value></data>
     <data name="Formatting_Segment_Ooc"><value>OOC</value></data>
@@ -103,8 +103,6 @@
     <data name="Formatting_Channels_Header"><value>Channels with RP formatting</value></data>
     <data name="Formatting_Channels_Linkshells"><value>Linkshells</value></data>
     <data name="Formatting_Channels_CrossworldLinkshells"><value>Cross-world Linkshells</value></data>
-    <data name="Formatting_Channels_ResetDefaults"><value>Reset to RP defaults</value></data>
-    <data name="Formatting_Channels_ResetDefaults_Tooltip"><value>Hold Ctrl+Shift and click to reset to the default channels.</value></data>
     <data name="Formatting_Channel_Say"><value>Say</value></data>
     <data name="Formatting_Channel_Emote"><value>Emote</value></data>
     <data name="Formatting_Channel_StandardEmote"><value>Standard Emote</value></data>
@@ -187,6 +185,9 @@
     <data name="Groups_Custom_Active"><value>Active</value></data>
     <data name="Groups_Custom_Remove"><value>Remove</value></data>
     <data name="Groups_Custom_Remove_Tooltip"><value>Hold Ctrl+Shift and click to remove this group.</value></data>
+    <data name="Groups_Custom_Rename"><value>Rename</value></data>
+    <data name="Groups_Custom_Rename_Tooltip"><value>Rename this group.</value></data>
+    <data name="Groups_Custom_DuplicateName_Error"><value>A group with this name already exists.</value></data>
     <data name="Groups_Custom_Player_Remove_Tooltip"><value>Hold Ctrl+Shift and click to remove this player.</value></data>
     <data name="Groups_Custom_Players"><value>Players</value></data>
     <data name="Groups_Custom_NameHint"><value>new group name…</value></data>
@@ -206,7 +207,9 @@
     <data name="Groups_FriendGroup_Heart"><value>Heart</value></data>
     <data name="Groups_FriendGroup_Spade"><value>Spade</value></data>
     <data name="Groups_FriendGroup_Club"><value>Club</value></data>
-    <data name="Groups_Column_ChatTwoBackground"><value>Chat 2 background</value></data>
+    <data name="Groups_Column_NameColor"><value>Name color</value></data>
+    <data name="Groups_Column_NameGlow"><value>Name glow</value></data>
+    <data name="Groups_Column_ChatTwoBackground"><value>Row background (Chat 2)</value></data>
     <data name="Groups_ChatTwoBackground_Tooltip"><value>Message background color in Chat 2. Right-click to clear.</value></data>
     <data name="Groups_ContextMenu_SubmenuName"><value>Groups</value></data>
     <data name="Groups_ContextMenu_AddTo"><value>Add to {0}</value></data>
@@ -248,8 +251,6 @@
     <data name="ChatLog_CharacterFolders_Tooltip"><value>Each character's log files go into their own subfolder, named after the character.</value></data>
     <data name="ChatLog_Channels_Header"><value>Logged channels</value></data>
     <data name="ChatLog_Channels_Tooltip"><value>Only messages from the selected channels are written to the log file.</value></data>
-    <data name="ChatLog_Channels_ResetDefaults"><value>Reset to default channels</value></data>
-    <data name="ChatLog_Channels_ResetDefaults_Tooltip"><value>Hold Ctrl+Shift and click to reset to the default channels.</value></data>
 
     <data name="Formatting_Reset_Tooltip"><value>Hold Ctrl+Shift and click to reset to the default color.</value></data>
     <data name="Formatting_ImportGame_Tooltip"><value>Import the game's own color for this channel (Character Configuration → Log Text Color), mapped to the closest UIColor row.</value></data>

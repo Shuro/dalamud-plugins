@@ -90,11 +90,11 @@
 
     <data name="Formatting_TabName"><value>Formatierung</value></data>
     <data name="Formatting_ColorSelection_Header"><value>Farbwahl für Textarten</value></data>
-    <data name="Formatting_ColorSelection_Tooltip"><value>Jede aktivierte Art färbt passenden Chattext ein: Farbe ist die Textfarbe, Glanz deren Umrandung. Rechtsklick auf ein Farbfeld setzt es zurück.</value></data>
+    <data name="Formatting_ColorSelection_Tooltip"><value>Jede aktivierte Art färbt passenden Chattext ein: Textfarbe färbt die Buchstaben, Textglanz deren Umrandung. Rechtsklick auf ein Farbfeld setzt es zurück.</value></data>
     <data name="Formatting_Column_Type"><value>Art</value></data>
-    <data name="Formatting_Column_Color"><value>Farbe</value></data>
-    <data name="Formatting_Column_Glow"><value>Glanz</value></data>
-    <data name="Formatting_Column_Delimiters"><value>Trennzeichen</value></data>
+    <data name="Formatting_Column_Color"><value>Textfarbe</value></data>
+    <data name="Formatting_Column_TextGlow"><value>Textglanz</value></data>
+    <data name="Formatting_Column_Delimiters"><value>Beispiele (ohne Glanz)</value></data>
     <data name="Formatting_Segment_Say"><value>Sagen</value></data>
     <data name="Formatting_Segment_Emote"><value>Emote</value></data>
     <data name="Formatting_Segment_Ooc"><value>OOC</value></data>
@@ -103,8 +103,6 @@
     <data name="Formatting_Channels_Header"><value>Kanäle mit RP-Formatierung</value></data>
     <data name="Formatting_Channels_Linkshells"><value>Linkshells</value></data>
     <data name="Formatting_Channels_CrossworldLinkshells"><value>Serverübergreifende Linkshells</value></data>
-    <data name="Formatting_Channels_ResetDefaults"><value>Auf RP-Standard zurücksetzen</value></data>
-    <data name="Formatting_Channels_ResetDefaults_Tooltip"><value>Strg+Umschalt gedrückt halten und klicken, um auf die Standardkanäle zurückzusetzen.</value></data>
     <data name="Formatting_Channel_Say"><value>Sagen</value></data>
     <data name="Formatting_Channel_Emote"><value>Emote</value></data>
     <data name="Formatting_Channel_StandardEmote"><value>Standard-Emote</value></data>
@@ -187,6 +185,9 @@
     <data name="Groups_Custom_Active"><value>Aktiv</value></data>
     <data name="Groups_Custom_Remove"><value>Entfernen</value></data>
     <data name="Groups_Custom_Remove_Tooltip"><value>Strg+Umschalt gedrückt halten und klicken, um diese Gruppe zu entfernen.</value></data>
+    <data name="Groups_Custom_Rename"><value>Umbenennen</value></data>
+    <data name="Groups_Custom_Rename_Tooltip"><value>Diese Gruppe umbenennen.</value></data>
+    <data name="Groups_Custom_DuplicateName_Error"><value>Eine Gruppe mit diesem Namen existiert bereits.</value></data>
     <data name="Groups_Custom_Player_Remove_Tooltip"><value>Strg+Umschalt gedrückt halten und klicken, um diesen Spieler zu entfernen.</value></data>
     <data name="Groups_Custom_Players"><value>Spieler</value></data>
     <data name="Groups_Custom_NameHint"><value>Name der neuen Gruppe…</value></data>
@@ -206,7 +207,9 @@
     <data name="Groups_FriendGroup_Heart"><value>Herz</value></data>
     <data name="Groups_FriendGroup_Spade"><value>Pik</value></data>
     <data name="Groups_FriendGroup_Club"><value>Kreuz</value></data>
-    <data name="Groups_Column_ChatTwoBackground"><value>Chat-2-Hintergrund</value></data>
+    <data name="Groups_Column_NameColor"><value>Namensfarbe</value></data>
+    <data name="Groups_Column_NameGlow"><value>Namensglanz</value></data>
+    <data name="Groups_Column_ChatTwoBackground"><value>Zeilenhintergrund (Chat 2)</value></data>
     <data name="Groups_ChatTwoBackground_Tooltip"><value>Hintergrundfarbe der Nachricht in Chat 2. Rechtsklick zum Zurücksetzen.</value></data>
     <data name="Groups_ContextMenu_SubmenuName"><value>Gruppen</value></data>
     <data name="Groups_ContextMenu_AddTo"><value>Zu {0} hinzufügen</value></data>
@@ -248,8 +251,6 @@
     <data name="ChatLog_CharacterFolders_Tooltip"><value>Die Protokolldateien jedes Charakters landen in einem eigenen, nach dem Charakter benannten Unterordner.</value></data>
     <data name="ChatLog_Channels_Header"><value>Protokollierte Kanäle</value></data>
     <data name="ChatLog_Channels_Tooltip"><value>Nur Nachrichten aus den ausgewählten Kanälen werden in die Protokolldatei geschrieben.</value></data>
-    <data name="ChatLog_Channels_ResetDefaults"><value>Auf Standardkanäle zurücksetzen</value></data>
-    <data name="ChatLog_Channels_ResetDefaults_Tooltip"><value>Strg+Umschalt gedrückt halten und klicken, um auf die Standardkanäle zurückzusetzen.</value></data>
 
     <data name="Formatting_Reset_Tooltip"><value>Strg+Umschalt gedrückt halten und klicken, um auf die Standardfarbe zurückzusetzen.</value></data>
     <data name="Formatting_ImportGame_Tooltip"><value>Übernimmt die Farbe, die das Spiel selbst für diesen Kanal nutzt (Charakterkonfiguration → Log-Textfarbe), abgebildet auf die nächstgelegene UIColor-Zeile.</value></data>

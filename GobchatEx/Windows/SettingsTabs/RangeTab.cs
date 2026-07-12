@@ -88,16 +88,20 @@ internal sealed class RangeTab : IToggleableTab
 
     private void DrawDistanceSliders()
     {
+        // Fill the row at the minimum window size, but cap the stretch — a monitor-wide
+        // slider for a 0-100 yalm range adds no precision (Ctrl+click types exact values).
+        var sliderWidth = MathF.Min(ImGui.GetContentRegionAvail().X, 480f * ImGuiHelpers.GlobalScale);
+
         ImGui.TextUnformatted(Loc.Get("Range_FadeOut_Name"));
         ImGuiComponents.HelpMarker(Loc.Get("Range_FadeOut_Tooltip"));
-        ImGui.SetNextItemWidth(320f * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(sliderWidth);
         var fadeOut = config.RangeFilterFadeOut;
         if (ImGui.SliderFloat("##range-fadeout", ref fadeOut, 0f, MaxDistanceYalms, "%.0f"))
             config.RangeFilterFadeOut = Math.Min(fadeOut, config.RangeFilterCutOff);
 
         ImGui.TextUnformatted(Loc.Get("Range_CutOff_Name"));
         ImGuiComponents.HelpMarker(Loc.Get("Range_CutOff_Tooltip"));
-        ImGui.SetNextItemWidth(320f * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(sliderWidth);
         var cutOff = config.RangeFilterCutOff;
         if (ImGui.SliderFloat("##range-cutoff", ref cutOff, 0f, MaxCutOffSliderYalms, "%.0f"))
         {

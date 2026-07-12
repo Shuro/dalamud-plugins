@@ -5,6 +5,7 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using GobchatEx.Chat;
 using GobchatEx.Config;
 using GobchatEx.Localization;
@@ -79,7 +80,10 @@ internal sealed class ChatLogTab : ISettingsTab
     private void DrawFolder()
     {
         var path = config.LogFolder;
-        ImGui.SetNextItemWidth(280f * ImGuiHelpers.GlobalScale);
+        var reserved = SettingsUi.IconButtonWidth(FontAwesomeIcon.FolderOpen)
+            + SettingsUi.IconButtonWidth(FontAwesomeIcon.Undo)
+            + ImGui.GetStyle().ItemSpacing.X * 2f;
+        ImGui.SetNextItemWidth(-reserved);
         if (ImGui.InputTextWithHint("##logFolder", Loc.Get("ChatLog_Folder_Hint"), ref path, 260))
             config.LogFolder = path;
 
@@ -103,7 +107,9 @@ internal sealed class ChatLogTab : ISettingsTab
         SettingsUi.Tooltip(Loc.Get("ChatLog_Folder_Reset_Tooltip"));
 
         // The applied folder, refreshed by the commit tick — shows where files actually land.
-        ImGui.TextDisabled(string.Format(Loc.Get("ChatLog_Folder_Resolved"), logger.ResolvedLogFolder));
+        // Wrapped instead of clipped: users read the full path off this line.
+        using (ImRaii.PushColor(ImGuiCol.Text, ImGui.GetColorU32(ImGuiCol.TextDisabled)))
+            ImGui.TextWrapped(string.Format(Loc.Get("ChatLog_Folder_Resolved"), logger.ResolvedLogFolder));
         if (logger.LogFolderInvalid)
             SettingsUi.Warning(Loc.Get("ChatLog_Folder_InvalidPath"));
 
@@ -123,10 +129,5 @@ internal sealed class ChatLogTab : ISettingsTab
 
         if (ImGui.CollapsingHeader(Loc.Get("Formatting_Channels_CrossworldLinkshells")))
             SettingsUi.ChannelGrid("##chatlog-cwls", FormattingTab.CrossworldLinkshellChannels, config.LogChannels);
-
-        ImGuiHelpers.ScaledDummy(2f);
-        if (SettingsUi.DangerButton(FontAwesomeIcon.Undo, Loc.Get("ChatLog_Channels_ResetDefaults"),
-                Loc.Get("ChatLog_Channels_ResetDefaults_Tooltip")))
-            config.LogChannels = [.. ChatLogConfig.DefaultLogChannels];
     }
 }

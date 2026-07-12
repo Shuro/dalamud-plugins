@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -53,6 +54,18 @@ internal static class SettingsUi
 
     /// <summary>Matches <see cref="ToggleSwitch"/>'s width for layout math.</summary>
     public static float ToggleWidth() => ImGui.GetFrameHeight() * 1.55f;
+
+    /// <summary>
+    /// The rendered width of an <see cref="ImGuiComponents.IconButton(FontAwesomeIcon)"/> for
+    /// this icon — glyph plus frame padding. Icon glyphs vary in width (FolderOpen is wider
+    /// than frame height), so stretch-to-fill inputs measure the real buttons they share a
+    /// row with instead of assuming square ones.
+    /// </summary>
+    public static float IconButtonWidth(FontAwesomeIcon icon)
+    {
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+            return ImGui.CalcTextSize(icon.ToIconString()).X + ImGui.GetStyle().FramePadding.X * 2f;
+    }
 
     /// <summary>
     /// A toggle switch with a green (on) / red (off) track. Same geometry as
@@ -243,4 +256,39 @@ internal static class SettingsUi
     public static void ChannelGrid(
         string id, (string LabelKey, XivChatType Type)[] choices, List<XivChatType> channels)
         => ChannelGrid(id, [.. choices.Select(c => (c.LabelKey, c.Type, (string?)null))], channels);
+
+    /// <summary>
+    /// A removable-entry list flowing two entries per row (trash button + label, twice),
+    /// so long lists take half the height of a single column. Entries fill row-major via
+    /// the table's TableNextColumn wrap; an odd count leaves the last two cells empty.
+    /// Returns the index whose trash button was clicked this frame, or -1 — the caller
+    /// removes after the loop so the collection isn't mutated mid-draw.
+    /// </summary>
+    public static int RemovableListColumns(string id, int count, Func<int, string> label,
+        string removeTooltip, ImGuiTableFlags extraFlags = ImGuiTableFlags.None)
+    {
+        var removed = -1;
+        using var table = ImRaii.Table(id, 4, ImGuiTableFlags.SizingFixedFit | extraFlags);
+        if (!table)
+            return removed;
+
+        ImGui.TableSetupColumn("##del-a", ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn("##item-a", ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableSetupColumn("##del-b", ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn("##item-b", ImGuiTableColumnFlags.WidthStretch);
+
+        for (var i = 0; i < count; ++i)
+        {
+            using var itemId = ImRaii.PushId(i);
+            ImGui.TableNextColumn();
+            if (DangerButton(FontAwesomeIcon.Trash, removeTooltip))
+                removed = i;
+
+            ImGui.TableNextColumn();
+            ImGui.AlignTextToFramePadding();
+            ImGui.TextUnformatted(label(i));
+        }
+
+        return removed;
+    }
 }

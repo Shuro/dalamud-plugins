@@ -35,6 +35,10 @@ internal sealed class GroupsTab : IToggleableTab
     private readonly ChatTwoStyleProvider chatTwoStyles;
     private string newGroupName = string.Empty;
 
+    // Scratch text for the rename popup; shared across groups is fine — only
+    // one popup can be open, and it's re-seeded from the group on open.
+    private string renameBuffer = string.Empty;
+
     public GroupsTab(GroupsConfig config, ChatTwoStyleProvider chatTwoStyles)
     {
         this.config = config;
@@ -72,7 +76,9 @@ internal sealed class GroupsTab : IToggleableTab
             var headerLabel = group.Active
                 ? group.Name
                 : string.Format(Loc.Get("Groups_Custom_Inactive"), group.Name);
-            if (!ImGui.CollapsingHeader(headerLabel))
+            // ### keeps the header's ID stable (unique via the PushId above) so renames and
+            // Active toggles — both reformat the label — don't collapse an open header.
+            if (!ImGui.CollapsingHeader($"{headerLabel}###group-header"))
                 continue;
 
             using var indent = ImRaii.PushIndent();
@@ -82,17 +88,7 @@ internal sealed class GroupsTab : IToggleableTab
                 group.Active = active;
 
             ImGui.SameLine();
-            var foreground = group.Foreground;
-            if (SettingsUi.RgbaColorEdit("##fg", ref foreground, allowAlpha: false))
-                group.Foreground = foreground;
-
-            ImGui.SameLine();
-            var glow = group.Glow;
-            if (SettingsUi.RgbaColorEdit("##glow", ref glow, allowAlpha: false))
-                group.Glow = glow;
-
-            ImGui.SameLine();
-            DrawChatTwoBackgroundEdit(group);
+            DrawRenameControl(group);
 
             ImGui.SameLine();
             var removeClicked = SettingsUi.DangerButton(FontAwesomeIcon.Trash,
@@ -103,6 +99,9 @@ internal sealed class GroupsTab : IToggleableTab
                 toDelete = i;
                 continue;
             }
+
+            ImGuiHelpers.ScaledDummy(4f);
+            DrawGroupColors(group);
 
             ImGuiHelpers.ScaledDummy(4f);
             ImGui.TextUnformatted(Loc.Get("Groups_Custom_Players"));
@@ -143,6 +142,85 @@ internal sealed class GroupsTab : IToggleableTab
 
     private static bool IsPureNumericName(string name) => name.Length > 0 && int.TryParse(name, out _);
 
+    /// <summary>
+    /// Pencil button opening a rename popup. Renaming is safe: everything downstream
+    /// (group rules, Chat 2 styling) is keyed by the group's Id, and the /gobchat group
+    /// command resolves names live per invocation — only saved user macros using the old
+    /// name stop matching. Validation mirrors <see cref="TryAddGroup"/>, except the
+    /// duplicate check skips the group itself so case-only renames pass.
+    /// </summary>
+    private void DrawRenameControl(PlayerGroup group)
+    {
+        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Pen, Loc.Get("Groups_Custom_Rename")))
+        {
+            renameBuffer = group.Name;
+            ImGui.OpenPopup("##rename-popup");
+        }
+
+        SettingsUi.Tooltip(Loc.Get("Groups_Custom_Rename_Tooltip"));
+
+        using var popup = ImRaii.Popup("##rename-popup");
+        if (!popup)
+            return;
+
+        if (ImGui.IsWindowAppearing())
+            ImGui.SetKeyboardFocusHere();
+        ImGui.SetNextItemWidth(220f * ImGuiHelpers.GlobalScale);
+        var submitted = ImGui.InputTextWithHint("##rename", Loc.Get("Groups_Custom_NameHint"),
+            ref renameBuffer, 64, ImGuiInputTextFlags.EnterReturnsTrue);
+
+        var trimmed = renameBuffer.Trim();
+        var numeric = IsPureNumericName(trimmed);
+        var duplicate = config.Groups.Any(g => !ReferenceEquals(g, group)
+            && g.Name.Equals(trimmed, StringComparison.OrdinalIgnoreCase));
+        var valid = trimmed.Length > 0 && !numeric && !duplicate;
+
+        if (numeric)
+            ImGui.TextColored(ImGuiColors.DalamudRed, Loc.Get("Groups_Custom_NumericName_Error"));
+        else if (duplicate)
+            ImGui.TextColored(ImGuiColors.DalamudRed, Loc.Get("Groups_Custom_DuplicateName_Error"));
+
+        bool clicked;
+        using (ImRaii.Disabled(!valid))
+            clicked = ImGui.Button(Loc.Get("Groups_Custom_Rename"));
+
+        if ((clicked || submitted) && valid)
+        {
+            group.Name = trimmed;
+            ImGui.CloseCurrentPopup();
+        }
+    }
+
+    /// <summary>
+    /// The group's three color swatches under the same column titles the Friend Groups
+    /// table uses, so it's clear which swatch drives what.
+    /// </summary>
+    private void DrawGroupColors(PlayerGroup group)
+    {
+        using var table = ImRaii.Table("##group-colors", 3, ImGuiTableFlags.SizingFixedFit);
+        if (!table)
+            return;
+
+        ImGui.TableSetupColumn(Loc.Get("Groups_Column_NameColor"), ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn(Loc.Get("Groups_Column_NameGlow"), ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn(Loc.Get("Groups_Column_ChatTwoBackground"), ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableHeadersRow();
+
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
+        var foreground = group.Foreground;
+        if (SettingsUi.RgbaColorEdit("##fg", ref foreground, allowAlpha: false))
+            group.Foreground = foreground;
+
+        ImGui.TableNextColumn();
+        var glow = group.Glow;
+        if (SettingsUi.RgbaColorEdit("##glow", ref glow, allowAlpha: false))
+            group.Glow = glow;
+
+        ImGui.TableNextColumn();
+        DrawChatTwoBackgroundEdit(group);
+    }
+
     private void DrawPlayers(PlayerGroup group)
     {
         var hasTarget = TryGetTargetedPlayer(out var targetName, out var targetWorld);
@@ -158,19 +236,11 @@ internal sealed class GroupsTab : IToggleableTab
         if (addClicked && hasTarget)
             TryAddPlayer(group, targetName, targetWorld);
 
-        for (var i = 0; i < group.Members.Count; ++i)
-        {
-            using var id = ImRaii.PushId(i);
-            if (SettingsUi.DangerButton(FontAwesomeIcon.Trash, Loc.Get("Groups_Custom_Player_Remove_Tooltip")))
-            {
-                group.Members.RemoveAt(i);
-                break;
-            }
-
-            ImGui.SameLine();
-            var member = group.Members[i];
-            ImGui.TextUnformatted(GroupMembershipActions.FormatPlayer(member.Player, member.World));
-        }
+        var removedMember = SettingsUi.RemovableListColumns("##members", group.Members.Count,
+            i => GroupMembershipActions.FormatPlayer(group.Members[i].Player, group.Members[i].World),
+            Loc.Get("Groups_Custom_Player_Remove_Tooltip"));
+        if (removedMember >= 0)
+            group.Members.RemoveAt(removedMember);
     }
 
     /// <summary>Only a real player character counts — excludes NPCs, monsters, minions, etc.</summary>
@@ -204,15 +274,17 @@ internal sealed class GroupsTab : IToggleableTab
     {
         ImGuiHelpers.ScaledDummy(4f);
 
-        using var table = ImRaii.Table("##friendGroups", 5, ImGuiTableFlags.SizingFixedFit);
+        using var table = ImRaii.Table("##friendGroups", 5,
+            ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.RowBg);
         if (!table)
             return;
 
         ImGui.TableSetupColumn(Loc.Get("Groups_Friend_Column_Active"), ImGuiTableColumnFlags.WidthFixed);
         ImGui.TableSetupColumn(Loc.Get("Groups_Friend_Column_Name"), ImGuiTableColumnFlags.WidthFixed, 110f * ImGuiHelpers.GlobalScale);
-        ImGui.TableSetupColumn(Loc.Get("Formatting_Column_Color"));
-        ImGui.TableSetupColumn(Loc.Get("Formatting_Column_Glow"));
+        ImGui.TableSetupColumn(Loc.Get("Groups_Column_NameColor"));
+        ImGui.TableSetupColumn(Loc.Get("Groups_Column_NameGlow"));
         ImGui.TableSetupColumn(Loc.Get("Groups_Column_ChatTwoBackground"));
+        ImGui.TableHeadersRow();
 
         foreach (var group in config.FriendGroups)
         {
@@ -221,7 +293,7 @@ internal sealed class GroupsTab : IToggleableTab
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
             var active = group.Active;
-            if (ImGui.Checkbox("##active", ref active))
+            if (SettingsUi.ToggleSwitch("##active", ref active))
                 group.Active = active;
 
             ImGui.TableNextColumn();

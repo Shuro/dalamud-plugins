@@ -105,14 +105,52 @@ internal sealed class MentionsTab : IToggleableTab
         else
             DrawGameSoundSettings();
 
-        var cooldownSeconds = config.MentionSoundCooldownMs / 1000;
-        ImGui.SetNextItemWidth(180f * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderInt(Loc.Get("Mentions_Sound_Cooldown"), ref cooldownSeconds, 0, 30, "%d s"))
-            config.MentionSoundCooldownMs = cooldownSeconds * 1000;
+        DrawCooldownVolumeRow(showVolume: config.MentionSoundUseCustomFile);
 
         var suppressSelf = config.SuppressSoundFromSelf;
         if (SettingsUi.Toggle(Loc.Get("Mentions_Sound_SuppressSelf"), ref suppressSelf))
             config.SuppressSoundFromSelf = suppressSelf;
+    }
+
+    /// <summary>
+    /// Cooldown and volume side by side, labels above the sliders (the RangeTab style —
+    /// right-hand slider labels wouldn't fit two-up in German at the minimum window width).
+    /// Laid out as two shared lines (both labels, then both sliders) rather than two groups
+    /// SameLine'd next to each other: items on one line always share height and baseline,
+    /// while a text item following a group inherits the group's frame-padding baseline and
+    /// renders a few pixels low. Cooldown comes first: volume only applies to custom sound
+    /// files (game sound effects have no volume API), so game-sound mode draws the cooldown
+    /// alone in the same spot.
+    /// </summary>
+    private void DrawCooldownVolumeRow(bool showVolume)
+    {
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
+        var sliderWidth = MathF.Min(
+            (ImGui.GetContentRegionAvail().X - spacing) / 2f,
+            320f * ImGuiHelpers.GlobalScale);
+
+        var rowStartX = ImGui.GetCursorPosX();
+        ImGui.TextUnformatted(Loc.Get("Mentions_Sound_Cooldown"));
+        if (showVolume)
+        {
+            ImGui.SameLine();
+            ImGui.SetCursorPosX(rowStartX + sliderWidth + spacing);
+            ImGui.TextUnformatted(Loc.Get("Mentions_Sound_Volume"));
+        }
+
+        ImGui.SetNextItemWidth(sliderWidth);
+        var cooldownSeconds = config.MentionSoundCooldownMs / 1000;
+        if (ImGui.SliderInt("##cooldown", ref cooldownSeconds, 0, 30, "%d s"))
+            config.MentionSoundCooldownMs = cooldownSeconds * 1000;
+
+        if (!showVolume)
+            return;
+
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(sliderWidth);
+        var volumePercent = (int)Math.Round(config.MentionSoundVolume * 100f);
+        if (ImGui.SliderInt("##volume", ref volumePercent, 0, 100, "%d%%"))
+            config.MentionSoundVolume = volumePercent / 100f;
     }
 
     private void DrawGameSoundSettings()
@@ -141,7 +179,10 @@ internal sealed class MentionsTab : IToggleableTab
     private void DrawCustomFileSettings()
     {
         var path = config.MentionSoundFilePath;
-        ImGui.SetNextItemWidth(280f * ImGuiHelpers.GlobalScale);
+        var reserved = SettingsUi.IconButtonWidth(FontAwesomeIcon.FolderOpen)
+            + SettingsUi.IconButtonWidth(FontAwesomeIcon.Play)
+            + ImGui.GetStyle().ItemSpacing.X * 2f;
+        ImGui.SetNextItemWidth(-reserved);
         if (ImGui.InputTextWithHint("##soundFile", Loc.Get("Mentions_Sound_File_Hint"), ref path, 260))
             config.MentionSoundFilePath = path;
 
@@ -161,11 +202,6 @@ internal sealed class MentionsTab : IToggleableTab
         ImGui.SameLine();
         if (ImGuiComponents.IconButton(FontAwesomeIcon.Play))
             previewFailed = !soundPlayer.PlayFile(config.MentionSoundFilePath, config.MentionSoundVolume);
-
-        var volumePercent = (int)Math.Round(config.MentionSoundVolume * 100f);
-        ImGui.SetNextItemWidth(180f * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderInt(Loc.Get("Mentions_Sound_Volume"), ref volumePercent, 0, 100, "%d%%"))
-            config.MentionSoundVolume = volumePercent / 100f;
 
         if (config.MentionSoundFilePath.Length == 0)
             return;
@@ -206,30 +242,11 @@ internal sealed class MentionsTab : IToggleableTab
             return;
         }
 
-        using var table = ImRaii.Table("##triggers", 2,
-            ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersOuter | ImGuiTableFlags.SizingFixedFit);
-        if (!table)
-            return;
-
-        ImGui.TableSetupColumn("##delete", ImGuiTableColumnFlags.WidthFixed);
-        ImGui.TableSetupColumn("##word", ImGuiTableColumnFlags.WidthStretch);
-
-        for (var i = 0; i < config.MentionTriggers.Count; ++i)
-        {
-            using var id = ImRaii.PushId(i);
-
-            ImGui.TableNextRow();
-            ImGui.TableNextColumn();
-            if (SettingsUi.DangerButton(FontAwesomeIcon.Trash, Loc.Get("Mentions_Trigger_Remove_Tooltip")))
-            {
-                config.MentionTriggers.RemoveAt(i);
-                return; // list changed; redraw next frame
-            }
-
-            ImGui.TableNextColumn();
-            ImGui.AlignTextToFramePadding();
-            ImGui.TextUnformatted(config.MentionTriggers[i]);
-        }
+        var removed = SettingsUi.RemovableListColumns("##triggers", config.MentionTriggers.Count,
+            i => config.MentionTriggers[i], Loc.Get("Mentions_Trigger_Remove_Tooltip"),
+            ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersOuter);
+        if (removed >= 0)
+            config.MentionTriggers.RemoveAt(removed);
     }
 
     /// <summary>Trims, rejects empty input and case-insensitive duplicates, then appends. True when added.</summary>
@@ -271,7 +288,9 @@ internal sealed class MentionsTab : IToggleableTab
             var headerLabel = character.Active
                 ? character.Name
                 : string.Format(Loc.Get("Mentions_Character_Inactive"), character.Name);
-            if (!ImGui.CollapsingHeader(headerLabel))
+            // ### keeps the header's ID stable (unique via the PushId above) so toggling
+            // Active — which reformats the label — doesn't collapse an open header.
+            if (!ImGui.CollapsingHeader($"{headerLabel}###character-header"))
                 continue;
 
             using var indent = ImRaii.PushIndent();

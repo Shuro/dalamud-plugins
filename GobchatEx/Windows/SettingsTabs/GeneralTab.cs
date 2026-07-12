@@ -62,35 +62,53 @@ internal sealed class GeneralTab : ISettingsTab
     /// Sub-options controlling when the Quickbar hides, indented under the
     /// "Show Quickbar" toggle and only visible while it's on. Names and
     /// semantics mirror Chat 2's display options; defaults are all-on.
+    /// Flows two columns when the widest label fits twice (English does at
+    /// the minimum window width, German falls back to one column) — measured
+    /// per frame like the nav rail, so language switches just work.
     /// </summary>
     private void DrawQuickbarHideOptions()
     {
         using var indent = ImRaii.PushIndent();
 
-        var cutscenes = config.QuickbarHideDuringCutscenes;
-        if (SettingsUi.Toggle(Loc.Get("Quickbar_HideDuringCutscenes_Name"), ref cutscenes))
-            config.QuickbarHideDuringCutscenes = cutscenes;
-        ImGuiComponents.HelpMarker(Loc.Get("Quickbar_HideDuringCutscenes_Tooltip"));
+        (string NameKey, string TooltipKey, bool Value, Action<bool> Set)[] options =
+        [
+            ("Quickbar_HideDuringCutscenes_Name", "Quickbar_HideDuringCutscenes_Tooltip",
+                config.QuickbarHideDuringCutscenes, v => config.QuickbarHideDuringCutscenes = v),
+            ("Quickbar_HideWhenNotLoggedIn_Name", "Quickbar_HideWhenNotLoggedIn_Tooltip",
+                config.QuickbarHideWhenNotLoggedIn, v => config.QuickbarHideWhenNotLoggedIn = v),
+            ("Quickbar_HideWhenUiHidden_Name", "Quickbar_HideWhenUiHidden_Tooltip",
+                config.QuickbarHideWhenUiHidden, v => config.QuickbarHideWhenUiHidden = v),
+            ("Quickbar_HideInLoadingScreens_Name", "Quickbar_HideInLoadingScreens_Tooltip",
+                config.QuickbarHideInLoadingScreens, v => config.QuickbarHideInLoadingScreens = v),
+            ("Quickbar_HideInBattle_Name", "Quickbar_HideInBattle_Tooltip",
+                config.QuickbarHideInBattle, v => config.QuickbarHideInBattle = v),
+        ];
 
-        var notLoggedIn = config.QuickbarHideWhenNotLoggedIn;
-        if (SettingsUi.Toggle(Loc.Get("Quickbar_HideWhenNotLoggedIn_Name"), ref notLoggedIn))
-            config.QuickbarHideWhenNotLoggedIn = notLoggedIn;
-        ImGuiComponents.HelpMarker(Loc.Get("Quickbar_HideWhenNotLoggedIn_Tooltip"));
+        var style = ImGui.GetStyle();
+        var widestLabel = 0f;
+        foreach (var option in options)
+            widestLabel = MathF.Max(widestLabel, ImGui.CalcTextSize(Loc.Get(option.NameKey)).X);
 
-        var uiHidden = config.QuickbarHideWhenUiHidden;
-        if (SettingsUi.Toggle(Loc.Get("Quickbar_HideWhenUiHidden_Name"), ref uiHidden))
-            config.QuickbarHideWhenUiHidden = uiHidden;
-        ImGuiComponents.HelpMarker(Loc.Get("Quickbar_HideWhenUiHidden_Tooltip"));
+        float helpWidth;
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+            helpWidth = ImGui.CalcTextSize(FontAwesomeIcon.InfoCircle.ToIconString()).X;
 
-        var loading = config.QuickbarHideInLoadingScreens;
-        if (SettingsUi.Toggle(Loc.Get("Quickbar_HideInLoadingScreens_Name"), ref loading))
-            config.QuickbarHideInLoadingScreens = loading;
-        ImGuiComponents.HelpMarker(Loc.Get("Quickbar_HideInLoadingScreens_Tooltip"));
+        var itemWidth = SettingsUi.ToggleWidth() + style.ItemSpacing.X + widestLabel
+            + style.ItemSpacing.X + helpWidth;
+        var columns = ImGui.GetContentRegionAvail().X >= itemWidth * 2f + style.CellPadding.X * 4f ? 2 : 1;
 
-        var battle = config.QuickbarHideInBattle;
-        if (SettingsUi.Toggle(Loc.Get("Quickbar_HideInBattle_Name"), ref battle))
-            config.QuickbarHideInBattle = battle;
-        ImGuiComponents.HelpMarker(Loc.Get("Quickbar_HideInBattle_Tooltip"));
+        using var table = ImRaii.Table("##quickbar-hide", columns);
+        if (!table)
+            return;
+
+        foreach (var (nameKey, tooltipKey, value, set) in options)
+        {
+            ImGui.TableNextColumn();
+            var current = value;
+            if (SettingsUi.Toggle(Loc.Get(nameKey), ref current))
+                set(current);
+            ImGuiComponents.HelpMarker(Loc.Get(tooltipKey));
+        }
     }
 
     /// <summary>
