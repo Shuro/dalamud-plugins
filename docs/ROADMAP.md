@@ -75,8 +75,8 @@ Sort players into colored groups so friends and RP partners stand out:
 - New Groups settings tab: group list, per-group color, player list editor
 - Right-click a player in chat to add/remove them from a group
   (Dalamud `IContextMenu`)
-- Commands: `/gobchat group <name> add|remove|clear <player> [world]`,
-  `/gobchat group list` (port of the app's `/e gc group …`)
+- Commands: `/gex group <name> add|remove|clear <player> [world]`,
+  `/gex group list` (port of the app's `/e gc group …`)
 
 Complexity: medium-high (context-menu integration; sender payload surgery
 around party/alliance prefixes).

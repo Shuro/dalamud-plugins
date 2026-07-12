@@ -20,7 +20,8 @@ in configured channels are recolored per segment —
   opt-in partial (substring) matching, Miqo'te apostrophe segments, and
   typo-tolerant fuzzy matching with three strictness levels. Decorative
   "fancy font" text is unicode-folded before matching. Optionally plays a
-  game sound effect (`<se.1>`–`<se.16>`) with a per-sound cooldown.
+  game sound effect (`<se.1>`–`<se.16>`) or a custom sound file (wav, mp3,
+  ogg vorbis/opus — with its own volume slider) with a per-sound cooldown.
 
 On `/say` and `/em`, text outside any delimiter counts as said or emoted
 too — an unquoted `/say` line still renders in the Say color (while that
@@ -38,22 +39,51 @@ standalone app are sequenced in [ROADMAP.md](ROADMAP.md).
 **Player groups** recolor chat sender names per group: custom groups you
 fill via right-click → Groups on any player name (also inside
 [Chat 2](https://github.com/Infiziert90/ChatTwo)'s own context menu), the
-`/gobchat group` command, or the settings tab — plus the game's seven
+`/gex group` command, or the settings tab — plus the game's seven
 friend-list display groups (Star–Club). Custom groups take precedence over
 friend groups. The settings window itself is localized (English, German)
 and follows Dalamud's language unless overridden.
 
+**Range filter** fades chat from distant players: messages in configured
+channels (default Say and both Emotes) darken in steps with distance and
+render at the darkest step beyond the cut-off; mentions can bypass it so a
+far-away ping still reads normally.
+
+**Chat logging** writes chat to per-session `.log` files on demand — start
+and stop from the Logs tab or the Quickbar; it never starts by itself and
+always stops at logout. One file per login/character switch, configurable
+folder (per-character subfolders optional) and channel selection.
+
+**Quickbar** — a compact hotbar-like overlay with the chat-log start/stop
+button and one-click toggles for the four features, with configurable hide
+conditions (combat, cutscenes, loading screens, …) and an optional attach
+mode that glues it to the top edge of the chat window (Chat 2's window when
+present, otherwise the game's chat log).
+
 ## Commands
 
-- `/gobchat` — Toggles the settings window (also reachable via
-  `/xlplugins` → GobchatEx Roleplay Suite → ⚙, or the gear in the title bar).
-- `/gobchatex`, `/gex` — Aliases for `/gobchat`.
-- `/gobchat group list` — Prints your custom groups with their indices.
-- `/gobchat group <n|name> <add|remove> Player Name [World]` — Adds or
+- `/gex` — Toggles the settings window (also reachable via
+  `/xlplugins` → GobchatEx Roleplay Suite → ⚙, or the gear in the title
+  bar). `/gobchatex` and `/gobchat` are aliases for `/gex`.
+- `/gex help` — Prints the command list to chat.
+- `/gex config open` — Opens (and focuses) the settings window.
+- `/gex group list` — Prints your custom groups with their indices.
+- `/gex group <n|name> <add|remove> Player Name [World]` — Adds or
   removes a player from the custom group with 1-based index `n` or the
   given name; the bracketed world is optional (a bare entry matches the
   name on any world). `... clear` empties the group; `g` is a shorthand
   for `group`.
+- `/gex player count` / `/gex player list` — How many players are nearby /
+  the nearby players with their distances. `p` is a shorthand for `player`.
+- `/gex player distance Player Name [World]` — Your distance to one named
+  nearby player.
+- `<t>` in any of these resolves to your current target's name, even in
+  macros (e.g. `/gex group 1 add <t>`).
+- Anything unrecognized — including the old standalone app's retired
+  commands — reports `Unknown command` instead of silently doing nothing.
+- **Legacy macros:** with "legacy `/e gc` fallback" enabled under General
+  (default on), the pre-Dalamud app's `/e gc <command>` echo form still
+  works and routes to the same handlers.
 
 ## Installing
 
@@ -127,9 +157,9 @@ highlighted-channels list first, and add a mention trigger word. Then:
    Party).
 7. Right-click the same player → Groups → untick the group — their next
    line renders in the normal sender color again. Re-add them by command:
-   `/gobchat group list` prints the group indices, then
-   `/gobchat group <n> add Player Name World` recolors them and
-   `/gobchat group <n> remove Player Name World` clears it.
+   `/gex group list` prints the group indices, then
+   `/gex group <n> add Player Name World` recolors them and
+   `/gex group <n> remove Player Name World` clears it.
 8. Put a friend (or an alt on your friend list) into one of the seven
    friend-list display groups (Star–Club) in the game's social window and
    give that friend group a color in the Groups tab — their sender name
