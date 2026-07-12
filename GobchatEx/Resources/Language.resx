@@ -77,6 +77,8 @@
     <data name="Quickbar_StopLog_Tooltip"><value>Stop chat logging</value></data>
     <data name="Quickbar_OpenSettings_Tooltip"><value>Open the GobchatEx settings.</value></data>
     <data name="Quickbar_Hide_Tooltip"><value>Hide the Quickbar. Re-enable it under General settings.</value></data>
+    <data name="Quickbar_AttachToChat_Name"><value>Attach to chat window</value></data>
+    <data name="Quickbar_AttachToChat_Tooltip"><value>Glue the Quickbar to the top edge of the chat window (Chat 2 when present, otherwise the game's chat log). The drag grip is hidden while attached; if no chat window is visible, the bar floats freely at its last position (or hides, while 'Hide when chat is hidden' is on).</value></data>
     <data name="Quickbar_HideDuringCutscenes_Name"><value>Hide during cutscenes</value></data>
     <data name="Quickbar_HideDuringCutscenes_Tooltip"><value>Hide the Quickbar during cutscenes and group pose.</value></data>
     <data name="Quickbar_HideWhenNotLoggedIn_Name"><value>Hide when not logged in</value></data>
@@ -87,6 +89,8 @@
     <data name="Quickbar_HideInLoadingScreens_Tooltip"><value>Hide the Quickbar during loading screens.</value></data>
     <data name="Quickbar_HideInBattle_Name"><value>Hide during battle</value></data>
     <data name="Quickbar_HideInBattle_Tooltip"><value>Hide the Quickbar during battle.</value></data>
+    <data name="Quickbar_HideWhenChatHidden_Name"><value>Hide when chat is hidden</value></data>
+    <data name="Quickbar_HideWhenChatHidden_Tooltip"><value>Hide the Quickbar when no chat window is visible (Chat 2 or the game's chat log).</value></data>
 
     <data name="Formatting_TabName"><value>Formatting</value></data>
     <data name="Formatting_ColorSelection_Header"><value>Color selection for text types</value></data>

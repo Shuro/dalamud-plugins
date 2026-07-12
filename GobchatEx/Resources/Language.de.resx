@@ -77,6 +77,8 @@
     <data name="Quickbar_StopLog_Tooltip"><value>Chat-Protokollierung stoppen</value></data>
     <data name="Quickbar_OpenSettings_Tooltip"><value>Öffnet die GobchatEx-Einstellungen.</value></data>
     <data name="Quickbar_Hide_Tooltip"><value>Blendet die Schnellleiste aus. Unter Allgemein wieder aktivierbar.</value></data>
+    <data name="Quickbar_AttachToChat_Name"><value>An Chatfenster anheften</value></data>
+    <data name="Quickbar_AttachToChat_Tooltip"><value>Heftet die Schnellleiste an die Oberkante des Chatfensters (Chat 2, falls vorhanden, sonst das Chatfenster des Spiels). Der Verschiebe-Griff ist währenddessen ausgeblendet; ist kein Chatfenster sichtbar, schwebt die Leiste frei an ihrer letzten Position (oder wird ausgeblendet, solange 'Ausblenden, wenn der Chat verborgen ist' aktiv ist).</value></data>
     <data name="Quickbar_HideDuringCutscenes_Name"><value>Während Cutscenes ausblenden</value></data>
     <data name="Quickbar_HideDuringCutscenes_Tooltip"><value>Blendet die Schnellleiste während Cutscenes und im Gruppenpose-Modus aus.</value></data>
     <data name="Quickbar_HideWhenNotLoggedIn_Name"><value>Ausblenden, wenn nicht eingeloggt</value></data>
@@ -87,6 +89,8 @@
     <data name="Quickbar_HideInLoadingScreens_Tooltip"><value>Blendet die Schnellleiste während Ladebildschirmen aus.</value></data>
     <data name="Quickbar_HideInBattle_Name"><value>Im Kampf ausblenden</value></data>
     <data name="Quickbar_HideInBattle_Tooltip"><value>Blendet die Schnellleiste im Kampf aus.</value></data>
+    <data name="Quickbar_HideWhenChatHidden_Name"><value>Ausblenden, wenn der Chat verborgen ist</value></data>
+    <data name="Quickbar_HideWhenChatHidden_Tooltip"><value>Blendet die Schnellleiste aus, wenn kein Chatfenster sichtbar ist (Chat 2 oder das Chatfenster des Spiels).</value></data>
 
     <data name="Formatting_TabName"><value>Formatierung</value></data>
     <data name="Formatting_ColorSelection_Header"><value>Farbwahl für Textarten</value></data>

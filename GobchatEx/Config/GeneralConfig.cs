@@ -38,6 +38,22 @@ public class GeneralConfig
     public bool QuickbarHideInBattle { get; set; } = true;
 
     /// <summary>
+    /// Hides the Quickbar while no chat window is visible (Chat 2 or the
+    /// game's own chat log). Defaults on like the other hide options; turned
+    /// off, the bar floats free when the chat disappears (the attach
+    /// fallback behavior).
+    /// </summary>
+    public bool QuickbarHideWhenChatHidden { get; set; } = true;
+
+    /// <summary>
+    /// Glues the Quickbar to the top edge of the chat window — Chat 2's window
+    /// when present, otherwise the game's own chat log. Evaluated every frame
+    /// in QuickbarWindow.PreDraw; while no chat window is visible the bar
+    /// floats free at its last position.
+    /// </summary>
+    public bool QuickbarAttachToChat { get; set; } = true;
+
+    /// <summary>
     /// Enables the legacy "/e gc ..." echo-command fallback from the pre-Dalamud standalone app, for
     /// old macros. Defaults on since it's a compatibility feature, not an opt-in extra.
     /// </summary>

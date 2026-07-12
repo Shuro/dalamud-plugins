@@ -45,7 +45,10 @@ internal sealed class GeneralTab : ISettingsTab
         ImGuiComponents.HelpMarker(Loc.Get("General_ShowQuickbar_Tooltip"));
 
         if (config.ShowQuickbar)
+        {
+            DrawQuickbarAttachOption();
             DrawQuickbarHideOptions();
+        }
 
         ImGuiHelpers.ScaledDummy(10f);
         var legacyEchoFallback = config.LegacyEchoCommandFallback;
@@ -56,6 +59,20 @@ internal sealed class GeneralTab : ISettingsTab
         ImGuiHelpers.ScaledDummy(10f);
         SettingsUi.SectionHeader(Loc.Get("General_OptionalPlugins_Header"), Loc.Get("General_OptionalPlugins_Tooltip"));
         DrawOptionalPlugins();
+    }
+
+    /// <summary>
+    /// Placement sub-option, indented under the "Show Quickbar" toggle above
+    /// the hide conditions: glues the bar to the top edge of the chat window
+    /// (Chat 2 when present, otherwise the game's own chat log).
+    /// </summary>
+    private void DrawQuickbarAttachOption()
+    {
+        using var indent = ImRaii.PushIndent();
+        var attach = config.QuickbarAttachToChat;
+        if (SettingsUi.Toggle(Loc.Get("Quickbar_AttachToChat_Name"), ref attach))
+            config.QuickbarAttachToChat = attach;
+        ImGuiComponents.HelpMarker(Loc.Get("Quickbar_AttachToChat_Tooltip"));
     }
 
     /// <summary>
@@ -82,6 +99,8 @@ internal sealed class GeneralTab : ISettingsTab
                 config.QuickbarHideInLoadingScreens, v => config.QuickbarHideInLoadingScreens = v),
             ("Quickbar_HideInBattle_Name", "Quickbar_HideInBattle_Tooltip",
                 config.QuickbarHideInBattle, v => config.QuickbarHideInBattle = v),
+            ("Quickbar_HideWhenChatHidden_Name", "Quickbar_HideWhenChatHidden_Tooltip",
+                config.QuickbarHideWhenChatHidden, v => config.QuickbarHideWhenChatHidden = v),
         ];
 
         var style = ImGui.GetStyle();

@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Conditions;
@@ -22,6 +23,16 @@ namespace GobchatEx.Windows;
 public class QuickbarWindow : Window
 {
     private readonly Plugin plugin;
+
+    // Bar size from the previous frame's layout. AlwaysAutoResize means ImGui
+    // sizes the window from last frame's content anyway, so a last-frame
+    // capture is exactly as fresh as the size ImGui uses this frame.
+    private Vector2 lastSize;
+
+    // Set by PreDraw, read by Draw: the grip is hidden only while actually
+    // glued to a chat window this frame — not in attached-but-no-target
+    // fallback mode, where the bar floats free and stays draggable.
+    private bool anchoredThisFrame;
 
     public QuickbarWindow(Plugin plugin)
         : base("GobchatEx Quickbar###GobchatExQuickbar",
@@ -75,13 +86,102 @@ public class QuickbarWindow : Window
             return false;
         if (general.QuickbarHideInBattle && Plugin.Condition[ConditionFlag.InCombat])
             return false;
+        // "Chat" is whichever window the bar would anchor to (Chat 2 if
+        // present, else the game's chat log) — reuses the attach-target
+        // resolution and applies whether or not attach mode is on.
+        if (general.QuickbarHideWhenChatHidden && !TryGetChatTopLeft(out _, out _))
+            return false;
         return true;
+    }
+
+    // Anchors the bar to the top edge of the chat window. Runs right before
+    // Dalamud applies Position via SetNextWindowPos, and only when the window
+    // will actually draw. While anchored, SetNextWindowPos(Always) also
+    // refreshes ImGui's remembered position each frame, so losing the target
+    // (or toggling attach off) leaves the bar exactly where it last sat.
+    public override void PreDraw()
+    {
+        anchoredThisFrame = false;
+        Position = null; // free-float: ImGui keeps its remembered position
+
+        if (!plugin.Configuration.General.QuickbarAttachToChat
+            // Fresh load with attach already on: height unknown until Draw has
+            // run once (AlwaysAutoResize) — float one frame, snap from the second.
+            || lastSize == default
+            || !TryGetChatTopLeft(out var chatTopLeft, out var viewportTop))
+        {
+            Flags &= ~ImGuiWindowFlags.NoMove;
+            return;
+        }
+
+        var gap = 4f * ImGuiHelpers.GlobalScale;
+        Position = new Vector2(
+            chatTopLeft.X,
+            // Clamp to the viewport top: with the chat flush against the
+            // screen edge the bar overlaps the chat's top rows rather than
+            // going off-screen.
+            MathF.Max(chatTopLeft.Y - lastSize.Y - gap, viewportTop));
+        PositionCondition = ImGuiCond.Always;
+        // Body-dragging would fight the per-frame repositioning; NoMove is
+        // lifted again on every non-anchored path above.
+        Flags |= ImGuiWindowFlags.NoMove;
+        anchoredThisFrame = true;
+    }
+
+    // Chat 2's ImGui window replaces the vanilla log when present, so it wins;
+    // otherwise the game's own ChatLog addon; otherwise no anchor. Both reads
+    // are per-frame polls — Dalamud has no move/resize events for either.
+    private static bool TryGetChatTopLeft(out Vector2 topLeft, out float viewportTop)
+    {
+        // All Dalamud plugins share one ImGui context, so Chat 2's main window
+        // is directly visible to us. ImGui hashes only the part after "###",
+        // making this match "Chat 2###chat2" regardless of the visible title;
+        // popout tabs have different IDs and are deliberately ignored. No
+        // is-Chat-2-loaded pre-check: the lookup is a hash-table miss when the
+        // plugin is absent. WasActive (submitted last frame) instead of Active
+        // because plugin draw order within a frame is undefined.
+        var chat2 = ImGuiP.FindWindowByName("###chat2");
+        if (!chat2.IsNull && chat2.WasActive && !chat2.Hidden && !chat2.Collapsed)
+        {
+            topLeft = chat2.Pos;
+            // Chat 2 can sit on a secondary-monitor viewport; clamp against
+            // the viewport it is actually on.
+            viewportTop = chat2.Viewport.IsNull
+                ? ImGuiHelpers.MainViewport.Pos.Y
+                : chat2.Viewport.ImGuiViewport.Pos.Y;
+            return true;
+        }
+
+        // Main ChatLog addon only; the extra tab panels (ChatLogPanel_0..3)
+        // are separate addons and deliberately ignored. Addon coordinates are
+        // game-window-relative — offset by the main viewport to get ImGui
+        // global coordinates (zero unless multi-viewports are enabled).
+        var addon = Plugin.GameGui.GetAddonByName("ChatLog");
+        if (addon.IsReady && addon.IsVisible)
+        {
+            topLeft = ImGuiHelpers.MainViewport.Pos + addon.Position;
+            viewportTop = ImGuiHelpers.MainViewport.Pos.Y;
+            return true;
+        }
+
+        topLeft = default;
+        viewportTop = 0f;
+        return false;
     }
 
     public override void Draw()
     {
-        DrawGrip();
-        ImGui.SameLine();
+        // AlwaysAutoResize: the current size only exists after layout; capture
+        // it for next frame's anchor math in PreDraw.
+        lastSize = ImGui.GetWindowSize();
+
+        // Nothing to drag while glued — the anchor overrides the position
+        // every frame. The grip returns in attached-but-no-target fallback mode.
+        if (!anchoredThisFrame)
+        {
+            DrawGrip();
+            ImGui.SameLine();
+        }
 
         // Session-scoped runtime state on the ChatLogger, not config — same start/stop logic as
         // the Logs tab's button, and nothing to persist or apply.
