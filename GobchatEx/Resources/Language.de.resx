@@ -74,6 +74,7 @@
     <data name="Language_Option_UseDalamudDefault"><value>Dalamuds Standardsprache verwenden</value></data>
 
     <data name="Quickbar_StartLog_Tooltip"><value>Chat-Protokollierung starten</value></data>
+    <data name="Quickbar_StartLog_NoFolder_Tooltip"><value>Die Chat-Protokollierung benötigt einen Protokollordner — in den Einstellungen (Protokolle) auswählen.</value></data>
     <data name="Quickbar_StopLog_Tooltip"><value>Chat-Protokollierung stoppen</value></data>
     <data name="Quickbar_OpenSettings_Tooltip"><value>Öffnet die GobchatEx-Einstellungen.</value></data>
     <data name="Quickbar_Hide_Tooltip"><value>Blendet die Schnellleiste aus. Unter Allgemein wieder aktivierbar.</value></data>
@@ -139,6 +140,8 @@
 
     <data name="Mentions_TabName"><value>Erwähnungen</value></data>
     <data name="Mentions_General_Header"><value>Allgemeine Einstellungen</value></data>
+    <data name="Mentions_Highlight_SuppressSelf"><value>Erwähnungen in eigenen Nachrichten nicht hervorheben</value></data>
+    <data name="Mentions_Highlight_SuppressSelf_Tooltip"><value>Eigene Nachrichten (auch ausgehende Tells) behalten ihre Sagen/Emote/OOC-Formatierung, nur die Erwähnungs-Hervorhebung entfällt. /echo ist ausgenommen, damit Erwähnungen dort immer testbar bleiben. Bereits angezeigte Zeilen ändern sich nicht — nach dem Umschalten eine neue Nachricht senden.</value></data>
     <data name="Mentions_Sound_PlayOnMatch"><value>Ton abspielen, wenn eine Erwähnung zutrifft</value></data>
     <data name="Mentions_Sound_PlayOnMatch_Tooltip"><value>Spiel-Soundeffekte folgen der Soundeffekt-Lautstärke des Spiels; eine eigene Sounddatei hat ihren eigenen Lautstärkeregler.</value></data>
     <data name="Mentions_Sound_Cooldown"><value>Abklingzeit</value></data>
@@ -159,9 +162,10 @@
     <data name="Mentions_Trigger_Empty"><value>Noch keine Auslösewörter.</value></data>
     <data name="Mentions_Trigger_Remove_Tooltip"><value>Strg+Umschalt gedrückt halten und klicken, um dieses Wort zu entfernen.</value></data>
     <data name="Mentions_Player_Header"><value>Spieler-Erwähnungen</value></data>
-    <data name="Mentions_Player_Header_Tooltip"><value>Erkennt automatisch den Namen deines Charakters. Charaktere werden beim ersten Einloggen gespeichert, bleiben aber inaktiv, bis du sie unten aktivierst.</value></data>
+    <data name="Mentions_Player_Header_Tooltip"><value>Erkennt automatisch den Namen deines Charakters. Füge deinen Charakter mit dem Button unten hinzu und lasse ihn aktiv.</value></data>
     <data name="Mentions_Player_MatchLoggedIn"><value>Namen eingeloggter Charaktere abgleichen</value></data>
-    <data name="Mentions_Player_Empty"><value>Noch keine Charaktere gespeichert. Logge dich mit einem Charakter ein oder füge den aktuellen oben hinzu.</value></data>
+    <data name="Mentions_Player_Empty"><value>Noch keine Charaktere hinzugefügt. Füge den aktuellen Charakter oben hinzu.</value></data>
+    <data name="Mentions_Player_CurrentNotActive"><value>Erwähnungen von {0} werden nicht erkannt — Charakter hinzufügen und aktiv lassen.</value></data>
     <data name="Mentions_Character_Inactive"><value>{0} (inaktiv)</value></data>
     <data name="Mentions_Character_Active"><value>Aktiv</value></data>
     <data name="Mentions_Character_Remove"><value>Entfernen</value></data>
@@ -239,18 +243,20 @@
     <data name="ChatLog_Button_Start"><value>Protokollierung starten</value></data>
     <data name="ChatLog_Button_Stop"><value>Protokollierung stoppen</value></data>
     <data name="ChatLog_Button_StartStop_Tooltip"><value>Die Protokollierung startet nie von selbst und stoppt immer beim Ausloggen. Stoppen schließt die aktuelle Datei nicht ab — ein erneuter Start im selben Login setzt sie fort; eine neue Datei beginnt bei Login, Charakterwechsel oder geänderten Ordner-Einstellungen.</value></data>
+    <data name="ChatLog_Button_NoFolder_Tooltip"><value>Die Protokollierung benötigt einen Protokollordner — unten einen auswählen.</value></data>
     <data name="ChatLog_Status_Inactive"><value>Protokollierung ist gestoppt.</value></data>
+    <data name="ChatLog_Status_NoFolder"><value>Unten einen Protokollordner auswählen, um die Protokollierung zu aktivieren.</value></data>
     <data name="ChatLog_Status_Active"><value>Protokollierung ist aktiv.</value></data>
     <data name="ChatLog_Status_WaitingForMessage"><value>Protokollierung ist aktiv — die Protokolldatei wird mit der ersten Nachricht angelegt.</value></data>
     <data name="ChatLog_Status_CurrentFile"><value>Aktuelle Datei: {0}</value></data>
     <data name="ChatLog_Folder_Header"><value>Protokollordner</value></data>
-    <data name="ChatLog_Folder_Tooltip"><value>Protokolldateien werden hier abgelegt, eine Datei pro Login oder Charakterwechsel. Leer lassen für den Standardordner im Konfigurationsverzeichnis des Plugins.</value></data>
-    <data name="ChatLog_Folder_Hint"><value>Standardordner</value></data>
-    <data name="ChatLog_Folder_Browse_Tooltip"><value>Eigenen Ordner auswählen.</value></data>
+    <data name="ChatLog_Folder_Tooltip"><value>Protokolldateien werden hier abgelegt, eine Datei pro Login oder Charakterwechsel. Es gibt keinen Standardordner — die Protokollierung bleibt deaktiviert, bis einer gewählt ist.</value></data>
+    <data name="ChatLog_Folder_Hint"><value>Kein Ordner gewählt</value></data>
+    <data name="ChatLog_Folder_Browse_Tooltip"><value>Ordner auswählen.</value></data>
     <data name="ChatLog_Folder_PickerTitle"><value>Protokollordner auswählen</value></data>
-    <data name="ChatLog_Folder_Reset_Tooltip"><value>Auf den Standardordner zurücksetzen.</value></data>
+    <data name="ChatLog_Folder_Reset_Tooltip"><value>Ordner leeren. Die Protokollierung ist deaktiviert, bis ein neuer gewählt ist.</value></data>
     <data name="ChatLog_Folder_Resolved"><value>Schreibt nach: {0}</value></data>
-    <data name="ChatLog_Folder_InvalidPath"><value>Der eingestellte Ordner ist nicht nutzbar — es wird stattdessen in den Standardordner geschrieben.</value></data>
+    <data name="ChatLog_Folder_InvalidPath"><value>Der eingestellte Ordner ist nicht nutzbar — die Protokollierung ist deaktiviert, bis er korrigiert ist.</value></data>
     <data name="ChatLog_CharacterFolders"><value>Unterordner pro Charakter anlegen</value></data>
     <data name="ChatLog_CharacterFolders_Tooltip"><value>Die Protokolldateien jedes Charakters landen in einem eigenen, nach dem Charakter benannten Unterordner.</value></data>
     <data name="ChatLog_Channels_Header"><value>Protokollierte Kanäle</value></data>

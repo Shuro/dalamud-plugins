@@ -245,6 +245,47 @@ public sealed class MessageSegmenterTests
         DefaultSegmenter().Segment(["plain text, no markup"], SegmentType.Undefined).Should().BeNull();
     }
 
+    // ------------------------------------------------------------------
+    // overlayMentions: false — the own-message highlight suppression path
+    // (ChatListener). WHY: mention *detection* must survive so HasMention
+    // keeps driving the sound decision; only the visual recoloring is
+    // skipped, so the caller's rewrite leaves the text unhighlighted.
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public void OverlaySkipped_KeepsUnderlyingTypes_ButStillReportsMention()
+    {
+        var result = DefaultSegmenter("Alice").Segment(["\"hi Alice\" yo"], overlayMentions: false);
+
+        result.Should().NotBeNull();
+        result!.HasMention.Should().BeTrue();
+        AssertFullCoverage("\"hi Alice\" yo", result.RunSpans[0]);
+        Render("\"hi Alice\" yo", result.RunSpans[0]).Should().Equal(
+            ("\"hi Alice\"", SegmentType.Say),
+            (" yo", SegmentType.Undefined));
+    }
+
+    [Fact]
+    public void OverlaySkipped_MentionOnlyText_StillReturnsResultForTheSound()
+    {
+        // No token rule matches and the overlay is skipped, so every span stays Undefined
+        // (the rewrite becomes a pass-through) — but the result must still exist, or the
+        // highlight path would silently drop the mention sound for own messages.
+        var result = DefaultSegmenter("bob").Segment(["plain bob text"], overlayMentions: false);
+
+        result.Should().NotBeNull();
+        result!.HasMention.Should().BeTrue();
+        Render("plain bob text", result.RunSpans[0]).Should().Equal(
+            ("plain bob text", SegmentType.Undefined));
+    }
+
+    [Fact]
+    public void OverlaySkipped_NothingMatched_StillReturnsNull()
+    {
+        DefaultSegmenter("bob").Segment(["plain text, no markup"], overlayMentions: false)
+            .Should().BeNull();
+    }
+
     [Fact]
     public void MentionRules_PartialAndFuzzyOverlay_SplitTheSpan()
     {

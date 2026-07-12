@@ -87,6 +87,13 @@ internal sealed class MentionsTab : IToggleableTab
 
     private void DrawSoundSettings()
     {
+        // Highlight suppression is independent of the sound alert, so it stays outside the
+        // sound-disabled scope below.
+        var suppressHighlight = config.SuppressHighlightFromSelf;
+        if (SettingsUi.Toggle(Loc.Get("Mentions_Highlight_SuppressSelf"), ref suppressHighlight))
+            config.SuppressHighlightFromSelf = suppressHighlight;
+        ImGuiComponents.HelpMarker(Loc.Get("Mentions_Highlight_SuppressSelf_Tooltip"));
+
         var soundEnabled = config.MentionSoundEnabled;
         if (SettingsUi.Toggle(Loc.Get("Mentions_Sound_PlayOnMatch"), ref soundEnabled))
             config.MentionSoundEnabled = soundEnabled;
@@ -271,6 +278,7 @@ internal sealed class MentionsTab : IToggleableTab
         using var disabledSection = ImRaii.Disabled(!config.PlayerMentionsEnabled);
 
         DrawAddCurrentCharacterButton();
+        DrawCurrentCharacterInactiveWarning();
         ImGuiHelpers.ScaledDummy(4f);
 
         if (config.Characters.Count == 0)
@@ -358,6 +366,27 @@ internal sealed class MentionsTab : IToggleableTab
         }
 
         config.Characters.Add(new CharacterMentionSettings { Name = name, Active = true });
+    }
+
+    /// <summary>
+    /// The silent no-match gap behind "my name doesn't trigger anything" reports: player
+    /// mentions are on, but the logged-in character was never added (registration is
+    /// manual-only) or its entry is inactive — then neither highlight nor sound can fire.
+    /// Same name comparison as ChatListener.BuildMentionRules.
+    /// </summary>
+    private void DrawCurrentCharacterInactiveWarning()
+    {
+        if (!config.PlayerMentionsEnabled || !Plugin.PlayerState.IsLoaded)
+            return;
+
+        var name = Plugin.PlayerState.CharacterName;
+        if (name.Length == 0)
+            return;
+
+        if (config.Characters.Any(c => c.Active && string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        SettingsUi.Warning(string.Format(Loc.Get("Mentions_Player_CurrentNotActive"), name));
     }
 
     private void DrawCharacterOptions(CharacterMentionSettings character)

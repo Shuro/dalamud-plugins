@@ -34,8 +34,15 @@ public sealed class MessageSegmenter
     /// <paramref name="defaultType"/>, when not <see cref="SegmentType.Undefined"/>, is applied to
     /// whatever text the token rules and mention overlay left untyped — e.g. a plain, unquoted
     /// /say line still renders as Say once the channel implies it.
+    /// <paramref name="overlayMentions"/>, when false, still matches mentions (HasMention keeps
+    /// driving the sound decision) but skips the visual overlay — the own-message highlight
+    /// suppression path; a mention-only result then carries all-Undefined spans, which the
+    /// payload rewriter passes through untouched.
     /// </summary>
-    public SegmentationResult? Segment(IReadOnlyList<string> runTexts, SegmentType defaultType = SegmentType.Undefined)
+    public SegmentationResult? Segment(
+        IReadOnlyList<string> runTexts,
+        SegmentType defaultType = SegmentType.Undefined,
+        bool overlayMentions = true)
     {
         if (runTexts.Count == 0)
             return null;
@@ -56,7 +63,7 @@ public sealed class MessageSegmenter
             {
                 var mentions = _mentions.FindMentions(runTexts[run]);
                 hasMention |= mentions.Count > 0;
-                overlaid.Add(mentions.Count > 0 ? Overlay(spans[run], mentions) : spans[run]);
+                overlaid.Add(overlayMentions && mentions.Count > 0 ? Overlay(spans[run], mentions) : spans[run]);
             }
 
             spans = overlaid;
@@ -65,8 +72,10 @@ public sealed class MessageSegmenter
         if (defaultType != SegmentType.Undefined)
             spans = ApplyDefaultType(spans, defaultType);
 
+        // hasMention implies anyTyped while the overlay runs; with it skipped, a mention-only
+        // message must still produce a result or the mention would vanish for the sound path.
         var anyTyped = spans.Any(runSpans => runSpans.Any(s => s.Type != SegmentType.Undefined));
-        return anyTyped ? new SegmentationResult(spans, hasMention) : null;
+        return anyTyped || hasMention ? new SegmentationResult(spans, hasMention) : null;
     }
 
     /// <summary>Recolors any still-Undefined span to <paramref name="defaultType"/>, leaving typed spans as-is.</summary>

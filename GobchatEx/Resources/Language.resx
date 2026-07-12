@@ -74,6 +74,7 @@
     <data name="Language_Option_UseDalamudDefault"><value>Use Dalamud's default language</value></data>
 
     <data name="Quickbar_StartLog_Tooltip"><value>Start chat logging</value></data>
+    <data name="Quickbar_StartLog_NoFolder_Tooltip"><value>Chat logging needs a log folder — choose one in the settings (Logs tab).</value></data>
     <data name="Quickbar_StopLog_Tooltip"><value>Stop chat logging</value></data>
     <data name="Quickbar_OpenSettings_Tooltip"><value>Open the GobchatEx settings.</value></data>
     <data name="Quickbar_Hide_Tooltip"><value>Hide the Quickbar. Re-enable it under General settings.</value></data>
@@ -139,6 +140,8 @@
 
     <data name="Mentions_TabName"><value>Mentions</value></data>
     <data name="Mentions_General_Header"><value>General Settings</value></data>
+    <data name="Mentions_Highlight_SuppressSelf"><value>Don't highlight mentions for my own messages</value></data>
+    <data name="Mentions_Highlight_SuppressSelf_Tooltip"><value>Messages you send (including outgoing tells) keep their Say/Emote/OOC styling but skip the mention highlight. /echo is exempt so you can always test your mentions there. Already-printed lines don't change — send a new message after toggling.</value></data>
     <data name="Mentions_Sound_PlayOnMatch"><value>Play a sound when a mention matches</value></data>
     <data name="Mentions_Sound_PlayOnMatch_Tooltip"><value>Game sound effects follow the game's sound-effects volume; a custom file has its own volume slider.</value></data>
     <data name="Mentions_Sound_Cooldown"><value>Cooldown</value></data>
@@ -159,9 +162,10 @@
     <data name="Mentions_Trigger_Empty"><value>No trigger words yet.</value></data>
     <data name="Mentions_Trigger_Remove_Tooltip"><value>Hold Ctrl+Shift and click to remove this word.</value></data>
     <data name="Mentions_Player_Header"><value>Player Mentions</value></data>
-    <data name="Mentions_Player_Header_Tooltip"><value>Match your character's name automatically. Characters are remembered the first time you log them in, but stay inactive until you turn them on below.</value></data>
+    <data name="Mentions_Player_Header_Tooltip"><value>Match your character's name automatically. Add your character with the button below and keep it active.</value></data>
     <data name="Mentions_Player_MatchLoggedIn"><value>Match logged-in characters' names</value></data>
-    <data name="Mentions_Player_Empty"><value>No characters remembered yet. Log in with a character, or add the current one above.</value></data>
+    <data name="Mentions_Player_Empty"><value>No characters added yet. Add the current character above.</value></data>
+    <data name="Mentions_Player_CurrentNotActive"><value>Mentions of {0} won't match — add this character and keep it active.</value></data>
     <data name="Mentions_Character_Inactive"><value>{0} (inactive)</value></data>
     <data name="Mentions_Character_Active"><value>Active</value></data>
     <data name="Mentions_Character_Remove"><value>Remove</value></data>
@@ -239,18 +243,20 @@
     <data name="ChatLog_Button_Start"><value>Start logging</value></data>
     <data name="ChatLog_Button_Stop"><value>Stop logging</value></data>
     <data name="ChatLog_Button_StartStop_Tooltip"><value>Logging never starts by itself and always stops at logout. Stopping does not finalize the current file — starting again during the same login continues it; a new file begins at login, character switch, or when the folder settings change.</value></data>
+    <data name="ChatLog_Button_NoFolder_Tooltip"><value>Logging needs a log folder — choose one below.</value></data>
     <data name="ChatLog_Status_Inactive"><value>Logging is stopped.</value></data>
+    <data name="ChatLog_Status_NoFolder"><value>Choose a log folder below to enable logging.</value></data>
     <data name="ChatLog_Status_Active"><value>Logging is active.</value></data>
     <data name="ChatLog_Status_WaitingForMessage"><value>Logging is active — the log file is created with the first message.</value></data>
     <data name="ChatLog_Status_CurrentFile"><value>Current file: {0}</value></data>
     <data name="ChatLog_Folder_Header"><value>Log folder</value></data>
-    <data name="ChatLog_Folder_Tooltip"><value>Log files are written here, one file per login or character switch. Leave empty for the default folder inside the plugin configuration directory.</value></data>
-    <data name="ChatLog_Folder_Hint"><value>Default folder</value></data>
-    <data name="ChatLog_Folder_Browse_Tooltip"><value>Choose a custom folder.</value></data>
+    <data name="ChatLog_Folder_Tooltip"><value>Log files are written here, one file per login or character switch. There is no default folder — logging stays disabled until one is chosen.</value></data>
+    <data name="ChatLog_Folder_Hint"><value>No folder chosen</value></data>
+    <data name="ChatLog_Folder_Browse_Tooltip"><value>Choose a folder.</value></data>
     <data name="ChatLog_Folder_PickerTitle"><value>Choose log folder</value></data>
-    <data name="ChatLog_Folder_Reset_Tooltip"><value>Reset to the default folder.</value></data>
+    <data name="ChatLog_Folder_Reset_Tooltip"><value>Clear the folder. Logging is disabled until a new one is chosen.</value></data>
     <data name="ChatLog_Folder_Resolved"><value>Writing to: {0}</value></data>
-    <data name="ChatLog_Folder_InvalidPath"><value>The configured folder is not usable — writing to the default folder instead.</value></data>
+    <data name="ChatLog_Folder_InvalidPath"><value>The configured folder is not usable — logging is disabled until it is fixed.</value></data>
     <data name="ChatLog_CharacterFolders"><value>Create a subfolder per character</value></data>
     <data name="ChatLog_CharacterFolders_Tooltip"><value>Each character's log files go into their own subfolder, named after the character.</value></data>
     <data name="ChatLog_Channels_Header"><value>Logged channels</value></data>

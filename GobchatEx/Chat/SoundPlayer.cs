@@ -33,7 +33,11 @@ public sealed class SoundPlayer : IDisposable
     {
         var now = Environment.TickCount64;
         if (_lastPlayedMs is { } last && now - last < config.MentionSoundCooldownMs)
+        {
+            Plugin.Log.Debug("Mention sound suppressed: cooldown ({RemainingMs} ms left)",
+                config.MentionSoundCooldownMs - (now - last));
             return;
+        }
 
         _lastPlayedMs = now;
 

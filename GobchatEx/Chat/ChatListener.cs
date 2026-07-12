@@ -447,7 +447,15 @@ public sealed class ChatListener : IDisposable
         if (runTexts == null)
             return;
 
-        var result = _segmenter.Segment(runTexts, DefaultTypeFor(message.LogKind));
+        // Own messages keep Say/Emote/Ooc styling but skip the mention recolor; detection
+        // still runs (overlayMentions: false), so HasMention below keeps feeding the sound,
+        // whose own SuppressSoundFromSelf rule decides independently. Echo is exempt even
+        // though IsFromSelf counts it as self: /echo is the designated way to test mention
+        // setups, so it always keeps the highlight.
+        var suppressOwnHighlight = _config.Mentions.SuppressHighlightFromSelf
+            && message.LogKind != XivChatType.Echo
+            && IsFromSelf(message);
+        var result = _segmenter.Segment(runTexts, DefaultTypeFor(message.LogKind), overlayMentions: !suppressOwnHighlight);
         if (result == null)
             return;
 
@@ -540,9 +548,16 @@ public sealed class ChatListener : IDisposable
     private void TryPlayMentionSound(IHandleableChatMessage message)
     {
         if (!_config.Mentions.MentionSoundEnabled)
+        {
+            Plugin.Log.Debug("Mention matched but the sound alert is disabled");
             return;
+        }
+
         if (_config.Mentions.SuppressSoundFromSelf && IsFromSelf(message))
+        {
+            Plugin.Log.Debug("Mention sound suppressed: own message");
             return;
+        }
 
         _soundPlayer.TryPlay(_config.Mentions);
     }
@@ -558,7 +573,8 @@ public sealed class ChatListener : IDisposable
 
     /// <summary>
     /// Heuristic own-message check (see <see cref="SelfSender"/> for the shared string rule).
-    /// Only the sound is suppressed for own messages, never the highlighting.
+    /// Gates both self-suppressions: the mention sound (<see cref="MentionsConfig.SuppressSoundFromSelf"/>)
+    /// and the mention highlight (<see cref="MentionsConfig.SuppressHighlightFromSelf"/>).
     /// </summary>
     private static bool IsFromSelf(IHandleableChatMessage message)
         => SelfSender.IsSelf(

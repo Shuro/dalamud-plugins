@@ -36,6 +36,14 @@ public class MentionsConfig
     public bool SuppressSoundFromSelf { get; set; } = true;
 
     /// <summary>
+    /// Skip the mention highlight in messages the local player sent (outgoing Tells count
+    /// as self like <see cref="SuppressSoundFromSelf"/>'s rule, but Echo is exempt — /echo
+    /// is the designated mention test channel and always keeps the highlight). Mention
+    /// detection itself still runs, so the sound decision stays independent.
+    /// </summary>
+    public bool SuppressHighlightFromSelf { get; set; } = true;
+
+    /// <summary>
     /// Play <see cref="MentionSoundFilePath"/> instead of the built-in
     /// <see cref="MentionSoundEffect"/>. The game effect stays configured
     /// underneath — it is also the fallback when the file fails to play
