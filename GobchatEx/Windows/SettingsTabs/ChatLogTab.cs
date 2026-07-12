@@ -14,7 +14,7 @@ namespace GobchatEx.Windows.SettingsTabs;
 
 /// <summary>
 /// Chat logging settings (Milestone 5): start/stop button with a live status line, the log folder
-/// (default under the plugin config directory, custom via folder picker), the per-character
+/// (no default — the start button stays disabled until the user picks one), the per-character
 /// subfolder toggle, and the logged-channel grids. The button drives the <see cref="ChatLogger"/>'s
 /// session-scoped state directly (immediate, not routed through the debounced config commit —
 /// logging is a runtime action, not a persisted setting, hence also no nav-rail switch); the
@@ -53,20 +53,28 @@ internal sealed class ChatLogTab : ISettingsTab
     private void DrawStatus()
     {
         var running = logger.IsLogging;
-        if (ImGuiComponents.IconButtonWithText(
-                running ? FontAwesomeIcon.Stop : FontAwesomeIcon.Play,
-                Loc.Get(running ? "ChatLog_Button_Stop" : "ChatLog_Button_Start")))
+        var missingFolder = !running && !logger.HasLogFolder;
+        using (ImRaii.Disabled(missingFolder))
         {
-            if (running)
-                logger.StopLogging();
-            else
-                logger.StartLogging();
+            if (ImGuiComponents.IconButtonWithText(
+                    running ? FontAwesomeIcon.Stop : FontAwesomeIcon.Play,
+                    Loc.Get(running ? "ChatLog_Button_Stop" : "ChatLog_Button_Start")))
+            {
+                if (running)
+                    logger.StopLogging();
+                else
+                    logger.StartLogging();
+            }
         }
 
-        SettingsUi.Tooltip(Loc.Get("ChatLog_Button_StartStop_Tooltip"));
+        SettingsUi.Tooltip(Loc.Get(missingFolder
+            ? "ChatLog_Button_NoFolder_Tooltip"
+            : "ChatLog_Button_StartStop_Tooltip"));
 
         ImGui.SameLine();
-        if (!running)
+        if (missingFolder)
+            ImGui.TextColored(ImGuiColors.DalamudOrange, Loc.Get("ChatLog_Status_NoFolder"));
+        else if (!running)
             ImGui.TextDisabled(Loc.Get("ChatLog_Status_Inactive"));
         else if (logger.CurrentFilePath is { } path)
         {
@@ -107,9 +115,14 @@ internal sealed class ChatLogTab : ISettingsTab
         SettingsUi.Tooltip(Loc.Get("ChatLog_Folder_Reset_Tooltip"));
 
         // The applied folder, refreshed by the commit tick — shows where files actually land.
-        // Wrapped instead of clipped: users read the full path off this line.
-        using (ImRaii.PushColor(ImGuiCol.Text, ImGui.GetColorU32(ImGuiCol.TextDisabled)))
-            ImGui.TextWrapped(string.Format(Loc.Get("ChatLog_Folder_Resolved"), logger.ResolvedLogFolder));
+        // Wrapped instead of clipped: users read the full path off this line. Hidden while no
+        // usable folder is configured — the status line next to the start button explains why.
+        if (logger.HasLogFolder)
+        {
+            using (ImRaii.PushColor(ImGuiCol.Text, ImGui.GetColorU32(ImGuiCol.TextDisabled)))
+                ImGui.TextWrapped(string.Format(Loc.Get("ChatLog_Folder_Resolved"), logger.ResolvedLogFolder));
+        }
+
         if (logger.LogFolderInvalid)
             SettingsUi.Warning(Loc.Get("ChatLog_Folder_InvalidPath"));
 

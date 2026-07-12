@@ -20,9 +20,10 @@ public class ChatLogConfig
 
     public int Version { get; set; } = 1;
 
-    /// <summary>Log output folder. Empty = the default, {ConfigDirectory}\logs. The folder picker
-    /// stores absolute paths; a hand-edited relative path resolves inside the config directory
-    /// (PathSecurityUtil) and falls back to the default when it would escape it.</summary>
+    /// <summary>Log output folder. Empty = not configured — there is no default, and logging
+    /// cannot start until the user picks a folder. The folder picker stores absolute paths; a
+    /// hand-edited relative path resolves inside the config directory (PathSecurityUtil) and
+    /// counts as unusable when it would escape it.</summary>
     public string LogFolder { get; set; } = string.Empty;
 
     /// <summary>Write each character's logs into their own subfolder under the log folder.</summary>

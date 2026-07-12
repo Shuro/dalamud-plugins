@@ -21,7 +21,8 @@ namespace GobchatEx.Chat;
 /// switch, drop while logged out) live in the testable <see cref="ChatLogSession"/>; this class
 /// only maps Dalamud types and appends to disk, batched via Framework.Update so a busy channel
 /// costs one file open per second, not per line. Logging is a session-scoped manual action:
-/// it never starts by itself, is forced off at logout, and the on/off state is not persisted
+/// it never starts by itself, is forced off at logout, cannot start without a user-chosen log
+/// folder (there is no default), and the on/off state is not persisted
 /// (<see cref="StartLogging"/>/<see cref="StopLogging"/>). Chat events, Framework.Update,
 /// settings commits, and Dispose all run on the framework thread, so no locking is needed.
 /// </summary>
@@ -38,13 +39,17 @@ internal sealed class ChatLogger : IDisposable
     private bool _ioErrorLogged;
     private bool _chatMessageErrorLogged;
 
-    /// <summary>The folder log files are written to, after default/relative resolution — the
-    /// settings tab displays it under the folder input.</summary>
+    /// <summary>The folder log files are written to, after relative resolution; empty while no
+    /// usable folder is configured — the settings tab displays it under the folder input.</summary>
     internal string ResolvedLogFolder { get; private set; } = string.Empty;
 
-    /// <summary>True when the configured folder was unusable (escaped the config directory or
-    /// was not a valid path) and logging fell back to the default folder.</summary>
+    /// <summary>True when a configured folder was unusable (escaped the config directory or
+    /// was not a valid path); logging is disabled until it is fixed.</summary>
     internal bool LogFolderInvalid { get; private set; }
+
+    /// <summary>Whether a usable log folder is configured — the precondition for
+    /// <see cref="StartLogging"/>; the start buttons are disabled while false.</summary>
+    internal bool HasLogFolder => ResolvedLogFolder.Length > 0;
 
     /// <summary>The file the current session is appending to; null until the first line lands.</summary>
     internal string? CurrentFilePath => _session.CurrentFilePath;
@@ -93,8 +98,14 @@ internal sealed class ChatLogger : IDisposable
         FlushNow(); // after unsubscribing, so nothing enqueues mid-teardown
     }
 
-    /// <summary>Starts logging. The session file is still created lazily with the first message.</summary>
-    internal void StartLogging() => IsLogging = true;
+    /// <summary>Starts logging; a no-op while no usable folder is configured (there is no
+    /// default — the user must pick one). The session file is still created lazily with the
+    /// first message.</summary>
+    internal void StartLogging()
+    {
+        if (HasLogFolder)
+            IsLogging = true;
+    }
 
     /// <summary>
     /// Stops logging after flushing what is pending. The session file stays open-ended: starting
@@ -122,25 +133,37 @@ internal sealed class ChatLogger : IDisposable
             _config.LogFolder, Plugin.PluginInterface.ConfigDirectory.FullName, out var invalid);
         if (invalid && !LogFolderInvalid)
             Plugin.Log.Warning(
-                "Configured chat-log folder {Folder} is unusable; falling back to {Fallback}.",
-                _config.LogFolder, ResolvedLogFolder);
+                "Configured chat-log folder {Folder} is unusable; logging is disabled until it is fixed.",
+                _config.LogFolder);
         LogFolderInvalid = invalid;
 
-        _session.Configure(ResolvedLogFolder, _config.UseCharacterFolders);
+        if (HasLogFolder)
+        {
+            _session.Configure(ResolvedLogFolder, _config.UseCharacterFolders);
+        }
+        else if (IsLogging)
+        {
+            // The folder was cleared or broke mid-session (the flush above already landed in the
+            // old folder). The session deliberately keeps its last folder: with IsLogging false
+            // nothing enqueues, so no line can target the stale path.
+            IsLogging = false;
+            Plugin.Log.Warning("Chat logging stopped: no usable log folder is configured.");
+        }
     }
 
     /// <summary>
-    /// Resolves the configured log folder: empty means the default {ConfigDirectory}\logs, the
-    /// folder picker stores absolute paths (allowed anywhere), and a hand-edited relative path
-    /// must resolve inside the config directory (PathSecurityUtil) — falling back to the default
-    /// when it escapes or is not a valid path at all.
+    /// Resolves the configured log folder. There is no default: empty means unconfigured and
+    /// resolves to an empty string, which keeps logging disabled. The folder picker stores
+    /// absolute paths (allowed anywhere); a hand-edited relative path must resolve inside the
+    /// config directory (PathSecurityUtil) — escaping or malformed paths are flagged invalid
+    /// and also resolve to empty.
     /// </summary>
     internal static string ResolveLogFolder(string configured, string configDir, out bool invalid)
     {
         invalid = false;
         var trimmed = configured.Trim();
         if (trimmed.Length == 0)
-            return Path.Combine(configDir, "logs");
+            return string.Empty;
 
         try
         {
@@ -156,7 +179,7 @@ internal sealed class ChatLogger : IDisposable
             or UnauthorizedAccessException or System.Security.SecurityException)
         {
             invalid = true;
-            return Path.Combine(configDir, "logs");
+            return string.Empty;
         }
     }
 

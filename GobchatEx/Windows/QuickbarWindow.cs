@@ -184,18 +184,24 @@ public class QuickbarWindow : Window
         }
 
         // Session-scoped runtime state on the ChatLogger, not config — same start/stop logic as
-        // the Logs tab's button, and nothing to persist or apply.
+        // the Logs tab's button, and nothing to persist or apply. Disabled (like the tab's
+        // button) while no log folder is configured; the tooltip still shows and explains why.
         var chatLogger = plugin.ChatLogger;
-        if (FeatureButton(FontAwesomeIcon.FileSignature, chatLogger.IsLogging))
+        var missingLogFolder = !chatLogger.IsLogging && !chatLogger.HasLogFolder;
+        using (ImRaii.Disabled(missingLogFolder))
         {
-            if (chatLogger.IsLogging)
-                chatLogger.StopLogging();
-            else
-                chatLogger.StartLogging();
+            if (FeatureButton(FontAwesomeIcon.FileSignature, chatLogger.IsLogging))
+            {
+                if (chatLogger.IsLogging)
+                    chatLogger.StopLogging();
+                else
+                    chatLogger.StartLogging();
+            }
         }
-        SettingsUi.Tooltip(Loc.Get(chatLogger.IsLogging
-            ? "Quickbar_StopLog_Tooltip"
-            : "Quickbar_StartLog_Tooltip"));
+
+        SettingsUi.Tooltip(Loc.Get(missingLogFolder
+            ? "Quickbar_StartLog_NoFolder_Tooltip"
+            : chatLogger.IsLogging ? "Quickbar_StopLog_Tooltip" : "Quickbar_StartLog_Tooltip"));
 
         VerticalDivider();
 

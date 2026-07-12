@@ -97,12 +97,12 @@ unit-tested):
 - `Core/ChatLogNaming` — filesystem-safe character tokens + invariant
   minute-precision timestamps
 - `Core/Util/PathSecurityUtil` — hand-edited relative folder paths must stay
-  inside the plugin config dir (no `..` escape); invalid ⇒ default folder
+  inside the plugin config dir (no `..` escape); invalid ⇒ logging disabled
 - `Chat/ChatLogChannelNames` — stable archive names per channel (own table,
   not XivChatType.ToString())
-- `Config/ChatLogConfig` — folder (default {ConfigDirectory}\logs),
-  per-character subfolders, channel selection (default: all conversational
-  + Echo)
+- `Config/ChatLogConfig` — folder (no default; empty = logging disabled
+  until the user picks one), per-character subfolders, channel selection
+  (default: all conversational + Echo)
 
 ## Commands
 

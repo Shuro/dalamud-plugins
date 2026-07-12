@@ -182,13 +182,13 @@ Write chat to disk, ported from the app's `Module/Misc/Chatlogger/`:
   chatlog.json; no editor UI yet
 - Logs tab: start/stop button with live status (mirrored by the Quickbar's
   log button), per-channel selection (conversational defaults incl. Echo),
-  per-character subfolder toggle (default on), default folder
-  `{ConfigDirectory}\logs` with a folder picker for any custom location —
+  per-character subfolder toggle (default on), user-chosen folder via folder
+  picker — no default folder: logging stays disabled until one is picked —
   logging is a session-scoped manual action: never persisted, never
   auto-started, always stopped at logout
 - Hardened path handling ported (`Core/Util/PathSecurityUtil.cs`): a
-  hand-edited relative path resolves inside the config directory or falls
-  back to the default with a warning
+  hand-edited relative path resolves inside the config directory; escaping
+  or malformed paths disable logging with a warning
 - Batched framework-thread writes (1 s flush); messages suppressed by other
   plugins (IsHandled) are not logged — the log mirrors what the player sees
 

@@ -81,9 +81,10 @@ re-probed on `ChatTwo.Available` and on Dalamud's `ActivePluginsChanged`
 
 ## File system output
 
-Chat logger (Milestone 5) appends per-session .log files, default under
-`{ConfigDirectory}\logs` (custom folder via picker; hand-edited relative
-paths are contained by Core/Util/PathSecurityUtil). Manual start/stop only.
+Chat logger (Milestone 5) appends per-session .log files to a user-chosen
+folder (no default — logging stays disabled until one is picked; hand-edited
+relative paths are contained by Core/Util/PathSecurityUtil). Manual
+start/stop only.
 Custom mention sounds are read (never written) from a user-picked audio file.
 
 ## Tests (tests/GobchatEx.Core.Tests.csproj)
