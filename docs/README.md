@@ -91,7 +91,7 @@ There's no official [DalamudPluginsD17](https://github.com/goatcorp/DalamudPlugi
 listing yet. Until then, install via this repo's custom plugin repository:
 
 1. In-game: `/xlsettings` → Experimental → Custom Plugin Repositories.
-2. Add: `https://raw.githubusercontent.com/Shuro/GobchatEx-plugin/main/repo.json`
+2. Add: `https://raw.githubusercontent.com/Shuro/dalamud-plugins/main/repo.json`
 3. `/xlplugins` → search "GobchatEx" → Install.
 
 Custom repositories get minimal support from the Dalamud team itself — if

@@ -12,7 +12,7 @@ namespace GobchatEx.Windows.SettingsTabs;
 
 internal sealed class AboutTab : ISettingsTab
 {
-    private const string RepoUrl = "https://github.com/Shuro/GobchatEx-plugin";
+    private const string RepoUrl = "https://github.com/Shuro/dalamud-plugins";
 
     public string Name => Loc.Get("About_TabName");
     public FontAwesomeIcon Icon => FontAwesomeIcon.InfoCircle;

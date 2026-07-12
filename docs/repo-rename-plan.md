@@ -1,5 +1,7 @@
 # Plan: Renaming the repo to a neutral name (e.g. "dalamud-plugins") + light multi-plugin readiness
 
+> **Status (2026-07-12): executed.** GitHub repo renamed to `Shuro/dalamud-plugins`, hardcoded URLs updated, `Directory.Build.props` + `global.json` added (Part 2 item 1). Old-name references below are kept as the historical record. CI matrix / repo.json upsert / `src/` move remain deferred per the YAGNI line.
+
 ## Context
 
 The repo is currently named after its one plugin (`GobchatEx-plugin`), containing exactly one Dalamud plugin project (`GobchatEx`). The user is weighing generalizing the container name (e.g. to `dalamud-plugins`) so the repo could eventually host more than one plugin. This document is an informational breakdown — not an execution checklist — covering what the rename actually touches, and separately, what "ready for a second plugin" would take. These are two independent decisions; either can happen without the other.
