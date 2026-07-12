@@ -5,7 +5,7 @@
     "Punchline": "Roleplay Highlighting, Mentions and much more.",
     "Description": "Roleplay Highlighting in the native chat. Mentions notification with sound effects and more.",
     "InternalName": "GobchatExPlugin",
-    "AssemblyVersion": "0.8.0",
+    "AssemblyVersion": "0.9.0",
     "RepoUrl": "https://github.com/Shuro/GobchatEx-plugin",
     "ApplicableVersion": "any",
     "Tags": [
@@ -21,8 +21,8 @@
     "IconUrl": "https://raw.githubusercontent.com/Shuro/GobchatEx-plugin/main/GobchatEx/images/icon.png",
     "IsHide": false,
     "IsTestingExclusive": false,
-    "DownloadLinkInstall": "https://github.com/Shuro/GobchatEx-plugin/releases/download/v0.8.0/latest.zip",
-    "DownloadLinkUpdate": "https://github.com/Shuro/GobchatEx-plugin/releases/download/v0.8.0/latest.zip",
-    "LastUpdate": "1783385878"
+    "DownloadLinkInstall": "https://github.com/Shuro/GobchatEx-plugin/releases/download/v0.9.0/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/Shuro/GobchatEx-plugin/releases/download/v0.9.0/latest.zip",
+    "LastUpdate": "1783816042"
   }
 ]
