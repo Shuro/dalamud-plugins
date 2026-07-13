@@ -281,6 +281,10 @@
     <data name="Range_EngineLimit_Tooltip"><value>Die Spiel-Engine begrenzt diesen Kanal bereits auf maximal 20 Yalms — Nachrichten von weiter weg kommen unabhängig von den oben eingestellten Entfernungen nie an.</value></data>
     <data name="Range_ChatTwo_Header"><value>Chat 2</value></data>
     <data name="Range_ChatTwo_Header_Tooltip"><value>In Chat 2 kann der Entfernungsfilter echte Transparenz pro Nachricht nutzen statt der dunkleren Farbstufen des normalen Chatverlaufs.</value></data>
+    <data name="Range_StartOpacity_Name"><value>Start-Deckkraft (%)</value></data>
+    <data name="Range_StartOpacity_Tooltip"><value>Deckkraft, sobald das Abblenden beginnt.</value></data>
+    <data name="Range_EndOpacity_Name"><value>End-Deckkraft (%)</value></data>
+    <data name="Range_EndOpacity_Tooltip"><value>Deckkraft kurz vor der Grenze, bevor die Nachricht ganz verschwindet.</value></data>
 
     <data name="ChatTwo_TabName"><value>Tab-Einstellungen</value></data>
     <data name="ChatTwo_Status_Connected"><value>Mit der Nachrichten-Gestaltung von Chat 2 verbunden.</value></data>

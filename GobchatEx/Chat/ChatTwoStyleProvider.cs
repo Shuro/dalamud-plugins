@@ -52,6 +52,8 @@ internal sealed class ChatTwoStyleProvider : IDisposable
         bool RangeEnabled,
         float FadeOut,
         float CutOff,
+        int StartOpacity,
+        int EndOpacity,
         HashSet<ushort> RangeChannels,
         IReadOnlyList<GroupRule> GroupRules,
         Dictionary<string, uint> GroupBackgrounds,
@@ -361,6 +363,10 @@ internal sealed class ChatTwoStyleProvider : IDisposable
             RangeEnabled: rangeActive,
             FadeOut: _config.RangeFilter.RangeFilterFadeOut,
             CutOff: _config.RangeFilter.RangeFilterCutOff,
+            // Clamped once per settings change (not per message) so a hand-edited JSON value
+            // outside 0-100 can never produce an alpha outside [0, 1].
+            StartOpacity: Math.Clamp(_config.RangeFilter.RangeFilterStartOpacity, 0, 100),
+            EndOpacity: Math.Clamp(_config.RangeFilter.RangeFilterEndOpacity, 0, 100),
             RangeChannels: [.. _config.RangeFilter.RangeFilterChannels.Select(c => (ushort)c)],
             GroupRules: rules,
             GroupBackgrounds: backgrounds,
@@ -460,6 +466,7 @@ internal sealed class ChatTwoStyleProvider : IDisposable
         if (visibility == 0)
             return (background, 0f);
 
-        return (background, visibility / (float)RangeFade.MaxVisibility);
+        return (background,
+            RangeFade.RemapOpacity(visibility, snapshot.StartOpacity, snapshot.EndOpacity) / (float)RangeFade.MaxVisibility);
     }
 }

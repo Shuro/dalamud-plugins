@@ -20,6 +20,11 @@ public class RangeFilterConfig
     public float RangeFilterCutOff { get; set; } = 24f;
     public float RangeFilterFadeOut { get; set; } = 16f;
 
+    // Chat 2's fade curve (app parity: startopacity 80, endopacity 30): opacity % at the fade-out
+    // distance and at the cut-off. Chat 2-only — the native log keeps its darkened-step dimming.
+    public int RangeFilterStartOpacity { get; set; } = 80;
+    public int RangeFilterEndOpacity { get; set; } = 30;
+
     /// <summary>Mentions bypass the range filter, so a far-away player calling your name still shows.</summary>
     public bool RangeFilterMentionsIgnoreRange { get; set; } = true;
 

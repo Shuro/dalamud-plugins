@@ -4,6 +4,7 @@ using Dalamud.Game.Text;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using GobchatEx.Chat;
 using GobchatEx.Config;
 using GobchatEx.Localization;
@@ -75,15 +76,36 @@ internal sealed class RangeTab : IToggleableTab
     }
 
     /// <summary>
-    /// Chat 2 always gets true per-message alpha and render-only hiding through the styling IPC
-    /// when connected — not user-configurable, since a given install only ever renders through
-    /// one chat surface (vanilla log or Chat 2). The native log always keeps the darkened-step
-    /// "lite" dimming above regardless.
+    /// The fade curve's start/end opacity for Chat 2's true per-message alpha (app parity:
+    /// opacity steps from 100% down to the start value the moment fading begins, then ramps to
+    /// the end value at the cut-off before render-only hiding). Disabled without a styling
+    /// connection because only Chat 2 can render per-message alpha — the native log keeps its
+    /// darkened-step "lite" dimming above regardless.
     /// </summary>
     private void DrawChatTwoOptions()
     {
         if (!chatTwoStyles.IsConnected)
             SettingsUi.Warning(Loc.Get("ChatTwo_NotConnected_Hint"));
+
+        using var disabled = ImRaii.Disabled(!chatTwoStyles.IsConnected);
+        var sliderWidth = MathF.Min(ImGui.GetContentRegionAvail().X, 480f * ImGuiHelpers.GlobalScale);
+
+        // AlwaysClamp deliberately, unlike the distance sliders (where typing past the slider max
+        // is a feature): an opacity outside 1-100% is never meaningful. No start >= end coupling
+        // either — the app doesn't enforce it and the lerp is well-defined inverted.
+        ImGui.TextUnformatted(Loc.Get("Range_StartOpacity_Name"));
+        ImGuiComponents.HelpMarker(Loc.Get("Range_StartOpacity_Tooltip"));
+        ImGui.SetNextItemWidth(sliderWidth);
+        var startOpacity = config.RangeFilterStartOpacity;
+        if (ImGui.SliderInt("##range-start-opacity", ref startOpacity, 1, 100, "%d%%", ImGuiSliderFlags.AlwaysClamp))
+            config.RangeFilterStartOpacity = startOpacity;
+
+        ImGui.TextUnformatted(Loc.Get("Range_EndOpacity_Name"));
+        ImGuiComponents.HelpMarker(Loc.Get("Range_EndOpacity_Tooltip"));
+        ImGui.SetNextItemWidth(sliderWidth);
+        var endOpacity = config.RangeFilterEndOpacity;
+        if (ImGui.SliderInt("##range-end-opacity", ref endOpacity, 1, 100, "%d%%", ImGuiSliderFlags.AlwaysClamp))
+            config.RangeFilterEndOpacity = endOpacity;
     }
 
     private void DrawDistanceSliders()

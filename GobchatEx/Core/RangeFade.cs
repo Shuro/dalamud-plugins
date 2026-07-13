@@ -29,6 +29,22 @@ public static class RangeFade
     }
 
     /// <summary>
+    /// Remaps a visibility onto the app's start/end opacity curve (ported from
+    /// RangeFilterPreview.opacityAtDistance): full visibility stays 100%, zero stays 0 (hidden),
+    /// and the partial range lerps from <paramref name="endOpacity"/> (at the cut-off) up to
+    /// <paramref name="startOpacity"/> (at the fade-out distance) — so opacity intentionally
+    /// steps from 100% straight down to ~<paramref name="startOpacity"/> the moment fading
+    /// begins. An inverted start &lt; end pair is deliberately allowed: the lerp is well-defined
+    /// either way (the fade then brightens with distance).
+    /// </summary>
+    public static int RemapOpacity(int visibility, int startOpacity, int endOpacity)
+    {
+        if (visibility >= MaxVisibility) return MaxVisibility;
+        if (visibility <= 0) return 0;
+        return endOpacity + (int)Math.Round((startOpacity - endOpacity) * visibility / (double)MaxVisibility);
+    }
+
+    /// <summary>
     /// Maps a partial visibility (0 &lt; visibility &lt; 100 — callers render 100 normally and
     /// suppress 0 outright) to a 0-based darkening step, 0 being the lightest. The open interval
     /// is split into <paramref name="stepCount"/> equal buckets.

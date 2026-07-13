@@ -281,6 +281,10 @@
     <data name="Range_EngineLimit_Tooltip"><value>The game engine already limits this channel to a maximum of 20 yalms — messages from further away never arrive, regardless of the distances set above.</value></data>
     <data name="Range_ChatTwo_Header"><value>Chat 2</value></data>
     <data name="Range_ChatTwo_Header_Tooltip"><value>In Chat 2 the range filter can use real per-message transparency instead of the darkened color steps of the native chat log.</value></data>
+    <data name="Range_StartOpacity_Name"><value>Opacity start (%)</value></data>
+    <data name="Range_StartOpacity_Tooltip"><value>Initial opacity at fade out distance.</value></data>
+    <data name="Range_EndOpacity_Name"><value>Opacity end (%)</value></data>
+    <data name="Range_EndOpacity_Tooltip"><value>Final opacity at cut off distance, before it disappears completely.</value></data>
 
     <data name="ChatTwo_TabName"><value>Tab settings</value></data>
     <data name="ChatTwo_Status_Connected"><value>Connected to Chat 2's message styling.</value></data>
