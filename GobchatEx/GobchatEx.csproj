@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Dalamud.NET.Sdk">
   <PropertyGroup>
-    <Version>0.10.0</Version>
+    <Version>0.10.1</Version>
     <AssemblyName>GobchatExPlugin</AssemblyName>
     <RootNamespace>GobchatEx</RootNamespace>
     <Description>Roleplay Highlighting in the native chat. Mentions notification with sound effects and more.</Description>
