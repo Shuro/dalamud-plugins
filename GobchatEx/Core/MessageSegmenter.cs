@@ -38,11 +38,16 @@ public sealed class MessageSegmenter
     /// driving the sound decision) but skips the visual overlay — the own-message highlight
     /// suppression path; a mention-only result then carries all-Undefined spans, which the
     /// payload rewriter passes through untouched.
+    /// <paramref name="detectEmote"/> is the app's "autodetect emote" rule: a quoted (Say) span
+    /// anywhere in the message reclassifies everything still untyped as Emote. Runs after the
+    /// mention overlay (mentions are never overwritten) and before <paramref name="defaultType"/>,
+    /// so a /say leftover becomes Emote instead of Say.
     /// </summary>
     public SegmentationResult? Segment(
         IReadOnlyList<string> runTexts,
         SegmentType defaultType = SegmentType.Undefined,
-        bool overlayMentions = true)
+        bool overlayMentions = true,
+        bool detectEmote = false)
     {
         if (runTexts.Count == 0)
             return null;
@@ -68,6 +73,9 @@ public sealed class MessageSegmenter
 
             spans = overlaid;
         }
+
+        if (detectEmote && spans.Any(runSpans => runSpans.Any(s => s.Type == SegmentType.Say)))
+            spans = ApplyDefaultType(spans, SegmentType.Emote);
 
         if (defaultType != SegmentType.Undefined)
             spans = ApplyDefaultType(spans, defaultType);

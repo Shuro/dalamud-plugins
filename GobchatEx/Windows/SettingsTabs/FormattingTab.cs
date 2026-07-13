@@ -87,8 +87,28 @@ internal sealed class FormattingTab : IToggleableTab
 
         ImGuiHelpers.ScaledDummy(10f);
 
+        SettingsUi.SectionHeader(Loc.Get("Formatting_DetectEmote_Header"));
+        DrawEmoteDetection();
+
+        ImGuiHelpers.ScaledDummy(10f);
+
         SettingsUi.SectionHeader(Loc.Get("Formatting_Channels_Header"));
         DrawChannels();
+    }
+
+    // No UI-side disabling when the Emote segment style is off — the behavior gate lives in
+    // ChatListener.SettingsChanged, same as the channel grid below, which also doesn't grey out.
+    private void DrawEmoteDetection()
+    {
+        var detectSay = config.DetectEmoteInSay;
+        if (SettingsUi.Toggle(Loc.Get("Formatting_DetectEmoteSay_Name"), ref detectSay))
+            config.DetectEmoteInSay = detectSay;
+        ImGuiComponents.HelpMarker(Loc.Get("Formatting_DetectEmote_Tooltip"));
+
+        var detectParty = config.DetectEmoteInParty;
+        if (SettingsUi.Toggle(Loc.Get("Formatting_DetectEmoteParty_Name"), ref detectParty))
+            config.DetectEmoteInParty = detectParty;
+        ImGuiComponents.HelpMarker(Loc.Get("Formatting_DetectEmote_Tooltip"));
     }
 
     private void DrawSegmentColors()

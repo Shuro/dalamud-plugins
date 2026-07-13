@@ -105,6 +105,10 @@
     <data name="Formatting_Segment_Ooc"><value>OOC</value></data>
     <data name="Formatting_Segment_Mention"><value>Mention</value></data>
     <data name="Formatting_Segment_Mention_Delimiters"><value>trigger words</value></data>
+    <data name="Formatting_DetectEmote_Header"><value>Emote detection</value></data>
+    <data name="Formatting_DetectEmoteSay_Name"><value>Autodetect emotes in say channel</value></data>
+    <data name="Formatting_DetectEmoteParty_Name"><value>Autodetect emotes in party channel</value></data>
+    <data name="Formatting_DetectEmote_Tooltip"><value>When direct speech is marked, everything else will be automatically flagged as emote.</value></data>
     <data name="Formatting_Channels_Header"><value>Channels with RP formatting</value></data>
     <data name="Formatting_Channels_Linkshells"><value>Linkshells</value></data>
     <data name="Formatting_Channels_CrossworldLinkshells"><value>Cross-world Linkshells</value></data>

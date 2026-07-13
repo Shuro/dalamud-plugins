@@ -10,9 +10,9 @@ public sealed class MessageSegmenterTests
 
     private static (string Text, SegmentType Type)[] SegmentSingleRun(
         MessageSegmenter segmenter, string text, out bool hasMention,
-        SegmentType defaultType = SegmentType.Undefined)
+        SegmentType defaultType = SegmentType.Undefined, bool detectEmote = false)
     {
-        var result = segmenter.Segment([text], defaultType);
+        var result = segmenter.Segment([text], defaultType, detectEmote: detectEmote);
         result.Should().NotBeNull();
         hasMention = result!.HasMention;
         AssertFullCoverage(text, result.RunSpans[0]);
@@ -305,5 +305,101 @@ public sealed class MessageSegmenterTests
                 ("\"", SegmentType.Say),
                 (" bye", SegmentType.Undefined));
         hasMention.Should().BeTrue();
+    }
+
+    // ------------------------------------------------------------------
+    // detectEmote — the app's "autodetect emote" rule. WHY: a quoted (Say)
+    // span anywhere in the message reclassifies everything still untyped
+    // as Emote; without one, nothing changes. Runs after the mention
+    // overlay (mentions survive) and before defaultType (a /say leftover
+    // becomes Emote, not Say). Promotion requires a Say span, which
+    // already implies a non-null result — the flag can never flip the
+    // null fast-path in either direction.
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public void DetectEmote_PromotesUndefinedToEmote_WhenQuotedSpanPresent()
+    {
+        // /say channel: promotion beats the Say channel default for the unquoted leftover.
+        SegmentSingleRun(DefaultSegmenter(), "\"hi\" waves", out _, SegmentType.Say, detectEmote: true)
+            .Should().Equal(
+                ("\"hi\"", SegmentType.Say),
+                (" waves", SegmentType.Emote));
+    }
+
+    [Fact]
+    public void DetectEmote_PartyChannel_PromotesWithoutDefaultType()
+    {
+        // Party has no channel default; the leftover is promoted from Undefined directly.
+        SegmentSingleRun(DefaultSegmenter(), "\"hi\" waves", out _, detectEmote: true)
+            .Should().Equal(
+                ("\"hi\"", SegmentType.Say),
+                (" waves", SegmentType.Emote));
+    }
+
+    [Fact]
+    public void DetectEmote_NoQuotedSpan_LeavesTypesUntouched()
+    {
+        // An Emote (or Ooc) span alone never triggers promotion — only quoted speech does.
+        SegmentSingleRun(DefaultSegmenter(), "he *waves* ok", out _, detectEmote: true)
+            .Should().Equal(
+                ("he ", SegmentType.Undefined),
+                ("*waves*", SegmentType.Emote),
+                (" ok", SegmentType.Undefined));
+    }
+
+    [Fact]
+    public void DetectEmote_NoQuotedSpan_PlainText_StillReturnsNull()
+    {
+        // The null fast-path invariant: a plain party message stays untouched with detection on.
+        DefaultSegmenter().Segment(["waves at you"], detectEmote: true).Should().BeNull();
+    }
+
+    [Fact]
+    public void DetectEmote_Off_KeepsLeftoverUndefined()
+    {
+        // Pins today's Party behavior as the off-state (the default parameter value).
+        SegmentSingleRun(DefaultSegmenter(), "\"hi\" waves", out _)
+            .Should().Equal(
+                ("\"hi\"", SegmentType.Say),
+                (" waves", SegmentType.Undefined));
+    }
+
+    [Fact]
+    public void DetectEmote_DoesNotOverwriteMentions()
+    {
+        SegmentSingleRun(DefaultSegmenter("Alice"), "\"hi Alice\" yo", out var hasMention, detectEmote: true)
+            .Should().Equal(
+                ("\"hi ", SegmentType.Say),
+                ("Alice", SegmentType.Mention),
+                ("\"", SegmentType.Say),
+                (" yo", SegmentType.Emote));
+        hasMention.Should().BeTrue();
+    }
+
+    [Fact]
+    public void DetectEmote_ExplicitOocAndEmote_KeepTheirTypes()
+    {
+        SegmentSingleRun(DefaultSegmenter(), "\"hi\" ((brb)) hm", out _, detectEmote: true)
+            .Should().Equal(
+                ("\"hi\"", SegmentType.Say),
+                (" ", SegmentType.Emote),
+                ("((brb))", SegmentType.Ooc),
+                (" hm", SegmentType.Emote));
+    }
+
+    [Fact]
+    public void DetectEmote_CrossRun_PromotesEveryRun()
+    {
+        // Whole-message semantics: a quote in one run promotes leftovers in every run.
+        var result = DefaultSegmenter().Segment(["he said \"nice", " indeed\" yes"], detectEmote: true);
+
+        result.Should().NotBeNull();
+        Render("he said \"nice", result!.RunSpans[0]).Should().Equal(
+            ("he said ", SegmentType.Emote),
+            ("\"nice", SegmentType.Say));
+        Render(" indeed\" yes", result.RunSpans[1]).Should().Equal(
+            (" indeed\"", SegmentType.Say),
+            (" yes", SegmentType.Emote));
     }
 }

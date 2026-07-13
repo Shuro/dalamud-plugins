@@ -105,6 +105,10 @@
     <data name="Formatting_Segment_Ooc"><value>OOC</value></data>
     <data name="Formatting_Segment_Mention"><value>Erwähnung</value></data>
     <data name="Formatting_Segment_Mention_Delimiters"><value>Auslösewörter</value></data>
+    <data name="Formatting_DetectEmote_Header"><value>Emote-Erkennung</value></data>
+    <data name="Formatting_DetectEmoteSay_Name"><value>Emotes im Sagen-Kanal automatisch erkennen</value></data>
+    <data name="Formatting_DetectEmoteParty_Name"><value>Emotes im Gruppen-Kanal automatisch erkennen</value></data>
+    <data name="Formatting_DetectEmote_Tooltip"><value>Wenn direkte Rede markiert ist, wird der restliche Text automatisch als Emote gekennzeichnet.</value></data>
     <data name="Formatting_Channels_Header"><value>Kanäle mit RP-Formatierung</value></data>
     <data name="Formatting_Channels_Linkshells"><value>Linkshells</value></data>
     <data name="Formatting_Channels_CrossworldLinkshells"><value>Serverübergreifende Linkshells</value></data>

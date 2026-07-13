@@ -17,6 +17,11 @@ public class FormattingConfig
 
     public bool RpHighlightEnabled { get; set; } = true;
 
+    // The app's "autodetect emote" rule (behaviour.chat.autodetectEmoteInSay/-InParty): a quoted
+    // span in a Say/Party message flags all remaining unmarked text as Emote. App-parity defaults.
+    public bool DetectEmoteInSay { get; set; } = true;
+    public bool DetectEmoteInParty { get; set; }
+
     // Defaults picked by Shuro, packed RGBA (0xRRGGBBAA): Say = F8F8F8 soft white, Emote =
     // FF8000 the game's own emote-channel orange, OOC = 808080 grey, Mention = AA81FF purple.
     // The Formatting tab's reset buttons restore these constants.

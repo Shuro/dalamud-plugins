@@ -38,6 +38,8 @@ public sealed class ChatListener : IDisposable
     private IReadOnlyList<GroupRule> _groupRules = [];
     private Dictionary<string, (uint Foreground, uint Glow)> _groupStyles = new();
     private bool _enabled;
+    private bool _detectEmoteInSay;
+    private bool _detectEmoteInParty;
     private bool _rangeEnabled;
     private HashSet<XivChatType> _rangeChannels = [];
     private Dictionary<XivChatType, uint> _chatTwoChannelColors = [];
@@ -214,6 +216,14 @@ public sealed class ChatListener : IDisposable
 
         var rules = DefaultRules.All.Where(rule => StyleFor(rule.Type).Enabled).ToList();
 
+        // Gated on the Emote style, mirroring DefaultTypeFor's "a disabled style never produces
+        // that SegmentType" rule — otherwise leftovers would be typed Emote and render plain via
+        // the (0, 0) tuple instead of falling back to the Say channel default. The Say side needs
+        // no gate: with SayStyle disabled no Say token rule is built (above), so no quoted span
+        // can ever exist and detection is naturally inert.
+        _detectEmoteInSay = _config.Formatting.DetectEmoteInSay && _config.Formatting.EmoteStyle.Enabled;
+        _detectEmoteInParty = _config.Formatting.DetectEmoteInParty && _config.Formatting.EmoteStyle.Enabled;
+
         _rangeEnabled = _config.RangeFilter.RangeFilterEnabled;
         _rangeChannels = [.. _config.RangeFilter.RangeFilterChannels];
         _chatTwoChannelColors = ChatTwoChannelColors.Read();
@@ -325,6 +335,19 @@ public sealed class ChatListener : IDisposable
         XivChatType.Say when StyleFor(SegmentType.Say).Enabled => SegmentType.Say,
         XivChatType.CustomEmote when StyleFor(SegmentType.Emote).Enabled => SegmentType.Emote,
         _ => SegmentType.Undefined,
+    };
+
+    /// <summary>
+    /// Whether the emote autodetection applies on this channel: a quoted span then flags all
+    /// remaining unmarked text as Emote (see <see cref="MessageSegmenter.Segment"/>). Party and
+    /// cross-world party are paired like everywhere else (e.g.
+    /// <see cref="FormattingConfig.DefaultHighlightChannels"/>).
+    /// </summary>
+    private bool DetectEmoteFor(XivChatType channel) => channel switch
+    {
+        XivChatType.Say => _detectEmoteInSay,
+        XivChatType.Party or XivChatType.CrossParty => _detectEmoteInParty,
+        _ => false,
     };
 
     /// <summary>
@@ -455,7 +478,8 @@ public sealed class ChatListener : IDisposable
         var suppressOwnHighlight = _config.Mentions.SuppressHighlightFromSelf
             && message.LogKind != XivChatType.Echo
             && IsFromSelf(message);
-        var result = _segmenter.Segment(runTexts, DefaultTypeFor(message.LogKind), overlayMentions: !suppressOwnHighlight);
+        var result = _segmenter.Segment(runTexts, DefaultTypeFor(message.LogKind),
+            overlayMentions: !suppressOwnHighlight, detectEmote: DetectEmoteFor(message.LogKind));
         if (result == null)
             return;
 
