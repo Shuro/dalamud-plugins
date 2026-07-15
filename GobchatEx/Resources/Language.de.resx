@@ -150,15 +150,7 @@
     <data name="Mentions_Sound_PlayOnMatch_Tooltip"><value>Spiel-Soundeffekte folgen der Soundeffekt-Lautstärke des Spiels; eine eigene Sounddatei hat ihren eigenen Lautstärkeregler.</value></data>
     <data name="Mentions_Sound_Cooldown"><value>Abklingzeit</value></data>
     <data name="Mentions_Sound_SuppressSelf"><value>Nicht bei eigenen Nachrichten abspielen</value></data>
-    <data name="Mentions_Sound_SourceGame"><value>Spiel-Soundeffekt</value></data>
-    <data name="Mentions_Sound_SourceFile"><value>Eigene Sounddatei</value></data>
-    <data name="Mentions_Sound_File_Hint"><value>Pfad zu einer .wav-, .mp3- oder .ogg-Datei</value></data>
-    <data name="Mentions_Sound_BrowseTitle"><value>Erwähnungston auswählen</value></data>
-    <data name="Mentions_Sound_Browse_Tooltip"><value>Sounddatei auswählen</value></data>
     <data name="Mentions_Sound_Volume"><value>Lautstärke</value></data>
-    <data name="Mentions_Sound_FileMissing"><value>Datei nicht gefunden — stattdessen wird der Spiel-Soundeffekt abgespielt.</value></data>
-    <data name="Mentions_Sound_PreviewFailed"><value>Die Datei konnte nicht abgespielt werden — stattdessen wird der Spiel-Soundeffekt abgespielt (Details im Plugin-Log).</value></data>
-    <data name="Mentions_Sound_FileTooLong"><value>Die Datei ist {0:0.#} Sekunden lang — Hinweistöne wirken am besten mit höchstens {1:0} Sekunden.</value></data>
     <data name="Mentions_Global_Header"><value>Globale Erwähnungen</value></data>
     <data name="Mentions_Global_Header_Tooltip"><value>Wörter und Namen, die als Erwähnung zählen (Groß-/Kleinschreibung wird ignoriert, ganze Wörter).</value></data>
     <data name="Mentions_Trigger_Hint"><value>Wort oder Namen hinzufügen…</value></data>
@@ -188,6 +180,9 @@
     <data name="Mentions_Character_CustomWords"><value>Eigene Wörter</value></data>
     <data name="Mentions_Character_CustomWord_Hint"><value>Eigenes Wort hinzufügen…</value></data>
     <data name="Mentions_CustomWord_Remove_Tooltip"><value>Strg+Umschalt gedrückt halten und klicken, um dieses Wort zu entfernen.</value></data>
+    <data name="Mentions_Test_Header"><value>Tester</value></data>
+    <data name="Mentions_Test_Header_Tooltip"><value>Gib eine Beispielnachricht ein, um zu sehen, was gerade als Erwähnung zählen würde — Auslösewörter, Charakternamen und die Fuzzy-Stufe gelten genau wie im Chat.</value></data>
+    <data name="Mentions_Test_Hint"><value>Nachricht zum Testen eingeben…</value></data>
 
     <data name="Groups_TabName"><value>Gruppen</value></data>
     <data name="Groups_Custom_Header"><value>Eigene Gruppen</value></data>
@@ -307,6 +302,30 @@
     <data name="ColorPicker_Recolor_Tooltip"><value>Eigene Farbe. Rechtsklick zum Zurücksetzen.</value></data>
 
     <data name="Sound_EffectName"><value>Soundeffekt {0}</value></data>
+    <data name="Sound_SourceGame"><value>Spiel-Soundeffekt</value></data>
+    <data name="Sound_SourceFile"><value>Eigene Sounddatei</value></data>
+    <data name="Sound_File_Hint"><value>Pfad zu einer .wav-, .mp3- oder .ogg-Datei</value></data>
+    <data name="Sound_BrowseTitle"><value>Sounddatei auswählen</value></data>
+    <data name="Sound_Browse_Tooltip"><value>Nach einer Sounddatei suchen</value></data>
+    <data name="Sound_Volume"><value>Lautstärke</value></data>
+    <data name="Sound_FileMissing"><value>Datei nicht gefunden — stattdessen wird der Spiel-Soundeffekt abgespielt.</value></data>
+    <data name="Sound_PreviewFailed"><value>Die Datei konnte nicht abgespielt werden — stattdessen wird der Spiel-Soundeffekt abgespielt (Details im Plugin-Log).</value></data>
+    <data name="Sound_FileTooLong"><value>Die Datei ist {0:0.#} Sekunden lang — Hinweistöne wirken am besten mit höchstens {1:0} Sekunden.</value></data>
+
+    <data name="Groups_Sound_PlayOnMessage"><value>Sound abspielen, wenn eine Nachricht eines Gruppenmitglieds eintrifft</value></data>
+    <data name="Groups_Sound_PlayOnMessage_Tooltip"><value>Pro Nachricht spielt höchstens ein Sound — trifft die Nachricht auch eine Erwähnung und der Erwähnungs-Sound ist aktiviert, gewinnt der Erwähnungs-Sound. Eigene Nachrichten spielen nie einen Gruppen-Sound.</value></data>
+    <data name="Groups_Sound_Cooldown"><value>Sound-Abklingzeit</value></data>
+    <data name="Groups_Sound_Cooldown_Tooltip"><value>Gilt für alle Gruppen gemeinsam: Nachdem ein Gruppen-Sound gespielt hat, bleiben weitere Gruppen-Sounds so lange stumm.</value></data>
+
+    <data name="MentionHistory_Title"><value>Letzte Erwähnungen</value></data>
+    <data name="MentionHistory_Empty"><value>Noch keine Erwähnungen.</value></data>
+    <data name="MentionHistory_Clear"><value>Leeren</value></data>
+    <data name="MentionHistory_Column_Time"><value>Zeit</value></data>
+    <data name="MentionHistory_Column_Channel"><value>Kanal</value></data>
+    <data name="MentionHistory_Column_Sender"><value>Absender</value></data>
+    <data name="MentionHistory_Column_Mentions"><value>Erwähnungen</value></data>
+    <data name="MentionHistory_Column_Message"><value>Nachricht</value></data>
+    <data name="MentionHistory_Sender_Tooltip"><value>Rechtsklick, um diesen Spieler zu einer Gruppe hinzuzufügen oder daraus zu entfernen.</value></data>
 
     <data name="Commands_Primary_Help"><value>Öffnet das GobchatEx-Einstellungsfenster. /gex help zeigt die vollständige Befehlsliste.</value></data>
     <data name="Commands_Alias_Help"><value>Alias für /gex — öffnet das GobchatEx-Einstellungsfenster.</value></data>
@@ -329,6 +348,24 @@
     <data name="Commands_Player_DistanceNotFound"><value>Kein Spieler in der Nähe passend zu "{0}" gefunden.</value></data>
     <data name="Commands_Player_InvalidSyntax"><value>Ungültige Syntax. Versuch's mit: /gex player count|list|distance &lt;Name&gt; [Welt]</value></data>
 
+    <data name="Commands_Mention_Added"><value>Auslösewort "{0}" hinzugefügt.</value></data>
+    <data name="Commands_Mention_AlreadyExists"><value>"{0}" ist bereits ein Auslösewort.</value></data>
+    <data name="Commands_Mention_Removed"><value>Auslösewort "{0}" entfernt.</value></data>
+    <data name="Commands_Mention_NotFound"><value>"{0}" ist kein Auslösewort.</value></data>
+    <data name="Commands_Mention_ListEmpty"><value>Noch keine Auslösewörter.</value></data>
+    <data name="Commands_Mention_List"><value>Auslösewörter: {0}</value></data>
+    <data name="Commands_Mention_InvalidSyntax"><value>Ungültige Syntax. Versuch's mit: /gex mention add|remove &lt;Wort&gt; oder /gex mention list</value></data>
+
+    <data name="Commands_Log_Started"><value>Chat-Protokollierung gestartet.</value></data>
+    <data name="Commands_Log_AlreadyLogging"><value>Die Chat-Protokollierung läuft bereits.</value></data>
+    <data name="Commands_Log_Stopped"><value>Chat-Protokollierung gestoppt.</value></data>
+    <data name="Commands_Log_NotLogging"><value>Die Chat-Protokollierung läuft nicht.</value></data>
+    <data name="Commands_Log_NoFolder"><value>Kein Protokollordner gewählt — wähle zuerst einen im Protokolle-Tab der Einstellungen.</value></data>
+    <data name="Commands_Log_StatusOn"><value>Chat-Protokollierung ist an — die Protokolldatei wird mit der ersten Nachricht angelegt.</value></data>
+    <data name="Commands_Log_StatusOnFile"><value>Chat-Protokollierung ist an — schreibt nach {0}.</value></data>
+    <data name="Commands_Log_StatusOff"><value>Chat-Protokollierung ist aus.</value></data>
+    <data name="Commands_Log_InvalidSyntax"><value>Ungültige Syntax. Versuch's mit: /gex log start|stop|status</value></data>
+
     <data name="Commands_Unknown"><value>Unbekannter Befehl "{0}". Versuch's mit /gex help.</value></data>
 
     <data name="Commands_Help_Header"><value>GobchatEx-Befehle:</value></data>
@@ -339,6 +376,9 @@
     <data name="Commands_Help_PlayerCount"><value>/gex player count - wie viele Spieler in der Nähe sind.</value></data>
     <data name="Commands_Help_PlayerList"><value>/gex player list - Spieler in der Nähe mit ihrer Entfernung.</value></data>
     <data name="Commands_Help_PlayerDistance"><value>/gex player distance &lt;Name&gt; - deine Entfernung zu einem Spieler.</value></data>
+    <data name="Commands_Help_Mention"><value>/gex mention add|remove &lt;Wort&gt; - fügt ein Auslösewort hinzu oder entfernt es.</value></data>
+    <data name="Commands_Help_MentionList"><value>/gex mention list - listet deine Auslösewörter.</value></data>
+    <data name="Commands_Help_Log"><value>/gex log start|stop|status - steuert die Chat-Protokollierung für diese Sitzung.</value></data>
 
     <data name="General_LegacyEchoFallback_Name"><value>Alte /e gc-Befehle aktivieren</value></data>
     <data name="General_LegacyEchoFallback_Tooltip"><value>Wenn aktiviert, erkennt GobchatEx auch die alten "/e gc ..."-Echo-Befehle der ursprünglichen Desktop-App, damit bestehende Makros weiter funktionieren. Es werden nur deine eigenen lokalen Echo-Nachrichten gelesen — es wird nichts an andere Spieler gesendet. Hinweis: Echo-Text, der zufällig mit "gc " beginnt (von dir oder einem anderen Plugin), kann eine harmlose "Unbekannter Befehl"-Antwort auslösen; deaktiviere die Option, falls das stört.</value></data>

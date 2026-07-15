@@ -242,6 +242,11 @@ public class QuickbarWindow : Window
 
         VerticalDivider();
 
+        if (ImGuiComponents.IconButton(FontAwesomeIcon.Bell))
+            plugin.ToggleMentionHistory();
+        SettingsUi.Tooltip(Loc.Get("MentionHistory_Title"));
+        ImGui.SameLine();
+
         if (ImGuiComponents.IconButton(FontAwesomeIcon.Cog))
             plugin.OpenSettingsUI();
         SettingsUi.Tooltip(Loc.Get("Quickbar_OpenSettings_Tooltip"));

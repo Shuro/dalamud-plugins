@@ -63,6 +63,8 @@ public sealed class Plugin : IDalamudPlugin
     // (which hands it to MentionsTab); disposed after ChatListener.
     internal SoundPlayer SoundPlayer { get; } = new();
     internal FriendListAddonListener FriendListListener { get; init; }
+    // Written by ChatListener's chat pass, shown by MentionHistoryWindow; in-memory only.
+    internal MentionHistory MentionHistory { get; } = new();
     // The Range tab's transient in-game range preview. Created before SettingsWindow (which
     // hands it to RangeTab); drawn from DrawUI, no state to persist or dispose.
     internal RangeRingsOverlay RangeRings { get; } = new();
@@ -73,6 +75,7 @@ public sealed class Plugin : IDalamudPlugin
     internal ChatTwoStyleProvider ChatTwoStyles { get; init; }
     private SettingsWindow SettingsWindow { get; init; }
     private QuickbarWindow QuickbarWindow { get; init; }
+    private MentionHistoryWindow MentionHistoryWindow { get; init; }
 
     public Plugin()
     {
@@ -94,6 +97,8 @@ public sealed class Plugin : IDalamudPlugin
         WindowSystem.AddWindow(SettingsWindow);
         QuickbarWindow = new QuickbarWindow(this);
         WindowSystem.AddWindow(QuickbarWindow);
+        MentionHistoryWindow = new MentionHistoryWindow(this);
+        WindowSystem.AddWindow(MentionHistoryWindow);
 
         // Dalamud has no alias mechanism on CommandInfo, so each command
         // name gets its own handler pointing at the same action. DisplayOrder
@@ -122,7 +127,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenMainUi += ToggleSettingsUI;
         PluginInterface.LanguageChanged += OnLanguageChanged;
 
-        ChatListener = new ChatListener(Configuration, FriendGroups, SoundPlayer);
+        ChatListener = new ChatListener(Configuration, FriendGroups, SoundPlayer, MentionHistory);
         LegacyCommandListener = new LegacyCommandListener(this);
         FriendListListener = new FriendListAddonListener(FriendGroups);
         ContextMenu.OnMenuOpened += OnMenuOpened;
@@ -244,6 +249,9 @@ public sealed class Plugin : IDalamudPlugin
         RangeRings.Draw();
     }
     public void ToggleSettingsUI() => SettingsWindow.Toggle();
+
+    /// <summary>Toggles the recent-mentions window (Milestone 7) — the Quickbar's bell button.</summary>
+    internal void ToggleMentionHistory() => MentionHistoryWindow.Toggle();
 
     /// <summary>Opens (never closes) and focuses the settings window — the Quickbar's cog.</summary>
     public void OpenSettingsUI()

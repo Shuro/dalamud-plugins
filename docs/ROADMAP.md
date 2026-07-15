@@ -193,6 +193,44 @@ Write chat to disk, ported from the app's `Module/Misc/Chatlogger/`:
 - Batched framework-thread writes (1 s flush); messages suppressed by other
   plugins (IsHandled) are not logged — the log mirrors what the player sees
 
+## Milestone 6 — Per-group alert sounds — Built, awaiting in-game smoke test
+
+A sound when someone from a colored group speaks — "my RP partner said
+something". The per-group tier is the cheap one: group identity is already
+resolved per message by the group-coloring pass, unlike trigger identity,
+which `MentionMatcher` merges away (see Considered, not planned):
+
+- Optional per-group sound mirroring the Mentions options (game effect or
+  custom file, volume); default off, with a cooldown
+- `SoundPlayer`'s single loaded-file cache generalizes to a small path-keyed
+  cache — the multi-sound cache anticipated in
+  [ADR 0003](adr/0003-game-sound-effects-only-v1.md)
+- Policy is [ADR 0005](adr/0005-per-group-alert-sounds.md): shared cooldown
+  across all groups, mention sound wins on overlap (at most one sound per
+  message), own messages never alert, channel scope = group-coloring scope
+- Groups tab grows a per-group sound row; the Mentions tab's sound picker
+  is extracted into a shared control (`AlertSoundEditor`) rather than
+  duplicated. Friend groups are engine-supported but have no sound UI yet
+
+Complexity: medium.
+
+## Milestone 7 — Mention history window — Built, awaiting in-game smoke test
+
+Review mentions missed while AFK or in another window:
+
+- In-memory ring buffer (~50 entries) capturing timestamp, channel, sender,
+  and message text at mention time — captured as plain strings immediately
+  (the message object is pooled), independent of the sound settings
+- Newest-first table window with a clear button, optionally toggled from
+  the Quickbar
+- Right-click a row to add the sender to a player group via the existing
+  group membership actions
+- Nothing persisted to disk — no submission friction around storing other
+  players' chat outside the opt-in logger
+
+Complexity: medium. Sequenced after Milestone 6 — both touch alert policy
+and the Quickbar surface.
+
 ## Backlog / opportunistic
 
 - Custom sound files for mention alerts — done (wav/mp3/ogg via NAudio with
@@ -209,6 +247,28 @@ Write chat to disk, ported from the app's `Module/Misc/Chatlogger/`:
   your own messages by default; Echo exempt for testing)
 - In-game preview rings for the range distance sliders — done (plugin-new,
   no app equivalent)
+- Command parity — built, awaiting in-game smoke test:
+  `/gex log start|stop|status` (macro-friendly, mirrors the Quickbar/Logs-tab
+  button; logging stays session-scoped and non-persisted) and
+  `/gex mention add|remove|list <word>`; the possible `/gex toggle <feature>`
+  rider for the four master switches remains open
+- Mention tester — built, awaiting in-game smoke test: a "try a message"
+  field in the Mentions tab that runs the live mention rules and highlights
+  what matched — makes the fuzzy levels self-explanatory, no more `/echo`
+  testing in game (app precedent: the settings UI's live previews)
+
+## Considered, not planned
+
+Candidates from the further-features review (2026-07) that didn't make the
+roadmap, kept so the research isn't lost:
+
+| Idea | Why not (for now) |
+| --- | --- |
+| PUA boxed-glyph folding for matching (app's `Core/Chat/ChatUtil.cs`, `MapBoxedGlyphsToAscii`) | Not selected. Known gap: FFXIV's "boxed" glyphs (U+E060–E08A) are NFKC-invariant, so `UnicodeNormalizer` passes them through and mentions never match such text — documented in case it resurfaces |
+| Chat-log format editor UI | Not selected; `LogFormat` stays hand-editable in chatlog.json |
+| Settings-window search | The app's approach scans the rendered HTML label tree, which doesn't port to ImGui; too few tabs to justify a per-tab search index maintained in EN+DE |
+| Clickable web links in the native log | Chat 2 — the plugin's optional second render target — already linkifies URLs (likely SimpleTweaks too); link payloads would also collide with the plugin's own color spans |
+| Per-trigger / per-character mention sounds | Match identity is merged away in `MentionMatcher` before a sound could route; per-group sounds (Milestone 6) cover the real request |
 
 ## Explicitly not migrating
 

@@ -14,6 +14,12 @@ public enum CommandRouteKind
     /// <summary>"player"/"p" — <see cref="CommandRoute.Rest"/> is the text after that word.</summary>
     Player,
 
+    /// <summary>"mention" — <see cref="CommandRoute.Rest"/> is the text after that word.</summary>
+    Mention,
+
+    /// <summary>"log" — <see cref="CommandRoute.Rest"/> is the text after that word.</summary>
+    Log,
+
     /// <summary>"help" — print the command list.</summary>
     Help,
 
@@ -53,6 +59,12 @@ public static class CommandRouter
         if (firstWord.Equals("player", StringComparison.OrdinalIgnoreCase)
             || firstWord.Equals("p", StringComparison.OrdinalIgnoreCase))
             return new CommandRoute(CommandRouteKind.Player, rest);
+
+        if (firstWord.Equals("mention", StringComparison.OrdinalIgnoreCase))
+            return new CommandRoute(CommandRouteKind.Mention, rest);
+
+        if (firstWord.Equals("log", StringComparison.OrdinalIgnoreCase))
+            return new CommandRoute(CommandRouteKind.Log, rest);
 
         if (firstWord.Equals("help", StringComparison.OrdinalIgnoreCase))
             return new CommandRoute(CommandRouteKind.Help, string.Empty);

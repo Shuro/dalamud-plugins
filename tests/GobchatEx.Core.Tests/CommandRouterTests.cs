@@ -39,6 +39,28 @@ public sealed class CommandRouterTests
     }
 
     [Theory]
+    [InlineData("mention add hello", "add hello")]
+    [InlineData("MENTION add hello", "add hello")]
+    public void Mention_RoutesToMention_WithTextAfterFirstWordAsRest(string args, string expectedRest)
+    {
+        var route = CommandRouter.Parse(args);
+
+        route.Kind.Should().Be(CommandRouteKind.Mention);
+        route.Rest.Should().Be(expectedRest);
+    }
+
+    [Theory]
+    [InlineData("log start", "start")]
+    [InlineData("LOG start", "start")]
+    public void Log_RoutesToLog_WithTextAfterFirstWordAsRest(string args, string expectedRest)
+    {
+        var route = CommandRouter.Parse(args);
+
+        route.Kind.Should().Be(CommandRouteKind.Log);
+        route.Rest.Should().Be(expectedRest);
+    }
+
+    [Theory]
     [InlineData("help")]
     [InlineData("HELP")]
     public void Help_RoutesToHelp(string args)

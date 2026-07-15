@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
+using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
@@ -39,34 +39,31 @@ internal sealed class MentionsTab : IToggleableTab
     }
 
     private readonly MentionsConfig config;
-    private readonly SoundPlayer soundPlayer;
+    private readonly FormattingConfig formatting;
+    private readonly Action openHistory;
     private readonly FileDialogManager fileDialog = new();
+    private readonly AlertSoundEditor soundEditor;
     private string newTrigger = string.Empty;
+    private string testMessage = string.Empty;
     private readonly Dictionary<string, string> newCustomWordByCharacter = new(StringComparer.OrdinalIgnoreCase);
 
-    // Alert sounds should stay short; anything longer gets a warning (the
-    // file still plays — it's advice, not a limit).
-    private static readonly TimeSpan MaxAlertDuration = TimeSpan.FromSeconds(5);
-
-    // Per-frame File.Exists (and the duration probe) would hit the disk while
-    // the tab is open, so the check runs once per distinct path (settings
-    // edits and dialog picks).
-    private string? checkedPath;
-    private bool checkedPathExists;
-    private TimeSpan? checkedPathDuration;
-
-    // A failed preview would otherwise be invisible (the error only lands in
-    // the log). Sticks until the path changes or a preview succeeds.
-    private bool previewFailed;
-
-    public MentionsTab(MentionsConfig config, SoundPlayer soundPlayer)
+    public MentionsTab(MentionsConfig config, SoundPlayer soundPlayer, FormattingConfig formatting,
+        Action openHistory)
     {
         this.config = config;
-        this.soundPlayer = soundPlayer;
+        this.formatting = formatting;
+        this.openHistory = openHistory;
+        soundEditor = new AlertSoundEditor(fileDialog, soundPlayer);
     }
 
     public void Draw()
     {
+        // Same bell as the Quickbar — the history window is where mentions land, so it gets
+        // a door from the tab that configures them.
+        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Bell, Loc.Get("MentionHistory_Title")))
+            openHistory();
+        ImGuiHelpers.ScaledDummy(6f);
+
         SettingsUi.SectionHeader(Loc.Get("Mentions_General_Header"));
         DrawSoundSettings();
 
@@ -82,7 +79,65 @@ internal sealed class MentionsTab : IToggleableTab
             Loc.Get("Mentions_Player_Header_Tooltip"));
         DrawPlayerMentions();
 
+        ImGuiHelpers.ScaledDummy(10f);
+
+        SettingsUi.SectionHeader(Loc.Get("Mentions_Test_Header"),
+            Loc.Get("Mentions_Test_Header_Tooltip"));
+        DrawTester();
+
         fileDialog.Draw();
+    }
+
+    private void DrawTester()
+    {
+        // The matcher is rebuilt every frame while there is test text: the preview must
+        // reflect edits made in this very tab (triggers, characters, fuzzy level) instantly,
+        // and building it for one short string is far cheaper than tracking every config
+        // change. No token rules — this tests the mention overlay in isolation, exactly like
+        // the Chat 2 provider's mention-bypass segmenter.
+        IReadOnlyList<SegmentSpan> spans = [];
+        var hasMatch = false;
+        if (testMessage.Length > 0)
+        {
+            var segmenter = new MessageSegmenter((IReadOnlyList<TokenRule>)[], ChatListener.BuildMentionRules(config));
+            if (segmenter.Segment([testMessage]) is { HasMention: true } result)
+            {
+                spans = result.RunSpans[0].Where(s => s.Type == SegmentType.Mention).ToArray();
+                hasMatch = true;
+            }
+        }
+
+        // The preview sits above the input in an input-styled frame (ChildFrame = FrameBg
+        // background + frame padding), so it reads as the output field of the input below —
+        // loose colored text floating over the input looked like debris. Always drawn, one
+        // line tall when empty, growing with the wrapped line count for long messages.
+        var style = ImGui.GetStyle();
+        var boxWidth = ImGui.GetContentRegionAvail().X;
+        var wrapWidth = boxWidth - style.FramePadding.X * 2f;
+        var lines = testMessage.Length > 0
+            ? SettingsUi.HighlightedTextLineCount(testMessage, spans, wrapWidth)
+            : 1;
+        var boxSize = new Vector2(boxWidth, lines * ImGui.GetTextLineHeight() + style.FramePadding.Y * 2f);
+
+        using (var frame = ImRaii.ChildFrame(ImGui.GetID("##mentionTestPreview"), boxSize))
+        {
+            if (frame)
+            {
+                if (testMessage.Length > 0)
+                {
+                    // The message always shows, even without a match — an all-dim line is the
+                    // "nothing matched" signal, and the text stays visible for tweaking (a
+                    // note in its place hid the very message being tested).
+                    using var dim = ImRaii.PushColor(ImGuiCol.Text,
+                        ImGui.GetColorU32(ImGuiCol.TextDisabled), !hasMatch);
+                    SettingsUi.HighlightedTextWrapped(testMessage, spans,
+                        RgbaColor.ToVector4(formatting.MentionStyle.Foreground), wrapWidth);
+                }
+            }
+        }
+
+        ImGui.SetNextItemWidth(boxWidth);
+        ImGui.InputTextWithHint("##mentionTest", Loc.Get("Mentions_Test_Hint"), ref testMessage, 256);
     }
 
     private void DrawSoundSettings()
@@ -101,16 +156,9 @@ internal sealed class MentionsTab : IToggleableTab
 
         using var disabled = ImRaii.Disabled(!config.MentionSoundEnabled);
 
-        if (ImGui.RadioButton(Loc.Get("Mentions_Sound_SourceGame"), !config.MentionSoundUseCustomFile))
-            config.MentionSoundUseCustomFile = false;
-        ImGui.SameLine();
-        if (ImGui.RadioButton(Loc.Get("Mentions_Sound_SourceFile"), config.MentionSoundUseCustomFile))
-            config.MentionSoundUseCustomFile = true;
-
-        if (config.MentionSoundUseCustomFile)
-            DrawCustomFileSettings();
-        else
-            DrawGameSoundSettings();
+        // The volume slider stays in this tab's two-up cooldown/volume row below rather than
+        // inside the shared editor (showVolume: false).
+        soundEditor.Draw(config, showVolume: false);
 
         DrawCooldownVolumeRow(showVolume: config.MentionSoundUseCustomFile);
 
@@ -158,80 +206,6 @@ internal sealed class MentionsTab : IToggleableTab
         var volumePercent = (int)Math.Round(config.MentionSoundVolume * 100f);
         if (ImGui.SliderInt("##volume", ref volumePercent, 0, 100, "%d%%"))
             config.MentionSoundVolume = volumePercent / 100f;
-    }
-
-    private void DrawGameSoundSettings()
-    {
-        ImGui.SetNextItemWidth(180f * ImGuiHelpers.GlobalScale);
-        using (var combo = ImRaii.Combo("##soundEffect", GameSound.Name(config.MentionSoundEffect)))
-        {
-            if (combo)
-            {
-                for (var effect = GameSound.Min; effect <= GameSound.Max; ++effect)
-                {
-                    if (!ImGui.Selectable(GameSound.Name(effect), effect == config.MentionSoundEffect))
-                        continue;
-
-                    config.MentionSoundEffect = effect;
-                    SoundPlayer.Play(effect); // instant preview of the choice
-                }
-            }
-        }
-
-        ImGui.SameLine();
-        if (ImGuiComponents.IconButton(FontAwesomeIcon.Play))
-            SoundPlayer.Play(config.MentionSoundEffect);
-    }
-
-    private void DrawCustomFileSettings()
-    {
-        var path = config.MentionSoundFilePath;
-        var reserved = SettingsUi.IconButtonWidth(FontAwesomeIcon.FolderOpen)
-            + SettingsUi.IconButtonWidth(FontAwesomeIcon.Play)
-            + ImGui.GetStyle().ItemSpacing.X * 2f;
-        ImGui.SetNextItemWidth(-reserved);
-        if (ImGui.InputTextWithHint("##soundFile", Loc.Get("Mentions_Sound_File_Hint"), ref path, 260))
-            config.MentionSoundFilePath = path;
-
-        ImGui.SameLine();
-        if (ImGuiComponents.IconButton(FontAwesomeIcon.FolderOpen))
-        {
-            fileDialog.OpenFileDialog(Loc.Get("Mentions_Sound_BrowseTitle"), "Audio{.wav,.mp3,.ogg}",
-                (ok, file) =>
-                {
-                    if (ok)
-                        config.MentionSoundFilePath = file;
-                });
-        }
-
-        SettingsUi.Tooltip(Loc.Get("Mentions_Sound_Browse_Tooltip"));
-
-        ImGui.SameLine();
-        if (ImGuiComponents.IconButton(FontAwesomeIcon.Play))
-            previewFailed = !soundPlayer.PlayFile(config.MentionSoundFilePath, config.MentionSoundVolume);
-
-        if (config.MentionSoundFilePath.Length == 0)
-            return;
-
-        CheckPathCached(config.MentionSoundFilePath);
-        if (!checkedPathExists)
-            SettingsUi.Warning(Loc.Get("Mentions_Sound_FileMissing"));
-        else if (previewFailed)
-            SettingsUi.Warning(Loc.Get("Mentions_Sound_PreviewFailed"));
-        else if (checkedPathDuration is { } duration && duration > MaxAlertDuration)
-            SettingsUi.Warning(string.Format(Loc.Get("Mentions_Sound_FileTooLong"),
-                duration.TotalSeconds, MaxAlertDuration.TotalSeconds));
-    }
-
-    private void CheckPathCached(string path)
-    {
-        if (checkedPath == path)
-            return;
-
-        checkedPath = path;
-        checkedPathExists = File.Exists(path);
-        checkedPathDuration = checkedPathExists ? SoundPlayer.GetDuration(path) : null;
-        previewFailed = false;
     }
 
     private void DrawTriggers()

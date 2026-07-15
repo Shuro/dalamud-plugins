@@ -12,7 +12,7 @@ namespace GobchatEx.Config;
 /// rendered via a raw SeString Color/EdgeColor macro; 0 means "do not recolor".
 /// </summary>
 [Serializable]
-public class PlayerGroup
+public class PlayerGroup : IAlertSoundSettings
 {
     public string Id { get; set; } = "";
     public string Name { get; set; } = string.Empty;
@@ -35,4 +35,17 @@ public class PlayerGroup
     /// (Milestone 3.5) and its settings UI is disabled while that IPC isn't connected.
     /// </summary>
     public uint ChatTwoBackground { get; set; }
+
+    /// <summary>
+    /// Play an alert sound when a message from a group member arrives (Milestone 6). The sound
+    /// itself is the <see cref="IAlertSoundSettings"/> quartet below; policy — one shared
+    /// cooldown (<see cref="GroupsConfig.GroupSoundCooldownMs"/>), the mention alert winning on
+    /// overlap, own messages never alerting — is ADR 0005.
+    /// </summary>
+    public bool SoundEnabled { get; set; }
+
+    public bool SoundUseCustomFile { get; set; }
+    public int SoundEffect { get; set; } = 2;    // <se.2>, matching MentionsConfig's default
+    public string SoundFilePath { get; set; } = string.Empty;
+    public float SoundVolume { get; set; } = 1f;
 }

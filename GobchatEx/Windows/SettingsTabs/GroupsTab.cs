@@ -4,6 +4,7 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
+using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Game.ClientState.Objects.Enums;
@@ -33,16 +34,19 @@ internal sealed class GroupsTab : IToggleableTab
 
     private readonly GroupsConfig config;
     private readonly ChatTwoStyleProvider chatTwoStyles;
+    private readonly FileDialogManager fileDialog = new();
+    private readonly AlertSoundEditor soundEditor;
     private string newGroupName = string.Empty;
 
     // Scratch text for the rename popup; shared across groups is fine — only
     // one popup can be open, and it's re-seeded from the group on open.
     private string renameBuffer = string.Empty;
 
-    public GroupsTab(GroupsConfig config, ChatTwoStyleProvider chatTwoStyles)
+    public GroupsTab(GroupsConfig config, ChatTwoStyleProvider chatTwoStyles, SoundPlayer soundPlayer)
     {
         this.config = config;
         this.chatTwoStyles = chatTwoStyles;
+        soundEditor = new AlertSoundEditor(fileDialog, soundPlayer);
     }
 
     public void Draw()
@@ -54,6 +58,8 @@ internal sealed class GroupsTab : IToggleableTab
 
         SettingsUi.SectionHeader(Loc.Get("Groups_Friend_Header"), Loc.Get("Groups_Friend_Header_Tooltip"));
         DrawFriendGroups();
+
+        fileDialog.Draw();
     }
 
     private void DrawCustomGroups()
@@ -104,6 +110,9 @@ internal sealed class GroupsTab : IToggleableTab
             DrawGroupColors(group);
 
             ImGuiHelpers.ScaledDummy(4f);
+            DrawGroupSound(group);
+
+            ImGuiHelpers.ScaledDummy(4f);
             ImGui.TextUnformatted(Loc.Get("Groups_Custom_Players"));
             DrawPlayers(group);
             ImGuiHelpers.ScaledDummy(6f);
@@ -111,6 +120,49 @@ internal sealed class GroupsTab : IToggleableTab
 
         if (toDelete >= 0)
             config.Groups.RemoveAt(toDelete);
+
+        ImGuiHelpers.ScaledDummy(4f);
+        DrawSoundCooldown();
+    }
+
+    /// <summary>
+    /// The group's alert sound (Milestone 6): an enable toggle, then the shared sound editor
+    /// while enabled (hidden when off to keep each group's header compact — unlike the Mentions
+    /// tab there can be many of these). The editor call is safe to repeat per group because the
+    /// loop already scopes each group with PushId.
+    /// </summary>
+    private void DrawGroupSound(PlayerGroup group)
+    {
+        var soundEnabled = group.SoundEnabled;
+        if (SettingsUi.Toggle(Loc.Get("Groups_Sound_PlayOnMessage"), ref soundEnabled))
+            group.SoundEnabled = soundEnabled;
+        ImGuiComponents.HelpMarker(Loc.Get("Groups_Sound_PlayOnMessage_Tooltip"));
+
+        if (!group.SoundEnabled)
+            return;
+
+        using var indent = ImRaii.PushIndent();
+        soundEditor.Draw(group, showVolume: true);
+    }
+
+    /// <summary>
+    /// The cooldown all group sounds share (ADR 0005). Always drawn (stable layout), disabled
+    /// until any group's sound is enabled.
+    /// </summary>
+    private void DrawSoundCooldown()
+    {
+        var anySound = config.Groups.Any(g => g.SoundEnabled);
+        using (ImRaii.Disabled(!anySound))
+        {
+            ImGui.SetNextItemWidth(180f * ImGuiHelpers.GlobalScale);
+            var cooldownSeconds = config.GroupSoundCooldownMs / 1000;
+            if (ImGui.SliderInt($"{Loc.Get("Groups_Sound_Cooldown")}##groupSoundCooldown",
+                    ref cooldownSeconds, 0, 30, "%d s"))
+                config.GroupSoundCooldownMs = cooldownSeconds * 1000;
+        }
+
+        ImGui.SameLine();
+        ImGuiComponents.HelpMarker(Loc.Get("Groups_Sound_Cooldown_Tooltip"));
     }
 
     private void DrawAddGroupControl()

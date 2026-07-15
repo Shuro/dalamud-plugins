@@ -6,6 +6,7 @@ using Dalamud.Game.Config;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
+using Dalamud.Utility;
 using GobchatEx.Config;
 using GobchatEx.Core;
 
@@ -31,12 +32,14 @@ public sealed class ChatListener : IDisposable
     private readonly Configuration _config;
     private readonly FriendGroupLookup _friendGroups;
     private readonly SoundPlayer _soundPlayer;
+    private readonly MentionHistory _mentionHistory;
 
     private MessageSegmenter _segmenter = null!;
     private HashSet<XivChatType> _channels = null!;
     private Dictionary<SegmentType, (uint Foreground, uint Glow)> _styles = null!;
     private IReadOnlyList<GroupRule> _groupRules = [];
     private Dictionary<string, (uint Foreground, uint Glow)> _groupStyles = new();
+    private Dictionary<string, PlayerGroup> _groupsById = new();
     private bool _enabled;
     private bool _detectEmoteInSay;
     private bool _detectEmoteInParty;
@@ -151,11 +154,13 @@ public sealed class ChatListener : IDisposable
     internal static readonly HashSet<XivChatType> GroupingExcludedChannels =
         [XivChatType.TellIncoming, XivChatType.TellOutgoing, XivChatType.Echo, XivChatType.ErrorMessage];
 
-    internal ChatListener(Configuration config, FriendGroupLookup friendGroups, SoundPlayer soundPlayer)
+    internal ChatListener(Configuration config, FriendGroupLookup friendGroups, SoundPlayer soundPlayer,
+        MentionHistory mentionHistory)
     {
         _config = config;
         _friendGroups = friendGroups;
         _soundPlayer = soundPlayer;
+        _mentionHistory = mentionHistory;
 
         // A mid-session (re)load — plugin update or dev auto-reload — never fires Login, so seed
         // the friend-list snapshot now. Plugin construction is only framework-thread when the
@@ -246,16 +251,22 @@ public sealed class ChatListener : IDisposable
         {
             _groupRules = [];
             _groupStyles = new();
+            _groupsById = new();
             return;
         }
 
         _groupRules = GroupRuleBuilder.Build(_config.Groups, snapshotMembers: false);
 
         var styles = new Dictionary<string, (uint Foreground, uint Glow)>(_groupRules.Count);
+        var byId = new Dictionary<string, PlayerGroup>(_groupRules.Count);
         foreach (var group in _config.Groups.Groups.Concat(_config.Groups.FriendGroups))
+        {
             styles[group.Id] = (group.Foreground, group.Glow);
+            byId[group.Id] = group;
+        }
 
         _groupStyles = styles;
+        _groupsById = byId;
     }
 
     /// <summary>
@@ -389,15 +400,26 @@ public sealed class ChatListener : IDisposable
         // (which plays the sound itself) doesn't run for this message, probe here — bounded
         // to conversational channels (see MentionSoundChannels). The MentionsEnabled guard
         // skips a per-message segmentation that could never match (BuildMentionRules returns
-        // NoMentionRules with the master switch off).
+        // NoMentionRules with the master switch off). The mention outcome feeds the group
+        // pass: a message that fired (or could have fired) the mention alert never also plays
+        // a group sound (ADR 0005).
+        var mentioned = false;
         if (_enabled && _channels.Contains(message.LogKind))
-            ApplyBodyHighlighting(message, fadeStep);
+        {
+            mentioned = ApplyBodyHighlighting(message, fadeStep);
+        }
         else if (_config.Mentions.MentionSoundEnabled && _config.Mentions.MentionsEnabled
             && MentionSoundChannels.Contains(message.LogKind)
             && HasMention(message))
+        {
+            mentioned = true;
             TryPlayMentionSound(message);
+        }
 
-        ApplySenderGroupColor(message, fadeStep);
+        if (mentioned)
+            RecordMention(message);
+
+        ApplySenderGroupColor(message, fadeStep, mentioned);
 
         if (fadeStep is { } step)
             ApplyFade(message, step, message.LogKind);
@@ -462,13 +484,15 @@ public sealed class ChatListener : IDisposable
         message.Sender = new SeString(UiColorDimmer.DimPayloads(message.Sender.Payloads, step, uncolored));
     }
 
-    private void ApplyBodyHighlighting(IHandleableChatMessage message, int? fadeStep)
+    /// <returns>Whether the message body matched a mention — feeds the group-sound precedence
+    /// rule in <see cref="TryPlayGroupSound"/> without a second segmentation.</returns>
+    private bool ApplyBodyHighlighting(IHandleableChatMessage message, int? fadeStep)
     {
         var payloads = message.Message.Payloads;
 
         CollectTextRuns(payloads, out var runIndices, out var runTexts);
         if (runTexts == null)
-            return;
+            return false;
 
         // Own messages keep Say/Emote/Ooc styling but skip the mention recolor; detection
         // still runs (overlayMentions: false), so HasMention below keeps feeding the sound,
@@ -481,21 +505,24 @@ public sealed class ChatListener : IDisposable
         var result = _segmenter.Segment(runTexts, DefaultTypeFor(message.LogKind),
             overlayMentions: !suppressOwnHighlight, detectEmote: DetectEmoteFor(message.LogKind));
         if (result == null)
-            return;
+            return false;
 
         var rewritten = PayloadRewriter.Rewrite(payloads, runIndices!, runTexts, result.RunSpans, _styles, fadeStep);
         message.Message = new SeString(rewritten);
 
         if (result.HasMention)
             TryPlayMentionSound(message);
+        return result.HasMention;
     }
 
     /// <summary>
-    /// Recolors the sender name when it belongs to a matching custom or friend group. Independent of
-    /// <see cref="_enabled"/>/<see cref="_channels"/> (the RP-highlighting master switch and channel
-    /// filter) — group coloring is its own feature and applies wherever a sender exists.
+    /// Recolors the sender name when it belongs to a matching custom or friend group, and plays
+    /// that group's alert sound (Milestone 6) — the sound is independent of whether the group
+    /// recolors anything. Independent of <see cref="_enabled"/>/<see cref="_channels"/> (the
+    /// RP-highlighting master switch and channel filter) — group coloring is its own feature and
+    /// applies wherever a sender exists.
     /// </summary>
-    private void ApplySenderGroupColor(IHandleableChatMessage message, int? fadeStep)
+    private void ApplySenderGroupColor(IHandleableChatMessage message, int? fadeStep, bool mentioned)
     {
         if (GroupingExcludedChannels.Contains(message.LogKind))
             return;
@@ -507,8 +534,12 @@ public sealed class ChatListener : IDisposable
         var friendGroupIndex = _friendGroups.TryGetFriendGroupIndex(name, world, out var index) ? index : (int?)null;
 
         var groupId = GroupMatcher.FindGroup(name, world, friendGroupIndex, _groupRules);
-        if (groupId == null
-            || !_groupStyles.TryGetValue(groupId, out var style)
+        if (groupId == null)
+            return;
+
+        TryPlayGroupSound(message, groupId, mentioned);
+
+        if (!_groupStyles.TryGetValue(groupId, out var style)
             || (style.Foreground == 0 && style.Glow == 0))
             return;
 
@@ -567,6 +598,68 @@ public sealed class ChatListener : IDisposable
             runIndices.Add(i);
             runTexts.Add(textPayload.Text);
         }
+    }
+
+    /// <summary>
+    /// Records a matched mention into the in-memory history window (Milestone 7). Runs wherever
+    /// mention detection already runs (the highlight pass or the sound-only probe) — it adds no
+    /// detection path of its own — and is independent of the sound gates: a cooldown-suppressed
+    /// alert still lands in the history. Own messages are skipped, mirroring the highlight
+    /// suppression's rule (Echo exempt — the designated mention test channel). OriginalMessage,
+    /// like the chat logger: the history shows what was said, not GobchatEx's recoloring.
+    /// </summary>
+    private void RecordMention(IHandleableChatMessage message)
+    {
+        if (message.LogKind != XivChatType.Echo && IsFromSelf(message))
+            return;
+
+        var timestamp = message.Timestamp > 0
+            ? DateTimeOffset.FromUnixTimeSeconds(message.Timestamp).ToLocalTime()
+            : DateTimeOffset.Now;
+        SenderIdentity.Resolve(message.Sender, out var name, out var world);
+        var text = message.OriginalMessage.ToDalamudString().TextValue;
+
+        // The mention was detected on message.Message (possibly already edited by another
+        // plugin), but the history stores the original text — so the detection pass's span
+        // offsets can't be reused here. Re-segment the stored string once so the window's
+        // highlight and "triggered mentions" column line up with what it shows; one short
+        // string per recorded mention is trivial. When the original text doesn't reproduce
+        // the match (the mention only existed in the edited message), both stay empty and
+        // the window falls back to plain rendering.
+        IReadOnlyList<SegmentSpan> spans = _segmenter.Segment([text]) is { } result
+            ? result.RunSpans[0].Where(s => s.Type == SegmentType.Mention).ToArray()
+            : [];
+        var matches = string.Join(", ", spans
+            .Select(s => text.Substring(s.Start, s.Length))
+            .Distinct(StringComparer.OrdinalIgnoreCase));
+
+        _mentionHistory.Add(new MentionHistoryEntry(
+            timestamp, message.LogKind, name, world, text, spans, matches));
+    }
+
+    /// <summary>
+    /// The per-group alert sound (Milestone 6), policy per ADR 0005: at most one sound per
+    /// message — when the mention alert is armed (mention matched and the mention sound
+    /// enabled), it is the more specific signal and the group sound stands down, even if the
+    /// mention sound then loses to its own cooldown. Own messages never play a group sound;
+    /// unlike the mention sound there is no opt-out — hearing your own group's ding on every
+    /// line you send is never useful.
+    /// </summary>
+    private void TryPlayGroupSound(IHandleableChatMessage message, string groupId, bool mentioned)
+    {
+        if (!_groupsById.TryGetValue(groupId, out var group) || !group.SoundEnabled)
+            return;
+
+        if (mentioned && _config.Mentions.MentionsEnabled && _config.Mentions.MentionSoundEnabled)
+            return;
+
+        if (IsFromSelf(message))
+        {
+            Plugin.Log.Debug("Group sound suppressed: own message");
+            return;
+        }
+
+        _soundPlayer.TryPlayGroup(group, _config.Groups.GroupSoundCooldownMs);
     }
 
     private void TryPlayMentionSound(IHandleableChatMessage message)

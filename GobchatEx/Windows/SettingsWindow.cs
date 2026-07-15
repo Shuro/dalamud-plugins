@@ -105,8 +105,9 @@ public class SettingsWindow : Window
             new NavSection("Settings_Nav_Roleplay",
             [
                 new FormattingTab(plugin.Configuration.Formatting),
-                new MentionsTab(plugin.Configuration.Mentions, plugin.SoundPlayer),
-                new GroupsTab(plugin.Configuration.Groups, plugin.ChatTwoStyles),
+                new MentionsTab(plugin.Configuration.Mentions, plugin.SoundPlayer, plugin.Configuration.Formatting,
+                    plugin.ToggleMentionHistory),
+                new GroupsTab(plugin.Configuration.Groups, plugin.ChatTwoStyles, plugin.SoundPlayer),
                 new RangeTab(plugin.Configuration.RangeFilter, plugin.ChatTwoStyles, plugin.RangeRings),
                 new ChatTwoTab(plugin.Configuration.Tabs, plugin.ChatTwoStyles),
             ]),

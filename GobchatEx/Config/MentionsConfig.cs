@@ -5,7 +5,7 @@ namespace GobchatEx.Config;
 
 /// <summary>Mention settings (Milestone 1), persisted to mentions.json.</summary>
 [Serializable]
-public class MentionsConfig
+public class MentionsConfig : IAlertSoundSettings
 {
     public int Version { get; set; } = 1;
 
@@ -59,4 +59,30 @@ public class MentionsConfig
     /// follow the game's own sound-effects mixer instead.
     /// </summary>
     public float MentionSoundVolume { get; set; } = 1f;
+
+    // IAlertSoundSettings maps onto the historical MentionSound* properties — explicit so the
+    // serialized mentions.json keys stay unchanged (explicit implementations aren't serialized).
+    bool IAlertSoundSettings.SoundUseCustomFile
+    {
+        get => MentionSoundUseCustomFile;
+        set => MentionSoundUseCustomFile = value;
+    }
+
+    int IAlertSoundSettings.SoundEffect
+    {
+        get => MentionSoundEffect;
+        set => MentionSoundEffect = value;
+    }
+
+    string IAlertSoundSettings.SoundFilePath
+    {
+        get => MentionSoundFilePath;
+        set => MentionSoundFilePath = value;
+    }
+
+    float IAlertSoundSettings.SoundVolume
+    {
+        get => MentionSoundVolume;
+        set => MentionSoundVolume = value;
+    }
 }

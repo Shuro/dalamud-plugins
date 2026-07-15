@@ -150,15 +150,7 @@
     <data name="Mentions_Sound_PlayOnMatch_Tooltip"><value>Game sound effects follow the game's sound-effects volume; a custom file has its own volume slider.</value></data>
     <data name="Mentions_Sound_Cooldown"><value>Cooldown</value></data>
     <data name="Mentions_Sound_SuppressSelf"><value>Don't play for my own messages</value></data>
-    <data name="Mentions_Sound_SourceGame"><value>Game sound effect</value></data>
-    <data name="Mentions_Sound_SourceFile"><value>Custom sound file</value></data>
-    <data name="Mentions_Sound_File_Hint"><value>Path to a .wav, .mp3 or .ogg file</value></data>
-    <data name="Mentions_Sound_BrowseTitle"><value>Select a mention sound</value></data>
-    <data name="Mentions_Sound_Browse_Tooltip"><value>Browse for a sound file</value></data>
     <data name="Mentions_Sound_Volume"><value>Volume</value></data>
-    <data name="Mentions_Sound_FileMissing"><value>File not found — the game sound effect plays instead.</value></data>
-    <data name="Mentions_Sound_PreviewFailed"><value>The file could not be played — the game sound effect plays instead (details in the plugin log).</value></data>
-    <data name="Mentions_Sound_FileTooLong"><value>The file is {0:0.#} seconds long — alert sounds work best at {1:0} seconds or less.</value></data>
     <data name="Mentions_Global_Header"><value>Global Mentions</value></data>
     <data name="Mentions_Global_Header_Tooltip"><value>Words and names that count as mentions (case-insensitive whole words).</value></data>
     <data name="Mentions_Trigger_Hint"><value>add a word or name…</value></data>
@@ -188,6 +180,9 @@
     <data name="Mentions_Character_CustomWords"><value>Custom words</value></data>
     <data name="Mentions_Character_CustomWord_Hint"><value>add a custom word…</value></data>
     <data name="Mentions_CustomWord_Remove_Tooltip"><value>Hold Ctrl+Shift and click to remove this word.</value></data>
+    <data name="Mentions_Test_Header"><value>Tester</value></data>
+    <data name="Mentions_Test_Header_Tooltip"><value>Type a sample message to see what would count as a mention right now — trigger words, character names and the fuzzy level apply exactly as they do in chat.</value></data>
+    <data name="Mentions_Test_Hint"><value>type a message to test…</value></data>
 
     <data name="Groups_TabName"><value>Groups</value></data>
     <data name="Groups_Custom_Header"><value>Custom Groups</value></data>
@@ -307,6 +302,30 @@
     <data name="ColorPicker_Recolor_Tooltip"><value>Custom color. Right-click to clear.</value></data>
 
     <data name="Sound_EffectName"><value>Sound Effect {0}</value></data>
+    <data name="Sound_SourceGame"><value>Game sound effect</value></data>
+    <data name="Sound_SourceFile"><value>Custom sound file</value></data>
+    <data name="Sound_File_Hint"><value>Path to a .wav, .mp3 or .ogg file</value></data>
+    <data name="Sound_BrowseTitle"><value>Select a sound file</value></data>
+    <data name="Sound_Browse_Tooltip"><value>Browse for a sound file</value></data>
+    <data name="Sound_Volume"><value>Volume</value></data>
+    <data name="Sound_FileMissing"><value>File not found — the game sound effect plays instead.</value></data>
+    <data name="Sound_PreviewFailed"><value>The file could not be played — the game sound effect plays instead (details in the plugin log).</value></data>
+    <data name="Sound_FileTooLong"><value>The file is {0:0.#} seconds long — alert sounds work best at {1:0} seconds or less.</value></data>
+
+    <data name="Groups_Sound_PlayOnMessage"><value>Play a sound when a group member's message arrives</value></data>
+    <data name="Groups_Sound_PlayOnMessage_Tooltip"><value>At most one sound plays per message — when the message also matches a mention and the mention sound is enabled, the mention sound wins. Your own messages never play a group sound.</value></data>
+    <data name="Groups_Sound_Cooldown"><value>Sound cooldown</value></data>
+    <data name="Groups_Sound_Cooldown_Tooltip"><value>Shared by all groups: after any group sound plays, further group sounds stay quiet for this long.</value></data>
+
+    <data name="MentionHistory_Title"><value>Recent Mentions</value></data>
+    <data name="MentionHistory_Empty"><value>No mentions yet.</value></data>
+    <data name="MentionHistory_Clear"><value>Clear</value></data>
+    <data name="MentionHistory_Column_Time"><value>Time</value></data>
+    <data name="MentionHistory_Column_Channel"><value>Channel</value></data>
+    <data name="MentionHistory_Column_Sender"><value>Sender</value></data>
+    <data name="MentionHistory_Column_Mentions"><value>Mentions</value></data>
+    <data name="MentionHistory_Column_Message"><value>Message</value></data>
+    <data name="MentionHistory_Sender_Tooltip"><value>Right-click to add or remove this player from a group.</value></data>
 
     <data name="Commands_Primary_Help"><value>Open the GobchatEx settings window. Type /gex help for the full command list.</value></data>
     <data name="Commands_Alias_Help"><value>Alias for /gex — open the GobchatEx settings window.</value></data>
@@ -329,6 +348,24 @@
     <data name="Commands_Player_DistanceNotFound"><value>No nearby player found matching "{0}".</value></data>
     <data name="Commands_Player_InvalidSyntax"><value>Invalid syntax. Try: /gex player count|list|distance &lt;name&gt; [world]</value></data>
 
+    <data name="Commands_Mention_Added"><value>Added mention trigger "{0}".</value></data>
+    <data name="Commands_Mention_AlreadyExists"><value>"{0}" is already a mention trigger.</value></data>
+    <data name="Commands_Mention_Removed"><value>Removed mention trigger "{0}".</value></data>
+    <data name="Commands_Mention_NotFound"><value>"{0}" isn't a mention trigger.</value></data>
+    <data name="Commands_Mention_ListEmpty"><value>No trigger words yet.</value></data>
+    <data name="Commands_Mention_List"><value>Mention triggers: {0}</value></data>
+    <data name="Commands_Mention_InvalidSyntax"><value>Invalid syntax. Try: /gex mention add|remove &lt;word&gt; or /gex mention list</value></data>
+
+    <data name="Commands_Log_Started"><value>Chat logging started.</value></data>
+    <data name="Commands_Log_AlreadyLogging"><value>Chat logging is already running.</value></data>
+    <data name="Commands_Log_Stopped"><value>Chat logging stopped.</value></data>
+    <data name="Commands_Log_NotLogging"><value>Chat logging isn't running.</value></data>
+    <data name="Commands_Log_NoFolder"><value>No log folder chosen — pick one in the settings' Logs tab first.</value></data>
+    <data name="Commands_Log_StatusOn"><value>Chat logging is on — the log file is created with the first message.</value></data>
+    <data name="Commands_Log_StatusOnFile"><value>Chat logging is on — writing to {0}.</value></data>
+    <data name="Commands_Log_StatusOff"><value>Chat logging is off.</value></data>
+    <data name="Commands_Log_InvalidSyntax"><value>Invalid syntax. Try: /gex log start|stop|status</value></data>
+
     <data name="Commands_Unknown"><value>Unknown command "{0}". Try /gex help.</value></data>
 
     <data name="Commands_Help_Header"><value>GobchatEx commands:</value></data>
@@ -339,6 +376,9 @@
     <data name="Commands_Help_PlayerCount"><value>/gex player count - how many players are nearby.</value></data>
     <data name="Commands_Help_PlayerList"><value>/gex player list - nearby players with their distance.</value></data>
     <data name="Commands_Help_PlayerDistance"><value>/gex player distance &lt;name&gt; - your distance to one player.</value></data>
+    <data name="Commands_Help_Mention"><value>/gex mention add|remove &lt;word&gt; - add or remove a mention trigger word.</value></data>
+    <data name="Commands_Help_MentionList"><value>/gex mention list - list your mention trigger words.</value></data>
+    <data name="Commands_Help_Log"><value>/gex log start|stop|status - control chat logging for this session.</value></data>
 
     <data name="General_LegacyEchoFallback_Name"><value>Enable legacy /e gc commands</value></data>
     <data name="General_LegacyEchoFallback_Tooltip"><value>When enabled, GobchatEx also recognizes old-style "/e gc ..." echo commands from the original desktop app, so existing macros keep working. Only your own local echo messages are read — nothing is sent to other players. Note: any echo text that happens to start with "gc " (yours or another plugin's) may trigger a harmless "Unknown command" reply; disable this if that becomes annoying.</value></data>

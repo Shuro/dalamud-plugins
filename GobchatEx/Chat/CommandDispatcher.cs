@@ -42,6 +42,12 @@ internal static class CommandDispatcher
             case CommandRouteKind.Player:
                 PlayerCommandHandler.Execute(plugin, route.Rest);
                 break;
+            case CommandRouteKind.Mention:
+                MentionCommandHandler.Execute(plugin, route.Rest);
+                break;
+            case CommandRouteKind.Log:
+                LogCommandHandler.Execute(plugin, route.Rest);
+                break;
             case CommandRouteKind.Help:
                 PrintHelp();
                 break;
@@ -88,5 +94,8 @@ internal static class CommandDispatcher
         Plugin.ChatGui.Print(Loc.Get("Commands_Help_PlayerCount"));
         Plugin.ChatGui.Print(Loc.Get("Commands_Help_PlayerList"));
         Plugin.ChatGui.Print(Loc.Get("Commands_Help_PlayerDistance"));
+        Plugin.ChatGui.Print(Loc.Get("Commands_Help_Mention"));
+        Plugin.ChatGui.Print(Loc.Get("Commands_Help_MentionList"));
+        Plugin.ChatGui.Print(Loc.Get("Commands_Help_Log"));
     }
 }

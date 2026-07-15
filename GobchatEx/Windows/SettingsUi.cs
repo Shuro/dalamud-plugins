@@ -52,6 +52,112 @@ internal static class SettingsUi
             ImGui.TextWrapped(text);
     }
 
+    /// <summary>
+    /// Wrapped text with recolored sub-spans: TextWrapped can't change color mid-string, and
+    /// TextColored + SameLine never wraps — so this walks the text as whitespace/word tokens,
+    /// measures each, and starts a new line when the next word would cross
+    /// <paramref name="wrapWidth"/>. Line breaks are only taken after whitespace, so a word
+    /// split by a partial match (e.g. "shu" highlighted inside "shuro") stays together; a
+    /// single word wider than the limit overflows, like ImGui's own wrapping. Spans must be
+    /// sorted and non-overlapping (they come from the segmenter, which merges overlaps).
+    /// Used by the mention tester and the mention history hover.
+    /// </summary>
+    public static void HighlightedTextWrapped(
+        string text, IReadOnlyList<SegmentSpan> spans, Vector4 highlightColor, float wrapWidth)
+    {
+        // Zero item spacing: horizontal so adjacent tokens butt together seamlessly, vertical
+        // so wrapped lines stack like TextWrapped's instead of like separate widgets.
+        using var spacing = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
+
+        var first = true;
+        foreach (var (token, highlighted, newLine) in LayoutTokens(text, spans, wrapWidth))
+        {
+            if (!first && !newLine)
+                ImGui.SameLine(0f, 0f);
+
+            if (highlighted)
+                ImGui.TextColored(highlightColor, token);
+            else
+                ImGui.TextUnformatted(token);
+
+            first = false;
+        }
+    }
+
+    /// <summary>How many lines <see cref="HighlightedTextWrapped"/> will draw for this input —
+    /// for sizing a container before drawing (immediate mode has no draw-then-measure). 0 for
+    /// empty text, exactly matching the renderer drawing nothing; callers reserve their own
+    /// minimum height.</summary>
+    public static int HighlightedTextLineCount(string text, IReadOnlyList<SegmentSpan> spans, float wrapWidth)
+    {
+        var lines = 0;
+        foreach (var (_, _, newLine) in LayoutTokens(text, spans, wrapWidth))
+        {
+            if (newLine)
+                ++lines;
+        }
+
+        return lines;
+    }
+
+    /// <summary>The shared wrap layout: each token tagged with whether it starts a new visual
+    /// line. A token stays on its line when it is trailing whitespace (overflows invisibly), a
+    /// glued word continuation (no break opportunity mid-word), or a word that still fits.</summary>
+    private static IEnumerable<(string Token, bool Highlighted, bool NewLine)> LayoutTokens(
+        string text, IReadOnlyList<SegmentSpan> spans, float wrapWidth)
+    {
+        var lineWidth = 0f;
+        var first = true;
+        var afterWhitespace = false;
+        foreach (var (token, highlighted) in Tokenize(text, spans))
+        {
+            var width = ImGui.CalcTextSize(token).X;
+            var isWhitespace = char.IsWhiteSpace(token[0]);
+            var staysOnLine = !first && (isWhitespace || !afterWhitespace || lineWidth + width <= wrapWidth);
+            lineWidth = staysOnLine ? lineWidth + width : width;
+
+            yield return (token, highlighted, !staysOnLine);
+
+            first = false;
+            afterWhitespace = isWhitespace;
+        }
+    }
+
+    /// <summary>Splits <paramref name="text"/> into (token, highlighted) pairs for
+    /// <see cref="HighlightedTextWrapped"/>: highlight boundaries first, then maximal
+    /// whitespace/non-whitespace runs within each region — concatenating all tokens yields
+    /// the input exactly.</summary>
+    private static IEnumerable<(string Token, bool Highlighted)> Tokenize(
+        string text, IReadOnlyList<SegmentSpan> spans)
+    {
+        var position = 0;
+        foreach (var span in spans)
+        {
+            foreach (var token in SplitTokens(text, position, span.Start))
+                yield return (token, false);
+            foreach (var token in SplitTokens(text, span.Start, span.End))
+                yield return (token, true);
+            position = span.End;
+        }
+
+        foreach (var token in SplitTokens(text, position, text.Length))
+            yield return (token, false);
+    }
+
+    private static IEnumerable<string> SplitTokens(string text, int start, int end)
+    {
+        var i = start;
+        while (i < end)
+        {
+            var isWhitespace = char.IsWhiteSpace(text[i]);
+            var j = i + 1;
+            while (j < end && char.IsWhiteSpace(text[j]) == isWhitespace)
+                ++j;
+            yield return text[i..j];
+            i = j;
+        }
+    }
+
     /// <summary>Matches <see cref="ToggleSwitch"/>'s width for layout math.</summary>
     public static float ToggleWidth() => ImGui.GetFrameHeight() * 1.55f;
 

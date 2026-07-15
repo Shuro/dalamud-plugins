@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using Concentus;
@@ -12,39 +13,62 @@ using NAudio.Wave.SampleProviders;
 namespace GobchatEx.Chat;
 
 /// <summary>
-/// Plays the mention alert with a cooldown: a built-in chat sound effect
-/// (volume follows the game's own sound-effects mixer) or a custom audio
-/// file via NAudio (own volume, ADR 0004). Must be called from the framework
-/// thread (chat handlers and the config UI both are). The file is loaded
-/// lazily on first play and kept until the path changes, so a settings edit
-/// costs one file read on the next alert; a failed file play logs, falls
-/// back to the game effect and retries the file on the following alert.
+/// Plays the mention and per-group alerts, each with its own cooldown timer: a built-in chat
+/// sound effect (volume follows the game's own sound-effects mixer) or a custom audio file via
+/// NAudio (own volume, ADR 0004). Must be called from the framework thread (chat handlers and
+/// the config UI both are). Files are loaded lazily on first play and cached per path — the
+/// mention sound plus any number of per-group sounds share one player (ADR 0005) — so a
+/// settings edit costs one file read on the next alert; a failed file play logs, falls back to
+/// the game effect and retries the file on the following alert.
 /// </summary>
 public sealed class SoundPlayer : IDisposable
 {
-    private long? _lastPlayedMs;
+    private long? _lastMentionPlayedMs;
+    private long? _lastGroupPlayedMs;
 
-    private WaveStream? _reader;
-    private VolumeSampleProvider? _volume;
-    private WaveOutEvent? _output;
-    private string? _loadedPath;
+    // Wholesale reset instead of LRU once the cap is hit: a real config holds a handful of
+    // files (one mention sound + a few groups), so the cap only guards a pathological config,
+    // and re-loading a few short alert files is cheap.
+    private const int MaxCachedFiles = 8;
+    private readonly Dictionary<string, CachedAudio> _cache = new(StringComparer.OrdinalIgnoreCase);
+
+    private sealed class CachedAudio(WaveStream reader, VolumeSampleProvider volume, WaveOutEvent output) : IDisposable
+    {
+        public WaveStream Reader => reader;
+        public VolumeSampleProvider Volume => volume;
+        public WaveOutEvent Output => output;
+
+        public void Dispose()
+        {
+            output.Dispose();
+            reader.Dispose();
+        }
+    }
 
     public void TryPlay(MentionsConfig config)
+        => TryPlayAlert(ref _lastMentionPlayedMs, config.MentionSoundCooldownMs, config, "Mention");
+
+    /// <summary>The per-group alert (Milestone 6). All groups share one cooldown timer —
+    /// spam protection, not a per-group rhythm (ADR 0005).</summary>
+    public void TryPlayGroup(IAlertSoundSettings sound, int cooldownMs)
+        => TryPlayAlert(ref _lastGroupPlayedMs, cooldownMs, sound, "Group");
+
+    private void TryPlayAlert(ref long? lastPlayedMs, int cooldownMs, IAlertSoundSettings sound, string kind)
     {
         var now = Environment.TickCount64;
-        if (_lastPlayedMs is { } last && now - last < config.MentionSoundCooldownMs)
+        if (lastPlayedMs is { } last && now - last < cooldownMs)
         {
-            Plugin.Log.Debug("Mention sound suppressed: cooldown ({RemainingMs} ms left)",
-                config.MentionSoundCooldownMs - (now - last));
+            Plugin.Log.Debug("{Kind} sound suppressed: cooldown ({RemainingMs} ms left)",
+                kind, cooldownMs - (now - last));
             return;
         }
 
-        _lastPlayedMs = now;
+        lastPlayedMs = now;
 
-        if (config.MentionSoundUseCustomFile && PlayFile(config.MentionSoundFilePath, config.MentionSoundVolume))
+        if (sound.SoundUseCustomFile && PlayFile(sound.SoundFilePath, sound.SoundVolume))
             return;
 
-        Play(config.MentionSoundEffect);
+        Play(sound.SoundEffect);
     }
 
     /// <summary>Plays a game effect immediately; used by the config window's preview button.</summary>
@@ -70,37 +94,58 @@ public sealed class SoundPlayer : IDisposable
 
         try
         {
-            if (_output == null || _loadedPath != path)
-                LoadFile(path);
+            if (!_cache.TryGetValue(path, out var audio))
+                audio = LoadFile(path);
             // Clamped here rather than trusting the config: the UI caps at
             // 100 %, but a hand-edited value must not blast clipped audio.
-            _volume!.Volume = Math.Clamp(volume, 0f, 1f);
+            // Per play, not per load — two alerts sharing one file can carry
+            // different volume sliders.
+            audio.Volume.Volume = Math.Clamp(volume, 0f, 1f);
 
-            _output!.Stop();
-            _reader!.Position = 0;
-            _output.Play();
+            audio.Output.Stop();
+            audio.Reader.Position = 0;
+            audio.Output.Play();
             return true;
         }
         catch (Exception ex)
         {
-            Plugin.Log.Error(ex, "Playing mention sound file {Path} failed; the game sound effect plays instead", path);
-            DisposeAudio();
+            Plugin.Log.Error(ex, "Playing alert sound file {Path} failed; the game sound effect plays instead", path);
+            if (_cache.Remove(path, out var broken))
+                broken.Dispose();
             return false;
         }
     }
 
-    private void LoadFile(string path)
+    private CachedAudio LoadFile(string path)
     {
-        DisposeAudio();
+        if (_cache.Count >= MaxCachedFiles)
+            DisposeCache();
 
         // ToSampleProvider converts whatever the reader emits (float for
         // wav/mp3/vorbis, 16-bit PCM for opus) into the float samples the
         // volume wrapper expects, so every format shares one playback chain.
-        _reader = CreateReader(path);
-        _volume = new VolumeSampleProvider(_reader.ToSampleProvider());
-        _output = new WaveOutEvent();
-        _output.Init(_volume);
-        _loadedPath = path;
+        var reader = CreateReader(path);
+        WaveOutEvent? output = null;
+        try
+        {
+            var volume = new VolumeSampleProvider(reader.ToSampleProvider());
+            output = new WaveOutEvent();
+            output.Init(volume);
+
+            var audio = new CachedAudio(reader, volume, output);
+            _cache[path] = audio;
+            return audio;
+        }
+        catch
+        {
+            // Init can fail at the device level (no output device, exclusive-mode conflict),
+            // by which point the WaveOutEvent already holds an event handle — and since a
+            // failed load never reaches the cache, nothing else would ever dispose it, and
+            // every retry on the same path would leak another one.
+            output?.Dispose();
+            reader.Dispose();
+            throw;
+        }
     }
 
     /// <summary>
@@ -200,15 +245,12 @@ public sealed class SoundPlayer : IDisposable
         return new RawSourceWaveStream(pcm, new WaveFormat(OpusSampleRate, 16, OpusChannels));
     }
 
-    private void DisposeAudio()
+    private void DisposeCache()
     {
-        _output?.Dispose();
-        _output = null;
-        _volume = null;
-        _reader?.Dispose();
-        _reader = null;
-        _loadedPath = null;
+        foreach (var audio in _cache.Values)
+            audio.Dispose();
+        _cache.Clear();
     }
 
-    public void Dispose() => DisposeAudio();
+    public void Dispose() => DisposeCache();
 }

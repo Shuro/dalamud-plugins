@@ -13,6 +13,13 @@ public class GroupsConfig
     /// <summary>Master switch for the whole groups feature: custom groups and friend groups alike.</summary>
     public bool GroupsEnabled { get; set; } = true;
 
+    /// <summary>
+    /// Shared cooldown for all per-group alert sounds (Milestone 6): after any group sound
+    /// plays, further group sounds stay quiet for this long. One timer across all groups —
+    /// spam protection, not a per-group rhythm (ADR 0005).
+    /// </summary>
+    public int GroupSoundCooldownMs { get; set; } = 5000;
+
     /// <summary>Custom player groups (Milestone 2), reorderable, matched by player-name trigger lists.</summary>
     public List<PlayerGroup> Groups { get; set; } = [];
 
