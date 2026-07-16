@@ -39,6 +39,9 @@ internal sealed class GeneralTab : ISettingsTab
         DrawLanguage();
 
         ImGuiHelpers.ScaledDummy(6f);
+        DrawWindowStyle();
+
+        ImGuiHelpers.ScaledDummy(6f);
         var showQuickbar = config.ShowQuickbar;
         if (SettingsUi.Toggle(Loc.Get("General_ShowQuickbar_Name"), ref showQuickbar))
             config.ShowQuickbar = showQuickbar;
@@ -176,6 +179,29 @@ internal sealed class GeneralTab : ISettingsTab
             return Loc.Get("ChatTwo_Status_Connected");
 
         return Loc.Get(loaded ? "General_ChatTwo_NoStyling" : "General_ChatTwo_NotInstalled");
+    }
+
+    /// <summary>
+    /// Color scheme of the settings window itself. Applied live by
+    /// SettingsWindow.PreDraw, so switching previews instantly.
+    /// </summary>
+    private void DrawWindowStyle()
+    {
+        ImGui.TextUnformatted(Loc.Get("General_WindowStyle_Name"));
+        ImGuiComponents.HelpMarker(Loc.Get("General_WindowStyle_Tooltip"));
+
+        ImGui.SetNextItemWidth(320f * ImGuiHelpers.GlobalScale);
+        using (var combo = ImRaii.Combo("##window-style", SettingsWindowStyle.ById(config.WindowStyleId).Name))
+        {
+            if (combo)
+            {
+                foreach (var option in SettingsWindowStyle.All)
+                {
+                    if (ImGui.Selectable(option.Name, option.Id == config.WindowStyleId))
+                        config.WindowStyleId = option.Id;
+                }
+            }
+        }
     }
 
     private void DrawLanguage()

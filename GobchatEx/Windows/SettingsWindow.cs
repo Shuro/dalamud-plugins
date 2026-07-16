@@ -79,6 +79,15 @@ public class SettingsWindow : Window
     /// </summary>
     private bool rebaseline = true;
 
+    /// <summary>
+    /// Window-frame colors held open across the frame: pushed in
+    /// <see cref="PreDraw"/> (which runs before ImGui.Begin, so they reach
+    /// the background and title bar) and disposed in <see cref="PostDraw"/>,
+    /// which the window host pairs with PreDraw unconditionally — even
+    /// collapsed.
+    /// </summary>
+    private ImRaii.ColorDisposable? windowStyleColors;
+
     public SettingsWindow(Plugin plugin)
         : base("GobchatEx Roleplay Suite###GobchatExSettings",
                ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
@@ -137,7 +146,27 @@ public class SettingsWindow : Window
     }
 
     public override void PreDraw()
-        => WindowName = $"{Loc.Get("Settings_WindowTitle")}###GobchatExSettings";
+    {
+        WindowName = $"{Loc.Get("Settings_WindowTitle")}###GobchatExSettings";
+
+        var style = SettingsWindowStyle.ById(plugin.Configuration.General.WindowStyleId);
+        if (style.Frame is { } frame)
+        {
+            windowStyleColors = ImRaii.PushColor(ImGuiCol.WindowBg, frame.WindowBg)
+                .Push(ImGuiCol.TitleBg, frame.TitleBg)
+                .Push(ImGuiCol.TitleBgActive, frame.TitleBgActive)
+                .Push(ImGuiCol.TitleBgCollapsed, frame.TitleBgCollapsed);
+        }
+
+        SettingsUi.TrackOverride = style.Tracks;
+    }
+
+    public override void PostDraw()
+    {
+        windowStyleColors?.Dispose();
+        windowStyleColors = null;
+        SettingsUi.TrackOverride = null;
+    }
 
     /// <summary>
     /// Debounced instant-apply tick. Runs every frame while the window is

@@ -30,6 +30,21 @@ internal static class SettingsUi
     internal static readonly Vector4 ToggleOffTrack = new(0.65f, 0.18f, 0.18f, 1f);
     internal static readonly Vector4 ToggleOffTrackHover = new(0.78f, 0.22f, 0.22f, 1f);
 
+    /// <summary>
+    /// One set of <see cref="ToggleSwitch"/> track colors. Styles that want
+    /// non-default tracks define a palette in <see cref="SettingsWindowStyle"/>.
+    /// </summary>
+    internal readonly record struct TogglePalette(Vector4 On, Vector4 OnHover, Vector4 Off, Vector4 OffHover);
+
+    /// <summary>
+    /// When set, <see cref="ToggleSwitch"/> draws its track with these colors
+    /// instead of the green/red defaults. Scoped to the settings window:
+    /// SettingsWindow.PreDraw sets it per the configured window style and
+    /// PostDraw clears it, so the Quickbar's feature buttons (which read the
+    /// default constants directly) keep the stock look.
+    /// </summary>
+    internal static TogglePalette? TrackOverride;
+
     public static void SectionHeader(string label, string? help = null)
     {
         ImGui.TextColored(ImGuiColors.DalamudOrange, label);
@@ -185,7 +200,8 @@ internal static class SettingsUi
     }
 
     /// <summary>
-    /// A toggle switch with a green (on) / red (off) track. Same geometry as
+    /// A toggle switch with a green (on) / red (off) track — or the
+    /// <see cref="TrackOverride"/> palette while one is set. Same geometry as
     /// <see cref="ImGuiComponents.ToggleButton"/>, drawn ourselves because
     /// Dalamud's hardcodes its gray track colors. Colors go through
     /// <see cref="ImGui.GetColorU32(Vector4)"/> so ImRaii.Disabled dims the
@@ -208,9 +224,11 @@ internal static class SettingsUi
             changed = true;
         }
 
+        var palette = TrackOverride
+            ?? new TogglePalette(ToggleOnTrack, ToggleOnTrackHover, ToggleOffTrack, ToggleOffTrackHover);
         var track = ImGui.IsItemHovered()
-            ? (value ? ToggleOnTrackHover : ToggleOffTrackHover)
-            : (value ? ToggleOnTrack : ToggleOffTrack);
+            ? (value ? palette.OnHover : palette.OffHover)
+            : (value ? palette.On : palette.Off);
 
         drawList.AddRectFilled(p, new Vector2(p.X + width, p.Y + height),
             ImGui.GetColorU32(track), height * 0.50f);

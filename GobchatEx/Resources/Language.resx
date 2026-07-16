@@ -65,6 +65,15 @@
     <data name="General_TabName"><value>General</value></data>
     <data name="General_Language_Name"><value>Language</value></data>
     <data name="General_Language_Tooltip"><value>Changes the language of GobchatEx's own settings window. Does not translate in-game chat text.</value></data>
+    <data name="General_WindowStyle_Name"><value>Window style</value></data>
+    <data name="General_WindowStyle_Tooltip"><value>Color scheme of this settings window. Default follows your Dalamud theme; the other styles bring their own colors and preview instantly.</value></data>
+    <data name="WindowStyle_Option_Default"><value>Default</value></data>
+    <!-- Style names below are proper nouns — neutral resx only, no de entries. -->
+    <data name="WindowStyle_Option_Yoji"><value>Yoji-Style</value></data>
+    <data name="WindowStyle_Option_PurpleOctopus"><value>Purple-Octopus-Style</value></data>
+    <data name="WindowStyle_Option_DarkPurpleOctopus"><value>Dark-Purple-Octopus-Style</value></data>
+    <data name="WindowStyle_Option_DarkDalamudRed"><value>Dark-Dalamud-Red-Style</value></data>
+    <data name="WindowStyle_Option_Gino"><value>Gino-Style</value></data>
     <data name="General_OptionalPlugins_Header"><value>Optional plugins</value></data>
     <data name="General_OptionalPlugins_Tooltip"><value>Plugins GobchatEx integrates with when they are available.</value></data>
     <data name="General_ChatTwo_NotInstalled"><value>Chat 2 is not installed or not loaded.</value></data>

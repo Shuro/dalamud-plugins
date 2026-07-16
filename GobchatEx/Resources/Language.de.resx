@@ -65,6 +65,9 @@
     <data name="General_TabName"><value>Allgemein</value></data>
     <data name="General_Language_Name"><value>Sprache</value></data>
     <data name="General_Language_Tooltip"><value>Ändert die Sprache des GobchatEx-Einstellungsfensters. Übersetzt keinen Chattext im Spiel.</value></data>
+    <data name="General_WindowStyle_Name"><value>Fensterstil</value></data>
+    <data name="General_WindowStyle_Tooltip"><value>Farbschema dieses Einstellungsfensters. Standard folgt deinem Dalamud-Design; die anderen Stile bringen eigene Farben mit und werden sofort angezeigt.</value></data>
+    <data name="WindowStyle_Option_Default"><value>Standard</value></data>
     <data name="General_OptionalPlugins_Header"><value>Optionale Plugins</value></data>
     <data name="General_OptionalPlugins_Tooltip"><value>Plugins, mit denen GobchatEx zusammenarbeitet, wenn sie verfügbar sind.</value></data>
     <data name="General_ChatTwo_NotInstalled"><value>Chat 2 ist nicht installiert oder nicht geladen.</value></data>
