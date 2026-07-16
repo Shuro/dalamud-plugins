@@ -43,6 +43,11 @@ internal static class SpanTestHelpers
     public static (string Text, SegmentType Type)[] Render(string run, IReadOnlyList<SegmentSpan> spans)
         => spans.Select(s => (run.Substring(s.Start, s.Length), s.Type)).ToArray();
 
+    /// <summary>Like <see cref="Render"/>, but also exposes each span's StyleId — for tests
+    /// asserting per-word color-override merge/priority behavior.</summary>
+    public static (string Text, SegmentType Type, int StyleId)[] RenderStyled(string run, IReadOnlyList<SegmentSpan> spans)
+        => spans.Select(s => (run.Substring(s.Start, s.Length), s.Type, s.StyleId)).ToArray();
+
     /// <summary>Every span list must tile [0, text.Length): ordered, gap-free, no empty spans.</summary>
     public static void AssertFullCoverage(string run, IReadOnlyList<SegmentSpan> spans)
     {

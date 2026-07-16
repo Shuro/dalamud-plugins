@@ -111,8 +111,15 @@ public class MentionHistoryWindow : Window
                 using var tooltip = ImRaii.Tooltip();
                 if (entry.MentionSpans.Count > 0)
                 {
+                    // SpanColors[idx] is the override-only foreground (0 = none); 0 falls back to
+                    // the *live* default mention color rather than whatever was live when the
+                    // mention was recorded, so editing the default still recolors default-styled
+                    // history entries — only an explicit per-word override stays fixed.
                     SettingsUi.HighlightedTextWrapped(entry.Message, entry.MentionSpans,
-                        mentionColor, 400f * ImGuiHelpers.GlobalScale);
+                        (_, idx) => entry.SpanColors[idx] != 0
+                            ? RgbaColor.ToVector4(entry.SpanColors[idx])
+                            : mentionColor,
+                        400f * ImGuiHelpers.GlobalScale);
                 }
                 else
                 {

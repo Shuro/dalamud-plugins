@@ -156,6 +156,9 @@
     <data name="Mentions_Trigger_Hint"><value>add a word or name…</value></data>
     <data name="Mentions_Trigger_Add"><value>Add</value></data>
     <data name="Mentions_Trigger_Empty"><value>No trigger words yet.</value></data>
+    <data name="Mentions_Column_Word"><value>Word</value></data>
+    <data name="Mentions_Column_Color"><value>Color</value></data>
+    <data name="Mentions_Column_Glow"><value>Glow</value></data>
     <data name="Mentions_Trigger_Remove_Tooltip"><value>Hold Ctrl+Shift and click to remove this word.</value></data>
     <data name="Mentions_Player_Header"><value>Player Mentions</value></data>
     <data name="Mentions_Player_Header_Tooltip"><value>Match your character's name automatically. Add your character with the button below and keep it active.</value></data>
@@ -174,9 +177,13 @@
     <data name="Mentions_Character_LastName"><value>Last name</value></data>
     <data name="Mentions_Character_FirstNamePartial"><value>Partial first name (substring)</value></data>
     <data name="Mentions_Character_LastNamePartial"><value>Partial last name (substring)</value></data>
-    <data name="Mentions_Character_Miqote"><value>Miqo'te short name (e.g. A'nabelle → nabelle)</value></data>
+    <data name="Mentions_Character_Miqote"><value>Miqo'te short name</value></data>
+    <data name="Mentions_Character_Miqote_Tooltip"><value>Also matches the short form of an apostrophe name, e.g. A'nabelle → nabelle. Only available when this character's name contains an apostrophe.</value></data>
+    <data name="Mentions_Character_Partial_Tooltip"><value>Matches as a substring anywhere inside a word, not just as a whole word. Requires the matching name part on the left to be enabled.</value></data>
     <data name="Mentions_Character_Fuzzy"><value>Typo-tolerant (fuzzy) matching</value></data>
     <data name="Mentions_Character_Fuzzy_Tooltip"><value>Also matches close misspellings of the names above, e.g. "Elora" for "Elara".</value></data>
+    <data name="Mentions_Character_NameStyle"><value>Name highlight color</value></data>
+    <data name="Mentions_Character_NameStyle_Tooltip"><value>Color and glow for every match derived from this character's name above (full name, first/last name, partial, Miqo'te, fuzzy). Right-click a swatch to clear it back to the default mention color.</value></data>
     <data name="Mentions_Character_CustomWords"><value>Custom words</value></data>
     <data name="Mentions_Character_CustomWord_Hint"><value>add a custom word…</value></data>
     <data name="Mentions_CustomWord_Remove_Tooltip"><value>Hold Ctrl+Shift and click to remove this word.</value></data>

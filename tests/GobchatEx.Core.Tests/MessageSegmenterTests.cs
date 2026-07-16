@@ -402,4 +402,62 @@ public sealed class MessageSegmenterTests
             (" indeed\"", SegmentType.Say),
             (" yes", SegmentType.Emote));
     }
+
+    // ------------------------------------------------------------------
+    // StyleId propagation through the token-span overlay. WHY: a per-word
+    // color override must survive being spliced across token-rule span
+    // boundaries, and two adjacent but differently-styled mentions must
+    // never smear into one span just because Overlay's walk touches them
+    // back-to-back.
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public void Overlay_MentionCrossingSpanBoundary_KeepsStyleId_AndRecoalesces()
+    {
+        // Ported from Mention_CanCrossSpanBoundaries: the trigger straddles the Say/Undefined
+        // boundary, so Overlay's walk emits it in fragments that must stitch back into one
+        // Mention span carrying the trigger's style id, not two adjacent same-style spans.
+        var rules = new MentionRules(
+            WholeWords: [new MentionWord("b\" c", 4)], PartialWords: [], FuzzyWords: [], FuzzyMatchLevel.Conservative);
+        var segmenter = new MessageSegmenter(DefaultRules.All, rules);
+
+        var result = segmenter.Segment(["\"b\" c"]);
+
+        result.Should().NotBeNull();
+        RenderStyled("\"b\" c", result!.RunSpans[0]).Should().Equal(
+            ("\"", SegmentType.Say, 0),
+            ("b\" c", SegmentType.Mention, 4));
+    }
+
+    [Fact]
+    public void Overlay_AdjacentMentionsWithDifferentStyles_AreNotCoalesced()
+    {
+        var rules = new MentionRules(
+            WholeWords: [new MentionWord("a-", 1), new MentionWord("-b", 2)],
+            PartialWords: [], FuzzyWords: [], FuzzyMatchLevel.Conservative);
+        var segmenter = new MessageSegmenter([], rules);
+
+        var result = segmenter.Segment(["a--b"]);
+
+        result.Should().NotBeNull();
+        RenderStyled("a--b", result!.RunSpans[0]).Should().Equal(
+            ("a-", SegmentType.Mention, 1), ("-b", SegmentType.Mention, 2));
+    }
+
+    [Fact]
+    public void OverlaySkipped_StyledRules_StillReportsMention_SpansStayUndefined()
+    {
+        // The sound-only path (overlayMentions: false) is unaffected by per-word styling:
+        // detection still runs (feeds HasMention) but nothing gets typed or colored.
+        var rules = new MentionRules(
+            WholeWords: [new MentionWord("bob", 3)], PartialWords: [], FuzzyWords: [], FuzzyMatchLevel.Conservative);
+        var segmenter = new MessageSegmenter([], rules);
+
+        var result = segmenter.Segment(["plain bob text"], overlayMentions: false);
+
+        result.Should().NotBeNull();
+        result!.HasMention.Should().BeTrue();
+        Render("plain bob text", result.RunSpans[0]).Should().Equal(
+            ("plain bob text", SegmentType.Undefined));
+    }
 }

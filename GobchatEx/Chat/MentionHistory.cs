@@ -11,7 +11,10 @@ namespace GobchatEx.Chat;
 /// <paramref name="Message"/> (offsets valid for that exact string), and
 /// <paramref name="Matches"/> is their distinct matched texts pre-joined for the table column —
 /// both empty when the match couldn't be reproduced on the original text (see
-/// <see cref="ChatListener"/>.RecordMention).</summary>
+/// <see cref="ChatListener"/>.RecordMention). <paramref name="SpanColors"/> is parallel to
+/// <paramref name="MentionSpans"/>: each entry is that span's resolved per-word override
+/// foreground, or 0 when the span carries no override (the window then falls back to the live
+/// default mention color at draw time).</summary>
 internal sealed record MentionHistoryEntry(
     DateTimeOffset Timestamp,
     XivChatType Channel,
@@ -19,7 +22,8 @@ internal sealed record MentionHistoryEntry(
     string? SenderWorld,
     string Message,
     IReadOnlyList<SegmentSpan> MentionSpans,
-    string Matches)
+    string Matches,
+    IReadOnlyList<uint> SpanColors)
 {
     /// <summary>Monotonic per-session id, assigned by <see cref="MentionHistory.Add"/> — the
     /// stable ImGui id for the entry's row. Loop indices shift when the capacity eviction

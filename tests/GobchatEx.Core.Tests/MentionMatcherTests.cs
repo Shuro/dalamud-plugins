@@ -11,6 +11,9 @@ public sealed class MentionMatcherTests
     private static (string Text, SegmentType Type)[] FindRules(string text, MentionRules rules)
         => Render(text, new MentionMatcher(rules).FindMentions(text));
 
+    private static (string Text, SegmentType Type, int StyleId)[] FindStyled(string text, MentionRules rules)
+        => RenderStyled(text, new MentionMatcher(rules).FindMentions(text));
+
     [Fact]
     public void CaseInsensitive_WholeWordMatch()
     {
@@ -216,5 +219,96 @@ public sealed class MentionMatcherTests
         var matcher = new MentionMatcher(new MentionRules([], [], [], FuzzyMatchLevel.Conservative));
         matcher.HasTriggers.Should().BeFalse();
         matcher.FindMentions("anything").Should().BeEmpty();
+    }
+
+    // ------------------------------------------------------------------
+    // Per-word style merge/priority
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public void SameStyle_OverlappingMatches_StillMergeToUnion()
+    {
+        // Same style id: merge exactly like the pre-styling matcher (an all-unstyled config must
+        // produce byte-identical output) — trigger order still must not matter for the union.
+        var rules = new MentionRules(
+            WholeWords: [new MentionWord("Alice Waved", 5), new MentionWord("waved", 5)],
+            PartialWords: [], FuzzyWords: [], FuzzyMatchLevel.Conservative);
+
+        FindStyled("Alice Waved hello", rules).Should().Equal(
+            ("Alice Waved", SegmentType.Mention, 5));
+    }
+
+    [Fact]
+    public void DifferentStyles_TouchingMatches_StayAdjacentSeparateSpans()
+    {
+        // Touch-merge is a same-style rule only — merging across a style boundary would smear one
+        // word's color onto another.
+        var rules = new MentionRules(
+            WholeWords: [new MentionWord("a-", 1), new MentionWord("-b", 2)],
+            PartialWords: [], FuzzyWords: [], FuzzyMatchLevel.Conservative);
+
+        FindStyled("a--b", rules).Should().Equal(
+            ("a-", SegmentType.Mention, 1), ("-b", SegmentType.Mention, 2));
+    }
+
+    [Fact]
+    public void DifferentStyles_Overlap_EarlierStartWins_LaterKeepsRemainder()
+    {
+        // The dominant (earlier-start) match keeps the contested text; the later match only
+        // contributes what's left over — total coverage stays the same union as before styling.
+        var rules = new MentionRules(
+            WholeWords: [new MentionWord("Alice Waved", 1), new MentionWord("Waved hello", 2)],
+            PartialWords: [], FuzzyWords: [], FuzzyMatchLevel.Conservative);
+
+        FindStyled("Alice Waved hello", rules).Should().Equal(
+            ("Alice Waved", SegmentType.Mention, 1), (" hello", SegmentType.Mention, 2));
+    }
+
+    [Fact]
+    public void SameStart_LongerMatchWins_ShorterDropped()
+    {
+        var rules = new MentionRules(
+            WholeWords: [], PartialWords: [new MentionWord("Samant", 2), new MentionWord("Sam", 1)],
+            FuzzyWords: [], FuzzyMatchLevel.Conservative);
+
+        FindStyled("Samantha waves", rules).Should().Equal(
+            ("Samant", SegmentType.Mention, 2));
+    }
+
+    [Fact]
+    public void ExactTie_StyledBeatsDefault()
+    {
+        // The same word configured both as a plain (unstyled) whole-word trigger and a styled
+        // fuzzy candidate: the explicit color must win over "no color", regardless of match order.
+        var rules = new MentionRules(
+            WholeWords: [new MentionWord("Elara", 0)], PartialWords: [],
+            FuzzyWords: [new MentionWord("Elara", 7)], FuzzyMatchLevel.Conservative);
+
+        FindStyled("hey Elara there", rules).Should().Equal(
+            ("Elara", SegmentType.Mention, 7));
+    }
+
+    [Fact]
+    public void ExactTie_TwoStyled_AllocationOrderWins()
+    {
+        // Determinism: the lower style id (earlier-allocated, more config-order-significant word)
+        // wins on a full tie — never regex/match order.
+        var rules = new MentionRules(
+            WholeWords: [new MentionWord("Elara", 5)], PartialWords: [],
+            FuzzyWords: [new MentionWord("Elara", 3)], FuzzyMatchLevel.Conservative);
+
+        FindStyled("hey Elara there", rules).Should().Equal(
+            ("Elara", SegmentType.Mention, 3));
+    }
+
+    [Fact]
+    public void FullyCoveredDifferentStyleMatch_IsDropped()
+    {
+        var rules = new MentionRules(
+            WholeWords: [new MentionWord("Alice Waved", 1)], PartialWords: [new MentionWord("Waved", 2)],
+            FuzzyWords: [], FuzzyMatchLevel.Conservative);
+
+        FindStyled("Alice Waved hello", rules).Should().Equal(
+            ("Alice Waved", SegmentType.Mention, 1));
     }
 }

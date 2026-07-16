@@ -434,7 +434,7 @@ internal sealed class ChatTwoStyleProvider : IDisposable
         world ??= snapshot.LocalCurrentWorld;
 
         var background = 0u;
-        if (name.Length > 0 && !ChatListener.GroupingExcludedChannels.Contains((XivChatType)chatType))
+        if (name.Length > 0 && ChatListener.GroupingChannels.Contains((XivChatType)chatType))
         {
             // World-qualified friend lookups never touch IPlayerState; skip when unknown so the
             // lookup's internal current-world fallback can't run off the framework thread.

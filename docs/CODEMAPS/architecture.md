@@ -230,13 +230,27 @@ Global trigger words union per-character resolved words for the logged-in,
 remembered, active character (`IPlayerState.CharacterName`):
 
 - Core/PlayerMentionResolver — full/first/last name (whole-word), partial
-  substrings, Miqo'te apostrophe segments, custom words
+  substrings, Miqo'te apostrophe segments
+- Core/MentionRuleBuilder — Config-free assembly: unions global triggers with
+  one character's resolved words, allocates a per-word color/glow style id
+  (0 = none), first-wins dedupe (global > character name > custom word)
 - Core/StringSimilarity — OSA edit distance; FuzzyMatchLevel
   Conservative/Balanced/Aggressive budgets
 - Core/UnicodeNormalizer — NFKC folding so decorative "fancy font" text matches
 
+Each mention word may carry its own foreground/glow override (`MentionTrigger`
+in `mentions.json`; one shared override per character for all its name-derived
+matches). `SegmentSpan.StyleId` carries the match's style id through the
+segmenter; `MentionMatcher`'s interval merge only merges same-style matches —
+differently-styled overlaps split, with a deterministic priority (earlier
+start, then longer match, then styled-over-default, then lower id) deciding
+who wins the contested text. `Core/MentionStyleResolver` resolves an id to
+colors, falling back per-component to `FormattingConfig.MentionStyle`; an
+empty style table (Mention style disabled) degrades every override to plain.
+
 `ChatListener.BuildMentionRules` is `internal static` so the Chat 2 provider
-builds an identical mention-bypass segmenter from the same rules.
+builds an identical mention-bypass segmenter from the same rules; it now just
+maps `MentionsConfig`/`IPlayerState` onto `MentionRuleBuilder.Build`.
 
 Alert sound (`Chat/SoundPlayer`, cooldown, framework thread): built-in chat
 sound effect (game's own SFX mixer) or a custom audio file via NAudio with

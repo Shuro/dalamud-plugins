@@ -97,9 +97,11 @@ internal sealed class MentionsTab : IToggleableTab
         // the Chat 2 provider's mention-bypass segmenter.
         IReadOnlyList<SegmentSpan> spans = [];
         var hasMatch = false;
+        MentionRules? rules = null;
         if (testMessage.Length > 0)
         {
-            var segmenter = new MessageSegmenter((IReadOnlyList<TokenRule>)[], ChatListener.BuildMentionRules(config));
+            rules = ChatListener.BuildMentionRules(config);
+            var segmenter = new MessageSegmenter((IReadOnlyList<TokenRule>)[], rules);
             if (segmenter.Segment([testMessage]) is { HasMention: true } result)
             {
                 spans = result.RunSpans[0].Where(s => s.Type == SegmentType.Mention).ToArray();
@@ -130,8 +132,11 @@ internal sealed class MentionsTab : IToggleableTab
                     // note in its place hid the very message being tested).
                     using var dim = ImRaii.PushColor(ImGuiCol.Text,
                         ImGui.GetColorU32(ImGuiCol.TextDisabled), !hasMatch);
+                    var mentionStyles = rules?.Styles ?? [];
                     SettingsUi.HighlightedTextWrapped(testMessage, spans,
-                        RgbaColor.ToVector4(formatting.MentionStyle.Foreground), wrapWidth);
+                        (span, _) => RgbaColor.ToVector4(MentionStyleResolver.Resolve(
+                            span.StyleId, mentionStyles, formatting.MentionStyle.Foreground, 0).Foreground),
+                        wrapWidth);
                 }
             }
         }
@@ -223,24 +228,69 @@ internal sealed class MentionsTab : IToggleableTab
             return;
         }
 
-        var removed = SettingsUi.RemovableListColumns("##triggers", config.MentionTriggers.Count,
-            i => config.MentionTriggers[i], Loc.Get("Mentions_Trigger_Remove_Tooltip"),
-            ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersOuter);
+        var removed = DrawStyledWordTable("##triggers", config.MentionTriggers, Loc.Get("Mentions_Trigger_Remove_Tooltip"));
         if (removed >= 0)
             config.MentionTriggers.RemoveAt(removed);
     }
 
-    /// <summary>Trims, rejects empty input and case-insensitive duplicates, then appends. True when added.</summary>
-    private static bool TryAddUnique(List<string> list, string input)
+    /// <summary>Trims, rejects empty input and case-insensitive duplicates, then appends
+    /// (with no color override — set from the swatches afterward). True when added.</summary>
+    private static bool TryAddUnique(List<MentionTrigger> list, string input)
     {
         var value = input.Trim();
         if (value.Length == 0)
             return false;
-        if (list.Any(x => x.Equals(value, StringComparison.OrdinalIgnoreCase)))
+        if (list.Any(x => x.Word.Equals(value, StringComparison.OrdinalIgnoreCase)))
             return false;
 
-        list.Add(value);
+        list.Add(new MentionTrigger { Word = value });
         return true;
+    }
+
+    /// <summary>
+    /// Trash | word | foreground swatch | glow swatch, one row per entry — the shared per-word
+    /// color/glow override table for both global triggers and per-character custom words. Returns
+    /// the index whose trash button was clicked this frame, or -1; the caller removes after the
+    /// loop so the list isn't mutated mid-draw.
+    /// </summary>
+    private static int DrawStyledWordTable(string id, List<MentionTrigger> words, string removeTooltip)
+    {
+        var removed = -1;
+        using var table = ImRaii.Table(id, 4,
+            ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersOuter);
+        if (!table)
+            return removed;
+
+        ImGui.TableSetupColumn("##del", ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn(Loc.Get("Mentions_Column_Word"), ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableSetupColumn(Loc.Get("Mentions_Column_Color"), ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn(Loc.Get("Mentions_Column_Glow"), ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableHeadersRow();
+
+        for (var i = 0; i < words.Count; ++i)
+        {
+            using var rowId = ImRaii.PushId(i);
+            var word = words[i];
+
+            ImGui.TableNextColumn();
+            if (SettingsUi.DangerButton(FontAwesomeIcon.Trash, removeTooltip))
+                removed = i;
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(word.Word);
+
+            ImGui.TableNextColumn();
+            var foreground = word.Foreground;
+            if (SettingsUi.RgbaColorEdit("##fg", ref foreground, allowAlpha: false))
+                word.Foreground = foreground;
+
+            ImGui.TableNextColumn();
+            var glow = word.Glow;
+            if (SettingsUi.RgbaColorEdit("##glow", ref glow, allowAlpha: false))
+                word.Glow = glow;
+        }
+
+        return removed;
     }
 
     private void DrawPlayerMentions()
@@ -278,7 +328,7 @@ internal sealed class MentionsTab : IToggleableTab
             using var indent = ImRaii.PushIndent();
 
             var active = character.Active;
-            if (ImGui.Checkbox(Loc.Get("Mentions_Character_Active"), ref active))
+            if (SettingsUi.Toggle(Loc.Get("Mentions_Character_Active"), ref active))
                 character.Active = active;
 
             ImGui.SameLine();
@@ -366,52 +416,103 @@ internal sealed class MentionsTab : IToggleableTab
     private void DrawCharacterOptions(CharacterMentionSettings character)
     {
         ImGui.TextUnformatted(Loc.Get("Mentions_Character_MatchLabel"));
-        ImGui.SameLine();
-        DrawNamePartCheckbox(Loc.Get("Mentions_Character_FullName"), () => character.MatchFullName, v => character.MatchFullName = v);
-        ImGui.SameLine();
-        DrawNamePartCheckbox(Loc.Get("Mentions_Character_FirstName"), () => character.MatchFirstName, v => character.MatchFirstName = v);
-        ImGui.SameLine();
-        DrawNamePartCheckbox(Loc.Get("Mentions_Character_LastName"), () => character.MatchLastName, v => character.MatchLastName = v);
 
-        DrawNamePartCheckbox(Loc.Get("Mentions_Character_FirstNamePartial"),
-            () => character.MatchFirstNamePartial, v => character.MatchFirstNamePartial = v);
-        ImGui.SameLine();
-        DrawNamePartCheckbox(Loc.Get("Mentions_Character_LastNamePartial"),
-            () => character.MatchLastNamePartial, v => character.MatchLastNamePartial = v);
-
-        DrawNamePartCheckbox(Loc.Get("Mentions_Character_Miqote"),
-            () => character.MatchMiqote, v => character.MatchMiqote = v);
-
-        var fuzzy = character.MatchFuzzy;
-        if (ImGui.Checkbox(Loc.Get("Mentions_Character_Fuzzy"), ref fuzzy))
-            character.MatchFuzzy = fuzzy;
-        ImGui.SameLine();
-        ImGuiComponents.HelpMarker(Loc.Get("Mentions_Character_Fuzzy_Tooltip"));
-
-        using (ImRaii.Disabled(!character.MatchFuzzy))
+        // A 2-column borderless grid pairing each name part with its partial/special variant
+        // (Miqo'te is the full name's extra, the partials belong to first/last), so related
+        // switches read side by side. A partial's switch is disabled while its base name part
+        // is off — PlayerMentionResolver mirrors that dependency, so a greyed-out switch can't
+        // still match. Miqo'te is disabled when the name has no apostrophe: the resolver would
+        // derive nothing from it anyway, so an enabled switch would be a no-op lie.
+        using (var table = ImRaii.Table("##nameMatches", 2))
         {
-            ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
-            using var combo = ImRaii.Combo("##fuzzyLevel", character.FuzzyLevel.ToString());
-            if (combo)
+            if (table)
             {
-                foreach (var level in FuzzyLevels)
-                {
-                    if (ImGui.Selectable(level.ToString(), level == character.FuzzyLevel))
-                        character.FuzzyLevel = level;
-                }
+                var fullName = character.MatchFullName;
+                if (ToggleCell(Loc.Get("Mentions_Character_FullName"), ref fullName))
+                    character.MatchFullName = fullName;
+
+                var miqote = character.MatchMiqote;
+                if (ToggleCell(Loc.Get("Mentions_Character_Miqote"), ref miqote,
+                        Loc.Get("Mentions_Character_Miqote_Tooltip"), disabled: !character.Name.Contains('\'')))
+                    character.MatchMiqote = miqote;
+
+                var firstName = character.MatchFirstName;
+                if (ToggleCell(Loc.Get("Mentions_Character_FirstName"), ref firstName))
+                    character.MatchFirstName = firstName;
+
+                var firstPartial = character.MatchFirstNamePartial;
+                if (ToggleCell(Loc.Get("Mentions_Character_FirstNamePartial"), ref firstPartial,
+                        Loc.Get("Mentions_Character_Partial_Tooltip"), disabled: !character.MatchFirstName))
+                    character.MatchFirstNamePartial = firstPartial;
+
+                var lastName = character.MatchLastName;
+                if (ToggleCell(Loc.Get("Mentions_Character_LastName"), ref lastName))
+                    character.MatchLastName = lastName;
+
+                var lastPartial = character.MatchLastNamePartial;
+                if (ToggleCell(Loc.Get("Mentions_Character_LastNamePartial"), ref lastPartial,
+                        Loc.Get("Mentions_Character_Partial_Tooltip"), disabled: !character.MatchLastName))
+                    character.MatchLastNamePartial = lastPartial;
+
+                DrawFuzzyCells(character);
             }
         }
+
+        ImGuiHelpers.ScaledDummy(6f);
+        ImGui.TextUnformatted(Loc.Get("Mentions_Character_NameStyle"));
+        ImGui.SameLine();
+        ImGuiComponents.HelpMarker(Loc.Get("Mentions_Character_NameStyle_Tooltip"));
+        ImGui.SameLine();
+        var nameForeground = character.NameForeground;
+        if (SettingsUi.RgbaColorEdit("##nameFg", ref nameForeground, allowAlpha: false))
+            character.NameForeground = nameForeground;
+        ImGui.SameLine();
+        var nameGlow = character.NameGlow;
+        if (SettingsUi.RgbaColorEdit("##nameGlow", ref nameGlow, allowAlpha: false))
+            character.NameGlow = nameGlow;
 
         ImGuiHelpers.ScaledDummy(4f);
         ImGui.TextUnformatted(Loc.Get("Mentions_Character_CustomWords"));
         DrawCustomWords(character);
     }
 
-    private static void DrawNamePartCheckbox(string label, Func<bool> get, Action<bool> set)
+    /// <summary>One cell of the name-match grid: a toggle switch, optionally disabled with a
+    /// hover tooltip on its label (shown while disabled too, explaining the dependency).
+    /// Returns true when the value changed.</summary>
+    private static bool ToggleCell(string label, ref bool value, string? tooltip = null, bool disabled = false)
     {
-        var value = get();
-        if (ImGui.Checkbox(label, ref value))
-            set(value);
+        ImGui.TableNextColumn();
+        bool changed;
+        using (ImRaii.Disabled(disabled))
+            changed = SettingsUi.Toggle(label, ref value);
+        if (tooltip != null)
+            SettingsUi.Tooltip(tooltip);
+        return changed;
+    }
+
+    /// <summary>The fuzzy toggle (with its help marker) and the sensitivity combo as the
+    /// name-match grid's last row.</summary>
+    private void DrawFuzzyCells(CharacterMentionSettings character)
+    {
+        ImGui.TableNextColumn();
+        var fuzzy = character.MatchFuzzy;
+        if (SettingsUi.Toggle(Loc.Get("Mentions_Character_Fuzzy"), ref fuzzy))
+            character.MatchFuzzy = fuzzy;
+        ImGui.SameLine();
+        ImGuiComponents.HelpMarker(Loc.Get("Mentions_Character_Fuzzy_Tooltip"));
+
+        ImGui.TableNextColumn();
+        using var disabled = ImRaii.Disabled(!character.MatchFuzzy);
+        ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
+        using var combo = ImRaii.Combo("##fuzzyLevel", character.FuzzyLevel.ToString());
+        if (!combo)
+            return;
+
+        foreach (var level in FuzzyLevels)
+        {
+            if (ImGui.Selectable(level.ToString(), level == character.FuzzyLevel))
+                character.FuzzyLevel = level;
+        }
     }
 
     private void DrawCustomWords(CharacterMentionSettings character)
@@ -428,18 +529,12 @@ internal sealed class MentionsTab : IToggleableTab
         if ((ImGui.Button($"{Loc.Get("Mentions_Trigger_Add")}##word") || submitted) && TryAddUnique(character.CustomWords, newWord))
             newCustomWordByCharacter[character.Name] = string.Empty;
 
-        for (var i = 0; i < character.CustomWords.Count; ++i)
-        {
-            using var id = ImRaii.PushId(i);
-            if (SettingsUi.DangerButton(FontAwesomeIcon.Trash, Loc.Get("Mentions_CustomWord_Remove_Tooltip")))
-            {
-                character.CustomWords.RemoveAt(i);
-                break;
-            }
+        if (character.CustomWords.Count == 0)
+            return;
 
-            ImGui.SameLine();
-            ImGui.TextUnformatted(character.CustomWords[i]);
-        }
+        var removed = DrawStyledWordTable("##customWords", character.CustomWords, Loc.Get("Mentions_CustomWord_Remove_Tooltip"));
+        if (removed >= 0)
+            character.CustomWords.RemoveAt(removed);
     }
 
 }

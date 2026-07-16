@@ -36,11 +36,12 @@ public sealed record PlayerMentionWords(
 /// substrings. Words are returned trimmed and de-duplicated (case-insensitively) within each list,
 /// preserving the first occurrence's casing.
 ///
-/// A partial flag wins over the matching whole flag for that name part: with "partial first name"
-/// on, the forename goes to <see cref="PlayerMentionWords.PartialWords"/> only (a substring match
-/// already covers the whole word), so the two lists stay disjoint. "Miqo'te mode" adds, for an
-/// apostrophe forename, the longest apostrophe-split segment as a whole word
-/// (e.g. <c>A'nabelle</c> → <c>nabelle</c>, <c>Kiht'to</c> → <c>Kiht</c>).
+/// A partial flag refines its enabled name part — it takes effect only while the matching whole
+/// flag is on (the settings UI disables the partial switch otherwise; a greyed-out switch must
+/// not still match) and moves that part to <see cref="PlayerMentionWords.PartialWords"/> only
+/// (a substring match already covers the whole word), so the two lists stay disjoint.
+/// "Miqo'te mode" adds, for an apostrophe forename, the longest apostrophe-split segment as a
+/// whole word (e.g. <c>A'nabelle</c> → <c>nabelle</c>, <c>Kiht'to</c> → <c>Kiht</c>).
 /// </summary>
 public static class PlayerMentionResolver
 {
@@ -51,8 +52,7 @@ public static class PlayerMentionResolver
         bool matchLastName,
         bool matchFirstNamePartial,
         bool matchLastNamePartial,
-        bool matchMiqote,
-        IEnumerable<string>? customMentions)
+        bool matchMiqote)
     {
         var whole = new List<string>();
         var partial = new List<string>();
@@ -78,13 +78,13 @@ public static class PlayerMentionResolver
             if (parts.Length > 0)
             {
                 var first = parts[0];
-                if (matchFirstNamePartial)
+                if (matchFirstName && matchFirstNamePartial)
                     Add(partial, first);
                 else if (matchFirstName)
                     Add(whole, first);
 
                 var last = parts[parts.Length - 1];
-                if (matchLastNamePartial)
+                if (matchLastName && matchLastNamePartial)
                     Add(partial, last);
                 else if (matchLastName)
                     Add(whole, last);
@@ -98,27 +98,7 @@ public static class PlayerMentionResolver
             }
         }
 
-        if (customMentions != null)
-            foreach (var custom in customMentions)
-                Add(whole, custom);
-
         return new PlayerMentionWords(whole, partial);
-    }
-
-    /// <summary>
-    /// The words eligible for fuzzy (typo) matching for a resolved character: every name the
-    /// character wants matched, whole-word and partial alike (partial names are fuzzed as whole
-    /// words), de-duplicated case-insensitively. Living here — not in the consuming module — keeps a
-    /// partial switch from silently dropping that name out of fuzzy matching.
-    /// </summary>
-    public static IReadOnlyList<string> FuzzyCandidates(PlayerMentionWords words)
-    {
-        if (words == null)
-            return Array.Empty<string>();
-        return words.WholeWords
-            .Concat(words.PartialWords)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
     }
 
     /// <summary>

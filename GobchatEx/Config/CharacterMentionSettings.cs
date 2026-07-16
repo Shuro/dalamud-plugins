@@ -24,5 +24,13 @@ public class CharacterMentionSettings
     public bool MatchMiqote { get; set; }
     public bool MatchFuzzy { get; set; }
     public FuzzyMatchLevel FuzzyLevel { get; set; } = FuzzyMatchLevel.Conservative;
-    public List<string> CustomWords { get; set; } = [];
+
+    /// <summary>Color/glow override applied to every name-derived match for this character (full
+    /// name, first/last name, partial, Miqo'te, fuzzy alike) — one shared style per character, not
+    /// per derived word. 0 = fall back to the default mention style.</summary>
+    public uint NameForeground { get; set; }
+    public uint NameGlow { get; set; }
+
+    /// <summary>Extra words, each with an optional per-word color/glow override.</summary>
+    public List<MentionTrigger> CustomWords { get; set; } = [];
 }

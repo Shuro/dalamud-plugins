@@ -66,3 +66,21 @@ plumbing decisions.
   probing a second time.
 - No unit tests: the policy lives in the Dalamud-facing `Chat/` layer (per
   ADR 0002, Core stays the tested part); the in-game smoke test covers it.
+
+## Amendment (2026-07-16)
+
+The "channel scope = group-coloring scope (`GroupingExcludedChannels`)" bullet
+was wrong: that 4-entry denylist (`TellIncoming`/`TellOutgoing`/`Echo`/
+`ErrorMessage`, carried over from the old app's much smaller `ChatChannel`
+enum) let every senderless system/notification `XivChatType` — Teleport
+completion, zone-leave text, Party Finder recruitment notices, gil-spent
+messages, plus the whole combat/loot/craft log — reach `GroupMatcher.FindGroup`
+via a degenerate `("", currentWorld)` identity, firing group recolors and
+sounds on lines nobody sent. Channel scope is now `ChatListener.GroupingChannels`,
+an allow-list of conversational channels (`MentionSoundChannels`' universe
+minus Tells/Echo, which groups still intentionally exclude), plus a
+`name.Length > 0` guard in `ApplySenderGroupColor` mirroring the one
+`ChatTwoStyleProvider.EvaluateCore` already had. `ChatTwoStyleProvider` keeps
+referencing the same shared field, so both passes stay in sync. The rest of
+this ADR's decisions (shared cooldown, mention-wins precedence, own-messages-
+never-alert, sound cache) are unchanged.

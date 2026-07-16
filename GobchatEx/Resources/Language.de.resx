@@ -156,6 +156,9 @@
     <data name="Mentions_Trigger_Hint"><value>Wort oder Namen hinzufügen…</value></data>
     <data name="Mentions_Trigger_Add"><value>Hinzufügen</value></data>
     <data name="Mentions_Trigger_Empty"><value>Noch keine Auslösewörter.</value></data>
+    <data name="Mentions_Column_Word"><value>Wort</value></data>
+    <data name="Mentions_Column_Color"><value>Farbe</value></data>
+    <data name="Mentions_Column_Glow"><value>Leuchten</value></data>
     <data name="Mentions_Trigger_Remove_Tooltip"><value>Strg+Umschalt gedrückt halten und klicken, um dieses Wort zu entfernen.</value></data>
     <data name="Mentions_Player_Header"><value>Spieler-Erwähnungen</value></data>
     <data name="Mentions_Player_Header_Tooltip"><value>Erkennt automatisch den Namen deines Charakters. Füge deinen Charakter mit dem Button unten hinzu und lasse ihn aktiv.</value></data>
@@ -174,9 +177,13 @@
     <data name="Mentions_Character_LastName"><value>Nachname</value></data>
     <data name="Mentions_Character_FirstNamePartial"><value>Teil-Vorname (Teilzeichenkette)</value></data>
     <data name="Mentions_Character_LastNamePartial"><value>Teil-Nachname (Teilzeichenkette)</value></data>
-    <data name="Mentions_Character_Miqote"><value>Miqo'te-Kurzname (z. B. A'nabelle → nabelle)</value></data>
+    <data name="Mentions_Character_Miqote"><value>Miqo'te-Kurzname</value></data>
+    <data name="Mentions_Character_Miqote_Tooltip"><value>Erkennt auch die Kurzform eines Apostroph-Namens, z. B. A'nabelle → nabelle. Nur verfügbar, wenn der Name dieses Charakters einen Apostroph enthält.</value></data>
+    <data name="Mentions_Character_Partial_Tooltip"><value>Erkennt den Namen als Teilzeichenkette auch innerhalb eines Wortes, nicht nur als ganzes Wort. Erfordert, dass der zugehörige Namensteil links aktiviert ist.</value></data>
     <data name="Mentions_Character_Fuzzy"><value>Tippfehlertolerante (unscharfe) Erkennung</value></data>
     <data name="Mentions_Character_Fuzzy_Tooltip"><value>Erkennt auch ähnliche Tippfehler der obigen Namen, z. B. „Elora" für „Elara".</value></data>
+    <data name="Mentions_Character_NameStyle"><value>Namens-Hervorhebungsfarbe</value></data>
+    <data name="Mentions_Character_NameStyle_Tooltip"><value>Farbe und Leuchten für jeden Treffer, der vom Namen dieses Charakters oben abgeleitet ist (vollständiger Name, Vor-/Nachname, teilweise, Miqo'te, unscharf). Rechtsklick auf ein Farbfeld setzt es auf die Standard-Erwähnungsfarbe zurück.</value></data>
     <data name="Mentions_Character_CustomWords"><value>Eigene Wörter</value></data>
     <data name="Mentions_Character_CustomWord_Hint"><value>Eigenes Wort hinzufügen…</value></data>
     <data name="Mentions_CustomWord_Remove_Tooltip"><value>Strg+Umschalt gedrückt halten und klicken, um dieses Wort zu entfernen.</value></data>

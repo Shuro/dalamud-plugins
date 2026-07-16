@@ -20,8 +20,9 @@ namespace GobchatEx.Windows.SettingsTabs;
 internal sealed class FormattingTab : IToggleableTab
 {
     // These three grids also define ChatListener.MentionSoundChannels' conversational-channel
-    // universe — keep that set in sync when adding or removing a channel here. Internal because
-    // ChatLogTab offers the same conversational channels in its own grids.
+    // universe (which ChatListener.GroupingChannels derives from in turn) — keep that set in
+    // sync when adding or removing a channel here. Internal because ChatLogTab offers the same
+    // conversational channels in its own grids.
     internal static readonly (string LabelKey, XivChatType Type)[] MainChannels =
     [
         ("Formatting_Channel_Say", XivChatType.Say),

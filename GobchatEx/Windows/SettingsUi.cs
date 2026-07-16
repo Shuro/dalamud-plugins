@@ -64,19 +64,27 @@ internal static class SettingsUi
     /// </summary>
     public static void HighlightedTextWrapped(
         string text, IReadOnlyList<SegmentSpan> spans, Vector4 highlightColor, float wrapWidth)
+        => HighlightedTextWrapped(text, spans, (_, _) => highlightColor, wrapWidth);
+
+    /// <summary>Per-span-color overload: <paramref name="colorForSpan"/> resolves each mention
+    /// span's own color (e.g. a per-word override, falling back to the default elsewhere) instead
+    /// of sharing one color across every span. Used by the mention history hover, where different
+    /// spans in the same message can carry different override colors.</summary>
+    public static void HighlightedTextWrapped(
+        string text, IReadOnlyList<SegmentSpan> spans, Func<SegmentSpan, int, Vector4> colorForSpan, float wrapWidth)
     {
         // Zero item spacing: horizontal so adjacent tokens butt together seamlessly, vertical
         // so wrapped lines stack like TextWrapped's instead of like separate widgets.
         using var spacing = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
 
         var first = true;
-        foreach (var (token, highlighted, newLine) in LayoutTokens(text, spans, wrapWidth))
+        foreach (var (token, color, newLine) in LayoutTokens(text, spans, colorForSpan, wrapWidth))
         {
             if (!first && !newLine)
                 ImGui.SameLine(0f, 0f);
 
-            if (highlighted)
-                ImGui.TextColored(highlightColor, token);
+            if (color is { } c)
+                ImGui.TextColored(c, token);
             else
                 ImGui.TextUnformatted(token);
 
@@ -91,7 +99,7 @@ internal static class SettingsUi
     public static int HighlightedTextLineCount(string text, IReadOnlyList<SegmentSpan> spans, float wrapWidth)
     {
         var lines = 0;
-        foreach (var (_, _, newLine) in LayoutTokens(text, spans, wrapWidth))
+        foreach (var (_, _, newLine) in LayoutTokens(text, spans, static (_, _) => default, wrapWidth))
         {
             if (newLine)
                 ++lines;
@@ -103,45 +111,48 @@ internal static class SettingsUi
     /// <summary>The shared wrap layout: each token tagged with whether it starts a new visual
     /// line. A token stays on its line when it is trailing whitespace (overflows invisibly), a
     /// glued word continuation (no break opportunity mid-word), or a word that still fits.</summary>
-    private static IEnumerable<(string Token, bool Highlighted, bool NewLine)> LayoutTokens(
-        string text, IReadOnlyList<SegmentSpan> spans, float wrapWidth)
+    private static IEnumerable<(string Token, Vector4? Color, bool NewLine)> LayoutTokens(
+        string text, IReadOnlyList<SegmentSpan> spans, Func<SegmentSpan, int, Vector4> colorForSpan, float wrapWidth)
     {
         var lineWidth = 0f;
         var first = true;
         var afterWhitespace = false;
-        foreach (var (token, highlighted) in Tokenize(text, spans))
+        foreach (var (token, color) in Tokenize(text, spans, colorForSpan))
         {
             var width = ImGui.CalcTextSize(token).X;
             var isWhitespace = char.IsWhiteSpace(token[0]);
             var staysOnLine = !first && (isWhitespace || !afterWhitespace || lineWidth + width <= wrapWidth);
             lineWidth = staysOnLine ? lineWidth + width : width;
 
-            yield return (token, highlighted, !staysOnLine);
+            yield return (token, color, !staysOnLine);
 
             first = false;
             afterWhitespace = isWhitespace;
         }
     }
 
-    /// <summary>Splits <paramref name="text"/> into (token, highlighted) pairs for
+    /// <summary>Splits <paramref name="text"/> into (token, color) pairs for
     /// <see cref="HighlightedTextWrapped"/>: highlight boundaries first, then maximal
     /// whitespace/non-whitespace runs within each region — concatenating all tokens yields
-    /// the input exactly.</summary>
-    private static IEnumerable<(string Token, bool Highlighted)> Tokenize(
-        string text, IReadOnlyList<SegmentSpan> spans)
+    /// the input exactly. Tokens outside any span carry a null color (unhighlighted).</summary>
+    private static IEnumerable<(string Token, Vector4? Color)> Tokenize(
+        string text, IReadOnlyList<SegmentSpan> spans, Func<SegmentSpan, int, Vector4> colorForSpan)
     {
         var position = 0;
-        foreach (var span in spans)
+        for (var i = 0; i < spans.Count; ++i)
         {
+            var span = spans[i];
             foreach (var token in SplitTokens(text, position, span.Start))
-                yield return (token, false);
+                yield return (token, null);
+
+            var color = colorForSpan(span, i);
             foreach (var token in SplitTokens(text, span.Start, span.End))
-                yield return (token, true);
+                yield return (token, color);
             position = span.End;
         }
 
         foreach (var token in SplitTokens(text, position, text.Length))
-            yield return (token, false);
+            yield return (token, null);
     }
 
     private static IEnumerable<string> SplitTokens(string text, int start, int end)

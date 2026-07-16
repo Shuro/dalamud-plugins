@@ -3,10 +3,12 @@ using GobchatEx.Core;
 namespace GobchatEx.Core.Tests;
 
 /// <summary>
-/// Player mentions turn the logged-in character's name (and optional extra words) into trigger words.
+/// Player mentions turn the logged-in character's name into name-derived trigger words.
 /// WHY this matters: a FFXIV first name can be a common English word ("Sun", "Bell"), so each name
 /// part must be independently toggleable — always matching every part would mis-highlight ordinary RP.
 /// The resolver also feeds the same whole-word finder, so it must hand over clean, de-duplicated words.
+/// Custom-word merging and fuzzy-candidate composition now live in <see cref="MentionRuleBuilder"/>
+/// (see MentionRuleBuilderTests) — this resolver only turns name parts into words.
 /// </summary>
 public sealed class PlayerMentionResolverTests
 {
@@ -17,20 +19,19 @@ public sealed class PlayerMentionResolverTests
         bool matchFullName,
         bool matchFirstName,
         bool matchLastName,
-        IEnumerable<string>? custom,
         bool partialFirst = false,
         bool partialLast = false,
         bool miqote = false)
     {
         return PlayerMentionResolver.ResolveWords(
             fullName!, matchFullName, matchFirstName, matchLastName,
-            partialFirst, partialLast, miqote, custom);
+            partialFirst, partialLast, miqote);
     }
 
     [Fact]
     public void ResolveWords_AllParts_ReturnsFullFirstAndLast()
     {
-        var words = Resolve("Max Mustermiqo'te", true, true, true, null);
+        var words = Resolve("Max Mustermiqo'te", true, true, true);
 
         words.WholeWords.Should().Equal("Max Mustermiqo'te", "Max", "Mustermiqo'te");
         words.PartialWords.Should().BeEmpty();
@@ -41,34 +42,16 @@ public sealed class PlayerMentionResolverTests
     {
         // A user who only wants the surname highlighted (e.g. first name is a common word) must not
         // get the full name or forename smuggled back in.
-        var words = Resolve("Sun Seeker", false, false, true, null);
+        var words = Resolve("Sun Seeker", false, false, true);
 
         words.WholeWords.Should().Equal("Seeker");
-    }
-
-    [Fact]
-    public void ResolveWords_MergesCustomWords()
-    {
-        var words = Resolve("Max Mustermiqo'te", false, true, false, ["boss", "captain"]);
-
-        words.WholeWords.Should().Equal("Max", "boss", "captain");
-    }
-
-    [Fact]
-    public void ResolveWords_DeduplicatesCaseInsensitively_KeepingFirstCasing()
-    {
-        // The custom list repeating a name part (in another case) must not produce a duplicate regex;
-        // the finder already matches case-insensitively, so duplicates are pure noise.
-        var words = Resolve("Max Mustermiqo'te", false, true, false, ["MAX", "  max  "]);
-
-        words.WholeWords.Should().Equal("Max");
     }
 
     [Fact]
     public void ResolveWords_SingleTokenName_DoesNotDuplicate()
     {
         // A one-word name means full == first == last; it must collapse to a single trigger word.
-        var words = Resolve("Cloud", true, true, true, null);
+        var words = Resolve("Cloud", true, true, true);
 
         words.WholeWords.Should().Equal("Cloud");
     }
@@ -77,17 +60,17 @@ public sealed class PlayerMentionResolverTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void ResolveWords_BlankName_YieldsOnlyCustomWords(string? name)
+    public void ResolveWords_BlankName_IsEmpty(string? name)
     {
-        var words = Resolve(name, true, true, true, ["ally"]);
+        var words = Resolve(name, true, true, true);
 
-        words.WholeWords.Should().Equal("ally");
+        words.WholeWords.Should().BeEmpty();
     }
 
     [Fact]
-    public void ResolveWords_NoPartsAndNoCustom_IsEmpty()
+    public void ResolveWords_NoPartsSelected_IsEmpty()
     {
-        var words = Resolve("Max Mustermiqo'te", false, false, false, []);
+        var words = Resolve("Max Mustermiqo'te", false, false, false);
 
         words.WholeWords.Should().BeEmpty();
         words.PartialWords.Should().BeEmpty();
@@ -98,9 +81,10 @@ public sealed class PlayerMentionResolverTests
     [Fact]
     public void ResolveWords_PartialFirstName_GoesToPartialNotWhole()
     {
-        // Partial first name must be matched as a substring, so it belongs in the partial list — and
-        // must NOT also sit in the whole-word list (that would be redundant and risk double-marking).
-        var words = Resolve("John Doe", false, false, false, null, partialFirst: true);
+        // With the first-name part enabled and refined to partial, the forename must be matched as
+        // a substring, so it belongs in the partial list — and must NOT also sit in the whole-word
+        // list (that would be redundant and risk double-marking).
+        var words = Resolve("John Doe", false, true, false, partialFirst: true);
 
         words.PartialWords.Should().Equal("John");
         words.WholeWords.Should().BeEmpty();
@@ -109,21 +93,32 @@ public sealed class PlayerMentionResolverTests
     [Fact]
     public void ResolveWords_PartialLastName_GoesToPartial()
     {
-        var words = Resolve("Some Gobchat", false, false, false, null, partialLast: true);
+        var words = Resolve("Some Gobchat", false, false, true, partialLast: true);
 
         words.PartialWords.Should().Equal("Gobchat");
         words.WholeWords.Should().BeEmpty();
     }
 
     [Fact]
-    public void ResolveWords_PartialFirst_WinsOverWholeFirst()
+    public void ResolveWords_PartialFirst_WithoutFirstName_AddsNothing()
     {
-        // With both the whole and partial first-name switches on, the forename must resolve to the
-        // partial list only — a substring match already covers the whole word.
-        var words = Resolve("John Doe", false, true, false, null, partialFirst: true);
+        // A partial switch is a refinement of its name part, not an independent trigger: the
+        // settings UI disables "Partial first name" while "First name" is off, so a stale partial
+        // flag without its base part must not match — a greyed-out switch that still fires would
+        // contradict what the UI shows.
+        var words = Resolve("John Doe", false, false, false, partialFirst: true);
 
-        words.PartialWords.Should().Equal("John");
-        words.WholeWords.Should().NotContain("John");
+        words.PartialWords.Should().BeEmpty();
+        words.WholeWords.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ResolveWords_PartialLast_WithoutLastName_AddsNothing()
+    {
+        var words = Resolve("Some Gobchat", false, false, false, partialLast: true);
+
+        words.PartialWords.Should().BeEmpty();
+        words.WholeWords.Should().BeEmpty();
     }
 
     // --- Miqo'te mode ------------------------------------------------------------------------
@@ -134,7 +129,7 @@ public sealed class PlayerMentionResolverTests
     [InlineData("Y'shtola Rhul", "shtola")]
     public void ResolveWords_Miqote_AddsLongestApostropheSegment(string name, string expected)
     {
-        var words = Resolve(name, false, false, false, null, miqote: true);
+        var words = Resolve(name, false, false, false, miqote: true);
 
         words.WholeWords.Should().Contain(expected);
     }
@@ -143,7 +138,7 @@ public sealed class PlayerMentionResolverTests
     public void ResolveWords_Miqote_NoApostrophe_AddsNothing()
     {
         // The forename has no apostrophe, so Miqo'te mode must contribute no extra word.
-        var words = Resolve("John Doe", false, false, false, null, miqote: true);
+        var words = Resolve("John Doe", false, false, false, miqote: true);
 
         words.WholeWords.Should().BeEmpty();
         words.PartialWords.Should().BeEmpty();
@@ -155,7 +150,7 @@ public sealed class PlayerMentionResolverTests
         // Tie-break pinned: with equal-length apostrophe segments the FIRST one is kept
         // ("strictly longer" replacement) — the derived short name must be deterministic,
         // not flip with implementation details of the scan.
-        var words = Resolve("Mira'lena Doe", false, false, false, null, miqote: true);
+        var words = Resolve("Mira'lena Doe", false, false, false, miqote: true);
 
         words.WholeWords.Should().Equal("Mira");
     }
@@ -164,41 +159,8 @@ public sealed class PlayerMentionResolverTests
     public void ResolveWords_Miqote_AlongsideFirstName_KeepsBoth()
     {
         // Matching the whole forename and the Miqo'te short name are independent; both whole words show up.
-        var words = Resolve("A'nabelle Surana", false, true, false, null, miqote: true);
+        var words = Resolve("A'nabelle Surana", false, true, false, miqote: true);
 
         words.WholeWords.Should().Equal("A'nabelle", "nabelle");
-    }
-
-    // --- Fuzzy candidates --------------------------------------------------------------------
-
-    [Fact]
-    public void FuzzyCandidates_IncludePartialNamesAsWholeWords()
-    {
-        // Regression guard: turning on a partial switch must NOT drop that name from fuzzy. The
-        // partially-matched forename is still a fuzzy candidate, alongside the whole-word surname.
-        var words = Resolve("John Doe", false, false, true, null, partialFirst: true);
-
-        var fuzzy = PlayerMentionResolver.FuzzyCandidates(words);
-
-        fuzzy.Should().Contain("John");
-        fuzzy.Should().Contain("Doe");
-    }
-
-    [Fact]
-    public void FuzzyCandidates_DeduplicateAcrossLists()
-    {
-        // A single-token name landing in both lists (full name whole + partial first) must yield one
-        // fuzzy candidate, not a duplicate.
-        var words = Resolve("Cloud", true, false, false, null, partialFirst: true);
-
-        PlayerMentionResolver.FuzzyCandidates(words).Should().Equal("Cloud");
-    }
-
-    [Fact]
-    public void FuzzyCandidates_NoWords_IsEmpty()
-    {
-        var words = Resolve("John Doe", false, false, false, null);
-
-        PlayerMentionResolver.FuzzyCandidates(words).Should().BeEmpty();
     }
 }

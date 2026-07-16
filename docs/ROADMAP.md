@@ -207,7 +207,8 @@ which `MentionMatcher` merges away (see Considered, not planned):
   [ADR 0003](adr/0003-game-sound-effects-only-v1.md)
 - Policy is [ADR 0005](adr/0005-per-group-alert-sounds.md): shared cooldown
   across all groups, mention sound wins on overlap (at most one sound per
-  message), own messages never alert, channel scope = group-coloring scope
+  message), own messages never alert, channel scope = conversational channels
+  only (`ChatListener.GroupingChannels`, see the ADR's 2026-07-16 amendment)
 - Groups tab grows a per-group sound row; the Mentions tab's sound picker
   is extracted into a shared control (`AlertSoundEditor`) rather than
   duplicated. Friend groups are engine-supported but have no sound UI yet

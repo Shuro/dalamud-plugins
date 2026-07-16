@@ -21,7 +21,10 @@ internal static class PayloadRewriter
     /// <paramref name="runTexts"/> and <paramref name="runSpans"/> are
     /// parallel lists describing the TextPayload runs of the message.
     /// Styles map a segment type to packed RGBA colors; (0, 0) renders plain.
-    /// <paramref name="fadeStep"/>, when set, pre-dims each color via
+    /// <paramref name="mentionOverrides"/> is the per-word color-override table a Mention span's
+    /// <see cref="SegmentSpan.StyleId"/> indexes into (see <see cref="MentionStyleResolver"/>);
+    /// empty disables all overrides, falling every Mention span back to <paramref name="styles"/>'s
+    /// entry. <paramref name="fadeStep"/>, when set, pre-dims each color via
     /// <see cref="UiColorDimmer.DimRgba"/> before it's emitted.
     /// </summary>
     public static List<Payload> Rewrite(
@@ -30,6 +33,7 @@ internal static class PayloadRewriter
         IReadOnlyList<string> runTexts,
         IReadOnlyList<IReadOnlyList<SegmentSpan>> runSpans,
         IReadOnlyDictionary<SegmentType, (uint Foreground, uint Glow)> styles,
+        IReadOnlyList<(uint Foreground, uint Glow)> mentionOverrides,
         int? fadeStep = null)
     {
         var result = new List<Payload>(payloads.Count + (4 * runSpans.Count));
@@ -42,7 +46,7 @@ internal static class PayloadRewriter
                 continue;
             }
 
-            AppendRun(result, payloads[i], runTexts[run], runSpans[run], styles, fadeStep);
+            AppendRun(result, payloads[i], runTexts[run], runSpans[run], styles, mentionOverrides, fadeStep);
             ++run;
         }
 
@@ -89,6 +93,7 @@ internal static class PayloadRewriter
         string text,
         IReadOnlyList<SegmentSpan> spans,
         IReadOnlyDictionary<SegmentType, (uint Foreground, uint Glow)> styles,
+        IReadOnlyList<(uint Foreground, uint Glow)> mentionOverrides,
         int? fadeStep)
     {
         // Untouched run: keep the original payload instead of re-creating it.
@@ -101,9 +106,16 @@ internal static class PayloadRewriter
         foreach (var span in spans)
         {
             var sub = text.Substring(span.Start, span.Length);
-            if (span.Type == SegmentType.Undefined
-                || !styles.TryGetValue(span.Type, out var style)
-                || (style.Foreground == 0 && style.Glow == 0))
+            if (span.Type == SegmentType.Undefined || !styles.TryGetValue(span.Type, out var style))
+            {
+                result.Add(new TextPayload(sub));
+                continue;
+            }
+
+            if (span.Type == SegmentType.Mention && span.StyleId != 0)
+                style = MentionStyleResolver.Resolve(span.StyleId, mentionOverrides, style.Foreground, style.Glow);
+
+            if (style.Foreground == 0 && style.Glow == 0)
             {
                 result.Add(new TextPayload(sub));
                 continue;

@@ -37,6 +37,15 @@ public sealed class ChatListener : IDisposable
     private MessageSegmenter _segmenter = null!;
     private HashSet<XivChatType> _channels = null!;
     private Dictionary<SegmentType, (uint Foreground, uint Glow)> _styles = null!;
+
+    // Per-word mention color-override table (StyleId - 1 indexes it), resolved via
+    // MentionStyleResolver. _mentionWordStyles is always populated whenever mentions are detected
+    // at all (feeds MentionHistory regardless of whether the Mention style itself is on);
+    // _mentionRenderStyles is the same table gated by MentionStyle.Enabled, so a per-word override
+    // never renders in chat while the master Mention style is off (mirrors _styles[Mention]
+    // collapsing to (0,0) in that case).
+    private IReadOnlyList<(uint Foreground, uint Glow)> _mentionWordStyles = [];
+    private IReadOnlyList<(uint Foreground, uint Glow)> _mentionRenderStyles = [];
     private IReadOnlyList<GroupRule> _groupRules = [];
     private Dictionary<string, (uint Foreground, uint Glow)> _groupStyles = new();
     private Dictionary<string, PlayerGroup> _groupsById = new();
@@ -148,11 +157,17 @@ public sealed class ChatListener : IDisposable
         XivChatType.CrossLinkShell7, XivChatType.CrossLinkShell8,
     ];
 
-    // Tells and Echo carry no real sender to group (Echo is local-only, matching IsFromSelf's own
-    // reasoning); error messages are game system text. Mirrors the old app's channel exclusion.
-    // Internal so ChatTwoStyleProvider applies the same exclusion to group backgrounds.
-    internal static readonly HashSet<XivChatType> GroupingExcludedChannels =
-        [XivChatType.TellIncoming, XivChatType.TellOutgoing, XivChatType.Echo, XivChatType.ErrorMessage];
+    // Group coloring/sound only ever applies to a real conversing player, so this reuses
+    // MentionSoundChannels' conversational-channel universe rather than denylisting — CheckMessageHandled
+    // fires the full XivChatType enum, including ~20 senderless system/notification types (Teleport,
+    // zone-leave, Party Finder notices, gil-spent text, etc.) and the combat/loot/craft log, none of
+    // which should ever paint a sender or ding a group sound. An allow-list fails closed against those
+    // (and any future Dalamud chat type) instead of needing a denylist entry for every one of them.
+    // Tells and Echo are subtracted back out: they carry no real sender to group (Echo is local-only,
+    // matching IsFromSelf's own reasoning) — mirrors the old app's channel exclusion. Internal so
+    // ChatTwoStyleProvider applies the same scope to group backgrounds.
+    internal static readonly HashSet<XivChatType> GroupingChannels =
+        [.. MentionSoundChannels.Except([XivChatType.TellIncoming, XivChatType.TellOutgoing, XivChatType.Echo])];
 
     internal ChatListener(Configuration config, FriendGroupLookup friendGroups, SoundPlayer soundPlayer,
         MentionHistory mentionHistory)
@@ -238,7 +253,10 @@ public sealed class ChatListener : IDisposable
         // mention bypass needs to know whether a fading message mentions the player.
         var wantMentions = _config.Formatting.MentionStyle.Enabled || _config.Mentions.MentionSoundEnabled
             || (_rangeEnabled && _config.RangeFilter.RangeFilterMentionsIgnoreRange);
-        _segmenter = new MessageSegmenter(rules, wantMentions ? BuildMentionRules(_config.Mentions) : NoMentionRules);
+        var mentionRules = wantMentions ? BuildMentionRules(_config.Mentions) : NoMentionRules;
+        _segmenter = new MessageSegmenter(rules, mentionRules);
+        _mentionWordStyles = mentionRules.Styles ?? [];
+        _mentionRenderStyles = _config.Formatting.MentionStyle.Enabled ? _mentionWordStyles : [];
 
         BuildGroupRules();
     }
@@ -272,54 +290,47 @@ public sealed class ChatListener : IDisposable
     /// <summary>
     /// Global trigger words plus the currently logged-in character's resolved mention words (if that
     /// character is remembered and active), ported from the app's RecomputePlayerMentions /
-    /// ApplyEffectiveMentions. Player-resolved whole words are unioned into the global list,
-    /// case-insensitive de-duplicated; partial and fuzzy words are player-only. Static and internal
-    /// so ChatTwoStyleProvider builds its mention-bypass segmenter from the same rules; reads
-    /// IPlayerState, so callers must be on the framework thread.
+    /// ApplyEffectiveMentions. Maps config onto <see cref="MentionRuleBuilder"/>'s plain inputs,
+    /// which owns the actual union/dedupe/style-id-allocation logic (kept Config-free so it's
+    /// directly testable, per ADR 0002). Static and internal so ChatTwoStyleProvider builds its
+    /// mention-bypass segmenter from the same rules; reads IPlayerState, so callers must be on the
+    /// framework thread.
     /// </summary>
     internal static MentionRules BuildMentionRules(MentionsConfig config)
     {
         if (!config.MentionsEnabled)
             return NoMentionRules;
 
-        var wholeWords = new List<string>(config.MentionTriggers);
-        IReadOnlyList<string> partialWords = [];
-        IReadOnlyList<string> fuzzyWords = [];
-        var fuzzyLevel = FuzzyMatchLevel.Conservative;
+        var globalTriggers = config.MentionTriggers
+            .Select(t => new StyledTrigger(t.Word, t.Foreground, t.Glow))
+            .ToList();
 
+        CharacterMentionInput? character = null;
         if (config.PlayerMentionsEnabled && Plugin.PlayerState.IsLoaded)
         {
             var playerName = Plugin.PlayerState.CharacterName;
-            var character = config.Characters.FirstOrDefault(c =>
+            var match = config.Characters.FirstOrDefault(c =>
                 c.Active && string.Equals(c.Name, playerName, StringComparison.OrdinalIgnoreCase));
 
-            if (character != null)
+            if (match != null)
             {
-                var resolved = PlayerMentionResolver.ResolveWords(
-                    character.Name,
-                    character.MatchFullName,
-                    character.MatchFirstName,
-                    character.MatchLastName,
-                    character.MatchFirstNamePartial,
-                    character.MatchLastNamePartial,
-                    character.MatchMiqote,
-                    character.CustomWords);
-
-                foreach (var word in resolved.WholeWords)
-                    if (!wholeWords.Any(w => string.Equals(w, word, StringComparison.OrdinalIgnoreCase)))
-                        wholeWords.Add(word);
-
-                partialWords = resolved.PartialWords;
-
-                if (character.MatchFuzzy)
-                {
-                    fuzzyWords = PlayerMentionResolver.FuzzyCandidates(resolved);
-                    fuzzyLevel = character.FuzzyLevel;
-                }
+                character = new CharacterMentionInput(
+                    match.Name,
+                    match.MatchFullName,
+                    match.MatchFirstName,
+                    match.MatchLastName,
+                    match.MatchFirstNamePartial,
+                    match.MatchLastNamePartial,
+                    match.MatchMiqote,
+                    match.MatchFuzzy,
+                    match.FuzzyLevel,
+                    match.NameForeground,
+                    match.NameGlow,
+                    match.CustomWords.Select(w => new StyledTrigger(w.Word, w.Foreground, w.Glow)).ToList());
             }
         }
 
-        return new MentionRules(wholeWords, partialWords, fuzzyWords, fuzzyLevel);
+        return MentionRuleBuilder.Build(globalTriggers, character);
     }
 
     private static (uint Foreground, uint Glow) StyleTuple(SegmentStyle style)
@@ -507,7 +518,8 @@ public sealed class ChatListener : IDisposable
         if (result == null)
             return false;
 
-        var rewritten = PayloadRewriter.Rewrite(payloads, runIndices!, runTexts, result.RunSpans, _styles, fadeStep);
+        var rewritten = PayloadRewriter.Rewrite(
+            payloads, runIndices!, runTexts, result.RunSpans, _styles, _mentionRenderStyles, fadeStep);
         message.Message = new SeString(rewritten);
 
         if (result.HasMention)
@@ -524,12 +536,19 @@ public sealed class ChatListener : IDisposable
     /// </summary>
     private void ApplySenderGroupColor(IHandleableChatMessage message, int? fadeStep, bool mentioned)
     {
-        if (GroupingExcludedChannels.Contains(message.LogKind))
+        if (!GroupingChannels.Contains(message.LogKind))
             return;
 
         SenderIdentity.Resolve(message.Sender, out var name, out var world);
         if (world == null)
             ResolveWorldlessSender(message, ref name, ref world);
+
+        // A senderless message (system/notification text with no PlayerPayload and no raw name run)
+        // stays empty here even after the fallback above, which only ever fills in world — never
+        // treat that as a real sender to group. Mirrors ChatTwoStyleProvider.EvaluateCore's own
+        // name.Length > 0 guard.
+        if (name.Length == 0)
+            return;
 
         var friendGroupIndex = _friendGroups.TryGetFriendGroupIndex(name, world, out var index) ? index : (int?)null;
 
@@ -633,8 +652,16 @@ public sealed class ChatListener : IDisposable
             .Select(s => text.Substring(s.Start, s.Length))
             .Distinct(StringComparer.OrdinalIgnoreCase));
 
+        // Override-only foreground (0 = no override): the window falls back to whatever the
+        // default mention color is *at draw time*, so editing that default keeps recoloring
+        // already-recorded entries exactly like before per-word overrides existed, while an
+        // explicit override survives later settings changes untouched.
+        var spanColors = spans
+            .Select(s => s.StyleId != 0 ? MentionStyleResolver.Resolve(s.StyleId, _mentionWordStyles, 0, 0).Foreground : 0u)
+            .ToArray();
+
         _mentionHistory.Add(new MentionHistoryEntry(
-            timestamp, message.LogKind, name, world, text, spans, matches));
+            timestamp, message.LogKind, name, world, text, spans, matches, spanColors));
     }
 
     /// <summary>

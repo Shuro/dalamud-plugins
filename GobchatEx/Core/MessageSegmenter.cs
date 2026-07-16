@@ -139,7 +139,7 @@ public sealed class MessageSegmenter
                 }
 
                 var overlapEnd = Math.Min(mentions[m].End, span.End);
-                AddMention(result, cursor, overlapEnd);
+                AddMention(result, cursor, overlapEnd, mentions[m].StyleId);
                 cursor = overlapEnd;
             }
         }
@@ -148,15 +148,17 @@ public sealed class MessageSegmenter
     }
 
     /// <summary>
-    /// Appends a Mention span, coalescing with a directly preceding Mention
-    /// (a single mention interval can cross span boundaries and would
-    /// otherwise emit fragmented adjacent spans).
+    /// Appends a Mention span, coalescing with a directly preceding Mention only when the style
+    /// matches (a single mention interval can cross span boundaries and would otherwise emit
+    /// fragmented adjacent spans; two differently-styled mentions that merely touch must stay
+    /// separate spans so each keeps its own color).
     /// </summary>
-    private static void AddMention(List<SegmentSpan> result, int start, int end)
+    private static void AddMention(List<SegmentSpan> result, int start, int end, int styleId)
     {
-        if (result.Count > 0 && result[^1] is { Type: SegmentType.Mention } previous && previous.End == start)
-            result[^1] = new SegmentSpan(previous.Start, end - previous.Start, SegmentType.Mention);
+        if (result.Count > 0 && result[^1] is { Type: SegmentType.Mention } previous
+            && previous.End == start && previous.StyleId == styleId)
+            result[^1] = new SegmentSpan(previous.Start, end - previous.Start, SegmentType.Mention, styleId);
         else
-            result.Add(new SegmentSpan(start, end - start, SegmentType.Mention));
+            result.Add(new SegmentSpan(start, end - start, SegmentType.Mention, styleId));
     }
 }

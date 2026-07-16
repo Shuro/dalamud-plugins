@@ -7,7 +7,10 @@ namespace GobchatEx.Config;
 [Serializable]
 public class MentionsConfig : IAlertSoundSettings
 {
-    public int Version { get; set; } = 1;
+    // Bumped from 1: MentionTriggers changed shape (List<string> -> List<MentionTrigger>, adding
+    // a per-word color/glow override) — a breaking, non-migrated change (plugin unpublished; an
+    // old mentions.json fails to deserialize and this section resets once).
+    public int Version { get; set; } = 2;
 
     /// <summary>
     /// Master switch for the whole mentions feature: global trigger words and player-name
@@ -16,8 +19,9 @@ public class MentionsConfig : IAlertSoundSettings
     /// </summary>
     public bool MentionsEnabled { get; set; } = true;
 
-    /// <summary>Case-insensitive whole words that count as mentions.</summary>
-    public List<string> MentionTriggers { get; set; } = [];
+    /// <summary>Case-insensitive whole words that count as mentions, each with an optional
+    /// per-word color/glow override.</summary>
+    public List<MentionTrigger> MentionTriggers { get; set; } = [];
 
     /// <summary>
     /// Master switch for player-name mentions (Milestone 1). Characters are added
