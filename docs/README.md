@@ -23,11 +23,14 @@ in configured channels are recolored per segment —
   words) plus per-character player-name matching: full/first/last name,
   opt-in partial (substring) matching, Miqo'te apostrophe segments, and
   typo-tolerant fuzzy matching with three strictness levels. Decorative
-  "fancy font" text is unicode-folded before matching. Optionally plays a
-  game sound effect (`<se.1>`–`<se.16>`) or a custom sound file (wav, mp3,
-  ogg vorbis/opus — with its own volume slider) with a per-sound cooldown.
-  Your own messages don't alert — and by default aren't highlighted either
-  (Echo is exempt, so `/echo` mention tests keep working).
+  "fancy font" text is unicode-folded before matching. Each trigger word can
+  carry its own color/glow, overriding the default mention style. Optionally
+  plays a game sound effect (`<se.1>`–`<se.16>`) or a custom sound file (wav,
+  mp3, ogg vorbis/opus — with its own volume slider) with a per-sound
+  cooldown. Your own messages don't alert — and by default aren't
+  highlighted either (Echo is exempt, so `/echo` mention tests keep
+  working). A recent-mentions window (toggle from the Quickbar) keeps the
+  last 50 in a table for anything missed while away from the keyboard.
 
 On `/say` and `/em`, text outside any delimiter counts as said or emoted
 too — an unquoted `/say` line still renders in the Say color (while that
@@ -49,8 +52,12 @@ fill via right-click → Groups on any player name (also inside
 [Chat 2](https://github.com/Infiziert90/ChatTwo)'s own context menu), the
 `/gex group` command, or the settings tab — plus the game's seven
 friend-list display groups (Star–Club). Custom groups take precedence over
-friend groups. The settings window itself is localized (English, German)
-and follows Dalamud's language unless overridden.
+friend groups. Each group can also play its own alert sound when a member
+speaks (same game-effect/custom-file options as mentions, one shared
+cooldown); if a message is both a mention and a group member speaking, only
+the mention sound plays. The settings window itself is localized (English,
+German), follows Dalamud's language unless overridden, and offers a few
+selectable color themes.
 
 **Range filter** fades chat from distant players: messages in configured
 channels (default Say and both Emotes) darken in steps with distance and
@@ -86,6 +93,13 @@ present, otherwise the game's chat log).
   the nearby players with their distances. `p` is a shorthand for `player`.
 - `/gex player distance Player Name [World]` — Your distance to one named
   nearby player.
+- `/gex mention add|remove <word>` — Adds or removes a global mention
+  trigger word (same dedupe rule as the Mentions tab). `/gex mention list` —
+  Prints your current trigger words.
+- `/gex log start|stop` — Starts or stops chat logging, same as the Logs tab
+  or Quickbar button (still needs a log folder chosen first).
+  `/gex log status` — Prints whether logging is on and, if so, the current
+  session's file path.
 - `<t>` in any of these resolves to your current target's name, even in
   macros (e.g. `/gex group 1 add <t>`).
 - Anything unrecognized — including the old standalone app's retired

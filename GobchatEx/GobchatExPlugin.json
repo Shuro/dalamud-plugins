@@ -1,8 +1,8 @@
 {
   "Name": "GobchatEx Roleplay Suite",
   "Author": "Shuro",
-  "Punchline": "Roleplay Highlighting, Mentions and much more.",
-  "Description": "Roleplay Highlighting in the native chat. Mentions notification with sound effects and more.",
+  "Punchline": "Everything you need for a nice roleplay session.",
+  "Description": "Highlights Say, Emote, and OOC in the native chat log, alerts you on mentions, and colors sender names by player group — the roleplay suite for FFXIV.",
   "RepoUrl": "https://github.com/Shuro/dalamud-plugins",
   "ApplicableVersion": "any",
   "Tags": ["Chat", "Social", "Roleplay", "RP"],

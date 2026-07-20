@@ -1,4 +1,4 @@
-<!-- Generated: 2026-07-13 (v0.10.2) | Files scanned: 75 (+20 tests) | Token estimate: ~750 -->
+<!-- Generated: 2026-07-20 (v1.0.0) | Files scanned: 79 (+24 tests) | Token estimate: ~780 -->
 
 # Dependencies
 
@@ -96,7 +96,7 @@ project (keeps Dalamud out; compiles `Core/**` and `Localization/**` sources
 directly, ADR 0002). Loc tests use embedded resx fixtures (Fixtures/).
 
 - Microsoft.NET.Test.Sdk 17.12.0
-- xunit 2.9.2 + xunit.runner.visualstudio 2.8.2
+- xunit 2.9.2 + xunit.runner.visualstudio 2.8.2 (344 tests across 24 files)
 - FluentAssertions 7.2.0
 - Coverage: built-in collector only — `dotnet test --collect "Code Coverage;Format=cobertura"`
   (coverlet cannot instrument net10.0; silently reports 0 lines)
