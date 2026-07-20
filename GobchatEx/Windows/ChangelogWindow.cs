@@ -215,9 +215,17 @@ internal sealed class ChangelogWindow : Window
     /// </summary>
     private void SeedEntries()
     {
-        NextVersion("Unreleased")
-            .RegisterEntry(Loc.Get("Changelog_Unreleased_ChangelogFeature"))
-            .RegisterImportant(Loc.Get("Changelog_Unreleased_ThemeTextFix"));
+        NextVersion("v1.0.0")
+            .RegisterImportant(Loc.Get("Changelog_V1_0_0_Headline"))
+            .RegisterEntry(Loc.Get("Changelog_V1_0_0_ChatHighlighting"))
+            .RegisterEntry(Loc.Get("Changelog_V1_0_0_PlayerMentions"))
+            .RegisterEntry(Loc.Get("Changelog_V1_0_0_PlayerGroups"))
+            .RegisterEntry(Loc.Get("Changelog_V1_0_0_RangeFilter"))
+            .RegisterEntry(Loc.Get("Changelog_V1_0_0_ChatLogging"))
+            .RegisterEntry(Loc.Get("Changelog_V1_0_0_MentionSounds"))
+            .RegisterEntry(Loc.Get("Changelog_V1_0_0_GroupSounds"))
+            .RegisterEntry(Loc.Get("Changelog_V1_0_0_MentionHistory"))
+            .RegisterEntry(Loc.Get("Changelog_V1_0_0_ChatCommands"));
     }
 
     private readonly record struct Entry(string Text, bool Highlight)

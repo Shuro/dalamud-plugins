@@ -261,8 +261,16 @@
     <data name="Changelog_Display_New"><value>Show new changelogs (recommended)</value></data>
     <data name="Changelog_Display_HighlightOnly"><value>Only show important changelogs</value></data>
     <data name="Changelog_Display_Never"><value>Never show changelogs</value></data>
-    <data name="Changelog_Unreleased_ChangelogFeature"><value>Added an in-app changelog: this window, shown automatically after an update with new entries.</value></data>
-    <data name="Changelog_Unreleased_ThemeTextFix"><value>Window themes can now override text, surface, and disabled-text colors, fixing unreadable text on light pastel themes like Yojiberry and Soft Octopus.</value></data>
+    <data name="Changelog_V1_0_0_Headline"><value>First full feature release!</value></data>
+    <data name="Changelog_V1_0_0_ChatHighlighting"><value>Say, Emote, and OOC dialogue color in the native chat log.</value></data>
+    <data name="Changelog_V1_0_0_PlayerMentions"><value>Player Mentions match your character's actual name - full, first, last, partial - with fuzzy typo matching.</value></data>
+    <data name="Changelog_V1_0_0_PlayerGroups"><value>Player Groups: color-code friends and RP partners, plus the game's 7 friend-list symbol groups.</value></data>
+    <data name="Changelog_V1_0_0_RangeFilter"><value>Range Filter: fade or hide chat from far-away players.</value></data>
+    <data name="Changelog_V1_0_0_ChatLogging"><value>Chat Logging: per-character log files.</value></data>
+    <data name="Changelog_V1_0_0_MentionSounds"><value>Mention alerts: game sound effect or custom audio file (wav/mp3/ogg), with cooldown.</value></data>
+    <data name="Changelog_V1_0_0_GroupSounds"><value>Per-group alert sounds: configurable per custom group.</value></data>
+    <data name="Changelog_V1_0_0_MentionHistory"><value>Mention History: review older mentions of trigger words.</value></data>
+    <data name="Changelog_V1_0_0_ChatCommands"><value>Chat commands for macros: run /gex help for the full list.</value></data>
 
     <data name="Placeholder_ComingSoon"><value>Planned for a future release.</value></data>
 

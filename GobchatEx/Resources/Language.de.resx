@@ -260,8 +260,16 @@
     <data name="Changelog_Display_New"><value>Neue Änderungen anzeigen (empfohlen)</value></data>
     <data name="Changelog_Display_HighlightOnly"><value>Nur wichtige Änderungen anzeigen</value></data>
     <data name="Changelog_Display_Never"><value>Änderungen nie anzeigen</value></data>
-    <data name="Changelog_Unreleased_ChangelogFeature"><value>Ein Änderungsprotokoll hinzugefügt: dieses Fenster, das nach einem Update mit neuen Einträgen automatisch erscheint.</value></data>
-    <data name="Changelog_Unreleased_ThemeTextFix"><value>Fenster-Themes können jetzt Text-, Oberflächen- und deaktivierte-Text-Farben überschreiben – behebt unleserlichen Text bei hellen Pastell-Themes wie Yojiberry und Soft Octopus.</value></data>
+    <data name="Changelog_V1_0_0_Headline"><value>Erste vollständige Version!</value></data>
+    <data name="Changelog_V1_0_0_ChatHighlighting"><value>Sagen, Emotes und OOC-Dialoge werden direkt im normalen Chatverlauf eingefärbt.</value></data>
+    <data name="Changelog_V1_0_0_PlayerMentions"><value>Spieler-Erwähnungen erkennen den tatsächlichen Namen deines Charakters - vollständig, Vor-, Nachname oder teilweise - inklusive Tippfehlererkennung.</value></data>
+    <data name="Changelog_V1_0_0_PlayerGroups"><value>Spielergruppen: Freunde und RP-Partner farblich markieren, plus die 7 spieleigenen Freundeslisten-Symbolgruppen.</value></data>
+    <data name="Changelog_V1_0_0_RangeFilter"><value>Entfernungsfilter: Chat von weit entfernten Spielern ausblenden oder verblassen lassen.</value></data>
+    <data name="Changelog_V1_0_0_ChatLogging"><value>Chat-Protokollierung: Protokolldateien pro Charakter.</value></data>
+    <data name="Changelog_V1_0_0_MentionSounds"><value>Erwähnungs-Alarme: Spiel-Soundeffekt oder eigene Audiodatei (wav/mp3/ogg), mit Abklingzeit.</value></data>
+    <data name="Changelog_V1_0_0_GroupSounds"><value>Gruppen-Alarmtöne: konfigurierbar pro eigener Gruppe.</value></data>
+    <data name="Changelog_V1_0_0_MentionHistory"><value>Erwähnungsverlauf: ältere Erwähnungen von Auslösewörtern einsehen.</value></data>
+    <data name="Changelog_V1_0_0_ChatCommands"><value>Chat-Befehle für Makros: /gex help zeigt die vollständige Liste.</value></data>
 
     <data name="Placeholder_ComingSoon"><value>Für eine zukünftige Version geplant.</value></data>
 
