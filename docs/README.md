@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="../GobchatEx/images/GobChatEX-logo.png" alt="GobchatEx logo">
+</p>
+
 # GobchatEx Roleplay Suite
 
 A Dalamud plugin for Final Fantasy XIV via [XIVLauncher](https://github.com/goatcorp/FFXIVQuickLauncher).
@@ -238,6 +242,11 @@ plugin repository ([DalamudPluginsD17](https://github.com/goatcorp/DalamudPlugin
 auto-rejects entirely AI-generated submissions and bans undisclosed AI use
 in demonstrably AI-written work. See [AI-DISCLOSURE.md](AI-DISCLOSURE.md)
 for this project's own AI-usage history.
+
+## Credits
+
+The plugin icon and the artwork on the in-game About page were illustrated by
+[TsuShi Illustrations](https://tsushi-illustrations.carrd.co). Thank you!
 
 ## License
 

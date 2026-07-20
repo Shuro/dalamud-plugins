@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
@@ -13,12 +14,21 @@ namespace GobchatEx.Windows.SettingsTabs;
 internal sealed class AboutTab : ISettingsTab
 {
     private const string RepoUrl = "https://github.com/Shuro/dalamud-plugins";
+    private const string TsuShiUrl = "https://tsushi-illustrations.carrd.co";
+    private const float LogoDisplayWidth = 180f;
 
     public string Name => Loc.Get("About_TabName");
     public FontAwesomeIcon Icon => FontAwesomeIcon.InfoCircle;
 
-    private readonly string iconPath = Path.Combine(
-        Plugin.PluginInterface.AssemblyLocation.DirectoryName!, "icon.png");
+    private readonly Action showChangelog;
+
+    private readonly string logoPath = Path.Combine(
+        Plugin.PluginInterface.AssemblyLocation.DirectoryName!, "GobChatEX-logo.png");
+
+    public AboutTab(Action showChangelog)
+    {
+        this.showChangelog = showChangelog;
+    }
 
     public void Draw()
     {
@@ -26,10 +36,11 @@ internal sealed class AboutTab : ISettingsTab
 
         // Re-fetched every frame by design: ITextureProvider returns shared
         // handles and discourages caching (or disposing) the wraps.
-        var icon = Plugin.TextureProvider.GetFromFile(iconPath).GetWrapOrEmpty();
-        var iconSize = 64f * ImGuiHelpers.GlobalScale;
-        ImGuiHelpers.CenterCursorFor(iconSize);
-        ImGui.Image(icon.Handle, new Vector2(iconSize));
+        var logo = Plugin.TextureProvider.GetFromFile(logoPath).GetWrapOrEmpty();
+        var logoScale = LogoDisplayWidth / logo.Width * ImGuiHelpers.GlobalScale;
+        var logoSize = logo.Size * logoScale;
+        ImGuiHelpers.CenterCursorFor(logoSize.X);
+        ImGui.Image(logo.Handle, logoSize);
 
         ImGuiHelpers.ScaledDummy(6f);
         using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.ParsedGold))
@@ -48,10 +59,26 @@ internal sealed class AboutTab : ISettingsTab
             ImGui.TextUnformatted(Loc.Get("About_Lineage"));
 
         ImGuiHelpers.ScaledDummy(10f);
+        var changelogLabel = Loc.Get("About_ViewChangelog");
         var repoLinkLabel = Loc.Get("About_RepoLink");
-        ImGuiHelpers.CenterCursorFor(
-            ImGuiComponents.GetIconButtonWithTextWidth(FontAwesomeIcon.ExternalLinkAlt, repoLinkLabel));
+        var changelogWidth = ImGuiComponents.GetIconButtonWithTextWidth(FontAwesomeIcon.History, changelogLabel);
+        var repoLinkWidth = ImGuiComponents.GetIconButtonWithTextWidth(FontAwesomeIcon.ExternalLinkAlt, repoLinkLabel);
+        ImGuiHelpers.CenterCursorFor(changelogWidth + repoLinkWidth + ImGui.GetStyle().ItemSpacing.X);
+        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.History, changelogLabel))
+            showChangelog();
+        ImGui.SameLine();
         if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.ExternalLinkAlt, repoLinkLabel))
             Dalamud.Utility.Util.OpenLink(RepoUrl);
+
+        ImGuiHelpers.ScaledDummy(10f);
+        using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey))
+            ImGuiHelpers.CenteredText(Loc.Get("About_ArtCredit"));
+
+        ImGuiHelpers.ScaledDummy(4f);
+        var artCreditLabel = Loc.Get("About_ArtCreditLink");
+        ImGuiHelpers.CenterCursorFor(
+            ImGuiComponents.GetIconButtonWithTextWidth(FontAwesomeIcon.Palette, artCreditLabel));
+        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Palette, artCreditLabel))
+            Dalamud.Utility.Util.OpenLink(TsuShiUrl);
     }
 }

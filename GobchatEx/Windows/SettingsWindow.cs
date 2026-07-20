@@ -127,7 +127,7 @@ public class SettingsWindow : Window
 #if DEBUG
                 new DebugTab(plugin),
 #endif
-                new AboutTab(),
+                new AboutTab(plugin.ShowChangelog),
             ]),
         ];
         currentTab = sections[0].Tabs[0];
@@ -196,6 +196,18 @@ public class SettingsWindow : Window
 
     /// <summary>Commits an edit made within the debounce window before closing.</summary>
     public override void OnClose()
+    {
+        CommitIfChanged();
+        rebaseline = true;
+    }
+
+    /// <summary>
+    /// Lets an external writer that just persisted its own section (e.g. ChangelogWindow, which
+    /// isn't modal and can be dismissed while this window is still open) resync the commit
+    /// baseline without waiting for a close/open cycle. Commits first, same as OnClose, so a real
+    /// pending edit in another tab isn't silently absorbed into the new baseline unsaved.
+    /// </summary>
+    internal void RequestRebaseline()
     {
         CommitIfChanged();
         rebaseline = true;

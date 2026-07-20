@@ -76,6 +76,7 @@ public sealed class Plugin : IDalamudPlugin
     private SettingsWindow SettingsWindow { get; init; }
     private QuickbarWindow QuickbarWindow { get; init; }
     private MentionHistoryWindow MentionHistoryWindow { get; init; }
+    private ChangelogWindow ChangelogWindow { get; init; }
 
     public Plugin()
     {
@@ -99,6 +100,8 @@ public sealed class Plugin : IDalamudPlugin
         WindowSystem.AddWindow(QuickbarWindow);
         MentionHistoryWindow = new MentionHistoryWindow(this);
         WindowSystem.AddWindow(MentionHistoryWindow);
+        ChangelogWindow = new ChangelogWindow(this);
+        WindowSystem.AddWindow(ChangelogWindow);
 
         // Dalamud has no alias mechanism on CommandInfo, so each command
         // name gets its own handler pointing at the same action. DisplayOrder
@@ -252,6 +255,14 @@ public sealed class Plugin : IDalamudPlugin
 
     /// <summary>Toggles the recent-mentions window (Milestone 7) — the Quickbar's bell button.</summary>
     internal void ToggleMentionHistory() => MentionHistoryWindow.Toggle();
+
+    /// <summary>Forces the changelog window open on demand — AboutTab's "View Changelog" button.
+    /// The window opens itself next frame via PreOpenCheck; see ChangelogWindow.ForceOpen.</summary>
+    internal void ShowChangelog() => ChangelogWindow.ForceOpen = true;
+
+    /// <summary>Lets ChangelogWindow's direct config writes avoid tripping SettingsWindow's
+    /// debounced commit cascade when both windows are open at once.</summary>
+    internal void RebaselineSettingsWindow() => SettingsWindow.RequestRebaseline();
 
     /// <summary>Opens (never closes) and focuses the settings window — the Quickbar's cog.</summary>
     public void OpenSettingsUI()

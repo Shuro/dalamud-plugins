@@ -246,11 +246,22 @@
     <data name="About_Lineage"><value>Basiert auf der Idee von Gobchat von MarbleBag und GobchatEx von Shuro - statt eines externen Tools nun direkt als Dalamud-Plugin ins Spiel integriert.</value></data>
     <data name="About_RepoLink"><value>Quellcode &amp; Fehlermeldungen</value></data>
     <data name="About_ByAuthor"><value>von {0}</value></data>
+    <data name="About_ViewChangelog"><value>Änderungsprotokoll ansehen</value></data>
+    <data name="About_ArtCredit"><value>Charakterkunst und Logo illustriert von TsuShi Illustrations.</value></data>
+    <data name="About_ArtCreditLink"><value>TsuShi Illustrations</value></data>
 
     <data name="Settings_WindowTitle"><value>GobchatEx Roleplay Suite</value></data>
     <data name="Settings_Nav_General"><value>Allgemein</value></data>
     <data name="Settings_Nav_Roleplay"><value>Rollenspiel</value></data>
     <data name="Settings_KofiTooltip"><value>Auf Ko-fi unterstützen</value></data>
+
+    <data name="Changelog_WindowTitle"><value>Neuerungen</value></data>
+    <data name="Changelog_Understood"><value>Verstanden</value></data>
+    <data name="Changelog_Display_New"><value>Neue Änderungen anzeigen (empfohlen)</value></data>
+    <data name="Changelog_Display_HighlightOnly"><value>Nur wichtige Änderungen anzeigen</value></data>
+    <data name="Changelog_Display_Never"><value>Änderungen nie anzeigen</value></data>
+    <data name="Changelog_Unreleased_ChangelogFeature"><value>Ein Änderungsprotokoll hinzugefügt: dieses Fenster, das nach einem Update mit neuen Einträgen automatisch erscheint.</value></data>
+    <data name="Changelog_Unreleased_ThemeTextFix"><value>Fenster-Themes können jetzt Text-, Oberflächen- und deaktivierte-Text-Farben überschreiben – behebt unleserlichen Text bei hellen Pastell-Themes wie Yojiberry und Soft Octopus.</value></data>
 
     <data name="Placeholder_ComingSoon"><value>Für eine zukünftige Version geplant.</value></data>
 

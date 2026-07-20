@@ -66,4 +66,18 @@ public class GeneralConfig
     /// old macros. Defaults on since it's a compatibility feature, not an opt-in extra.
     /// </summary>
     public bool LegacyEchoCommandFallback { get; set; } = true;
+
+    /// <summary>
+    /// Changelog "seen" watermark — an index into the changelog window's entry list, not a plugin
+    /// version. int.MaxValue (the default) means "nothing to show yet": both a genuinely fresh
+    /// install and a config file saved before this feature existed start out already caught up,
+    /// so upgrading to the version that introduces the changelog doesn't dump the whole backlog on
+    /// existing users. Advances only when the changelog window is dismissed or opens with nothing
+    /// new to show, per the configured ChangelogDisplayType.
+    /// </summary>
+    public int ChangelogLastSeenVersion { get; set; } = int.MaxValue;
+
+    /// <summary>How eagerly the changelog window auto-opens on load: show every new entry, only
+    /// entries flagged important, or never.</summary>
+    public ChangelogDisplayType ChangelogDisplayType { get; set; } = ChangelogDisplayType.New;
 }

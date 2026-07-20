@@ -247,11 +247,22 @@
     <data name="About_Lineage"><value>Based on the idea of Gobchat by MarbleBag and GobchatEx by Shuro - reimagined as a Dalamud plugin instead of an external tool.</value></data>
     <data name="About_RepoLink"><value>Source code &amp; issues</value></data>
     <data name="About_ByAuthor"><value>by {0}</value></data>
+    <data name="About_ViewChangelog"><value>View Changelog</value></data>
+    <data name="About_ArtCredit"><value>Character art and logo illustrated by TsuShi Illustrations.</value></data>
+    <data name="About_ArtCreditLink"><value>TsuShi Illustrations</value></data>
 
     <data name="Settings_WindowTitle"><value>GobchatEx Roleplay Suite</value></data>
     <data name="Settings_Nav_General"><value>General</value></data>
     <data name="Settings_Nav_Roleplay"><value>Roleplay</value></data>
     <data name="Settings_KofiTooltip"><value>Support on Ko-fi</value></data>
+
+    <data name="Changelog_WindowTitle"><value>What's New</value></data>
+    <data name="Changelog_Understood"><value>Understood</value></data>
+    <data name="Changelog_Display_New"><value>Show new changelogs (recommended)</value></data>
+    <data name="Changelog_Display_HighlightOnly"><value>Only show important changelogs</value></data>
+    <data name="Changelog_Display_Never"><value>Never show changelogs</value></data>
+    <data name="Changelog_Unreleased_ChangelogFeature"><value>Added an in-app changelog: this window, shown automatically after an update with new entries.</value></data>
+    <data name="Changelog_Unreleased_ThemeTextFix"><value>Window themes can now override text, surface, and disabled-text colors, fixing unreadable text on light pastel themes like Yojiberry and Soft Octopus.</value></data>
 
     <data name="Placeholder_ComingSoon"><value>Planned for a future release.</value></data>
 

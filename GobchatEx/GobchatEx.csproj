@@ -52,12 +52,22 @@
 
   <ItemGroup>
     <!--
-      <Link> flattens the copied file to the output root (icon.png) even
-      though the source lives under images\ — AboutTab.cs loads it via
-      Path.Combine(AssemblyLocation.DirectoryName, "icon.png").
+      No <Link> here: Dalamud's own dev-plugin icon lookup (PluginImageCache.
+      GetPluginIconFileInfo) expects the icon at <dll-dir>\images\icon.png,
+      so the output must preserve the images\ subfolder — this is what makes
+      the plugin installer window show the local icon for dev plugins
+      instead of falling back to downloading the manifest's IconUrl.
     -->
     <Content Include="images\icon.png">
-      <Link>icon.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <!--
+      <Link> flattens this one to the output root — AboutTab.cs loads it via
+      Path.Combine(AssemblyLocation.DirectoryName, "GobChatEX-logo.png").
+    -->
+    <Content Include="images\GobChatEX-logo.png">
+      <Link>GobChatEX-logo.png</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>

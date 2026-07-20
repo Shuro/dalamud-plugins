@@ -25,6 +25,9 @@ TestResults/
 # Local-only reference material (not part of this project)
 .reference/
 
+# Local-only external plugin survey clones (not part of this project)
+.research/
+
 # Local review/analysis reports
 .reports/
 
