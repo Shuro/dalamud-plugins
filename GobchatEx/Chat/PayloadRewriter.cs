@@ -1,105 +1,104 @@
 using System.Collections.Generic;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
 using GobchatEx.Core;
+using Lumina.Text;
+using Lumina.Text.ReadOnly;
 
 namespace GobchatEx.Chat;
 
 /// <summary>
-/// Mechanically translates segmentation spans into a new payload list
-/// (pattern from ChatAlerts' ChatWatcher.HandleAlert): non-text payloads are
-/// copied through by reference, text runs are split per span, and every
-/// colored span emits its own balanced raw Color/EdgeColor push/pop pair
-/// (<see cref="SeStringColorMacro"/>) so colors never bracket foreign
-/// payloads or leak into following lines. All decisions (what is typed,
-/// which color applies) are made by callers.
+/// Mechanically translates segmentation spans into a new SeString: streams over the parsed
+/// payloads of the source message, copies non-text payloads through unchanged, splits each text
+/// run per span, and wraps every colored span in its own balanced Color/EdgeColor push/pop pair
+/// (Lumina's <see cref="SeStringBuilder"/> owns the macro + integer-expression encoding) so colors
+/// never bracket foreign payloads or leak into following lines. All decisions (what is typed, which
+/// color applies) are made by callers. The <paramref name="source"/> is iterated in the same order
+/// and with the same "non-empty text payload = one run" rule as
+/// <c>ChatListener.CollectTextRuns</c>, so <paramref name="runTexts"/>/<paramref name="runSpans"/>
+/// line up positionally with the text payloads.
 /// </summary>
 internal static class PayloadRewriter
 {
     /// <summary>
-    /// Builds the rewritten payload list. <paramref name="runPayloadIndices"/>,
-    /// <paramref name="runTexts"/> and <paramref name="runSpans"/> are
-    /// parallel lists describing the TextPayload runs of the message.
-    /// Styles map a segment type to packed RGBA colors; (0, 0) renders plain.
-    /// <paramref name="mentionOverrides"/> is the per-word color-override table a Mention span's
-    /// <see cref="SegmentSpan.StyleId"/> indexes into (see <see cref="MentionStyleResolver"/>);
+    /// Builds the rewritten string. Styles map a segment type to packed RGBA colors; (0, 0) renders
+    /// plain. <paramref name="mentionOverrides"/> is the per-word color-override table a Mention
+    /// span's <see cref="SegmentSpan.StyleId"/> indexes into (see <see cref="MentionStyleResolver"/>);
     /// empty disables all overrides, falling every Mention span back to <paramref name="styles"/>'s
     /// entry. <paramref name="fadeStep"/>, when set, pre-dims each color via
     /// <see cref="UiColorDimmer.DimRgba"/> before it's emitted.
     /// </summary>
-    public static List<Payload> Rewrite(
-        IReadOnlyList<Payload> payloads,
-        IReadOnlyList<int> runPayloadIndices,
+    public static ReadOnlySeString Rewrite(
+        ReadOnlySeStringSpan source,
         IReadOnlyList<string> runTexts,
         IReadOnlyList<IReadOnlyList<SegmentSpan>> runSpans,
         IReadOnlyDictionary<SegmentType, (uint Foreground, uint Glow)> styles,
         IReadOnlyList<(uint Foreground, uint Glow)> mentionOverrides,
         int? fadeStep = null)
     {
-        var result = new List<Payload>(payloads.Count + (4 * runSpans.Count));
+        var builder = new SeStringBuilder();
         var run = 0;
-        for (var i = 0; i < payloads.Count; ++i)
+        foreach (var payload in source)
         {
-            if (run >= runPayloadIndices.Count || runPayloadIndices[run] != i)
+            if (payload.Type == ReadOnlySePayloadType.Text && payload.Body.Length > 0)
             {
-                result.Add(payloads[i]);
-                continue;
+                AppendRun(builder, payload, runTexts[run], runSpans[run], styles, mentionOverrides, fadeStep);
+                ++run;
             }
-
-            AppendRun(result, payloads[i], runTexts[run], runSpans[run], styles, mentionOverrides, fadeStep);
-            ++run;
+            else
+            {
+                builder.Append(payload);
+            }
         }
 
-        return result;
+        return builder.ToReadOnlySeString();
     }
 
     /// <summary>
-    /// Builds the rewritten payload list for a run set that all shares one color, e.g. a sender name
-    /// (one color for the whole name, not the multiple <see cref="SegmentType"/>s <see cref="Rewrite"/>
-    /// handles). Each run in <paramref name="runPayloadIndices"/> is wrapped as a whole; payloads outside
-    /// the run set (e.g. a cross-world icon payload between name runs) pass through untouched, exactly
-    /// like <see cref="Rewrite"/>.
+    /// Builds the rewritten string for a run set that all shares one color, e.g. a sender name (one
+    /// color for the whole name, not the multiple <see cref="SegmentType"/>s <see cref="Rewrite"/>
+    /// handles). Each text payload is wrapped as a whole; payloads outside the run set (e.g. a
+    /// cross-world icon payload between name runs) pass through untouched, exactly like
+    /// <see cref="Rewrite"/>.
     /// </summary>
-    public static List<Payload> RewriteUniform(
-        IReadOnlyList<Payload> payloads,
-        IReadOnlyList<int> runPayloadIndices,
+    public static ReadOnlySeString RewriteUniform(
+        ReadOnlySeStringSpan source,
         IReadOnlyList<string> runTexts,
         (uint Foreground, uint Glow) style,
         int? fadeStep = null)
     {
-        var result = new List<Payload>(payloads.Count + (4 * runPayloadIndices.Count));
+        var builder = new SeStringBuilder();
         var run = 0;
-        for (var i = 0; i < payloads.Count; ++i)
+        foreach (var payload in source)
         {
-            if (run >= runPayloadIndices.Count || runPayloadIndices[run] != i)
+            if (payload.Type == ReadOnlySePayloadType.Text && payload.Body.Length > 0)
             {
-                result.Add(payloads[i]);
-                continue;
+                if (style.Foreground == 0 && style.Glow == 0)
+                    builder.Append(payload);
+                else
+                    AppendColored(builder, runTexts[run], style, fadeStep);
+                ++run;
             }
-
-            if (style.Foreground == 0 && style.Glow == 0)
-                result.Add(new TextPayload(runTexts[run]));
             else
-                AppendColored(result, runTexts[run], style, fadeStep);
-            ++run;
+            {
+                builder.Append(payload);
+            }
         }
 
-        return result;
+        return builder.ToReadOnlySeString();
     }
 
     private static void AppendRun(
-        List<Payload> result,
-        Payload original,
+        SeStringBuilder builder,
+        ReadOnlySePayloadSpan original,
         string text,
         IReadOnlyList<SegmentSpan> spans,
         IReadOnlyDictionary<SegmentType, (uint Foreground, uint Glow)> styles,
         IReadOnlyList<(uint Foreground, uint Glow)> mentionOverrides,
         int? fadeStep)
     {
-        // Untouched run: keep the original payload instead of re-creating it.
+        // Untouched run: re-append the original text payload verbatim instead of re-creating it.
         if (spans.Count == 1 && spans[0].Type == SegmentType.Undefined)
         {
-            result.Add(original);
+            builder.Append(original);
             return;
         }
 
@@ -108,7 +107,7 @@ internal static class PayloadRewriter
             var sub = text.Substring(span.Start, span.Length);
             if (span.Type == SegmentType.Undefined || !styles.TryGetValue(span.Type, out var style))
             {
-                result.Add(new TextPayload(sub));
+                builder.Append(sub);
                 continue;
             }
 
@@ -117,28 +116,28 @@ internal static class PayloadRewriter
 
             if (style.Foreground == 0 && style.Glow == 0)
             {
-                result.Add(new TextPayload(sub));
+                builder.Append(sub);
                 continue;
             }
 
-            AppendColored(result, sub, style, fadeStep);
+            AppendColored(builder, sub, style, fadeStep);
         }
     }
 
     private static void AppendColored(
-        List<Payload> result, string text, (uint Foreground, uint Glow) style, int? fadeStep)
+        SeStringBuilder builder, string text, (uint Foreground, uint Glow) style, int? fadeStep)
     {
         var foreground = fadeStep is { } fgStep ? UiColorDimmer.DimRgba(style.Foreground, fgStep) : style.Foreground;
         var glow = fadeStep is { } glowStep ? UiColorDimmer.DimRgba(style.Glow, glowStep) : style.Glow;
 
         if (foreground != 0)
-            result.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.ColorMacroCode, SeStringColorMacro.ToOpaqueAarrggbb(foreground)));
+            builder.PushColorBgra(ChatColor.ToOpaqueAarrggbb(foreground));
         if (glow != 0)
-            result.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.EdgeColorMacroCode, SeStringColorMacro.ToOpaqueAarrggbb(glow)));
-        result.Add(new TextPayload(text));
+            builder.PushEdgeColorBgra(ChatColor.ToOpaqueAarrggbb(glow));
+        builder.Append(text);
         if (glow != 0)
-            result.Add(SeStringColorMacro.PopEdgeColor());
+            builder.PopEdgeColor();
         if (foreground != 0)
-            result.Add(SeStringColorMacro.PopColor());
+            builder.PopColor();
     }
 }

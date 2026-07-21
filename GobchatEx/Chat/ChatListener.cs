@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Dalamud.Game.Chat;
 using Dalamud.Game.Config;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Utility;
 using GobchatEx.Config;
 using GobchatEx.Core;
+using Lumina.Text.ReadOnly;
 
 namespace GobchatEx.Chat;
 
@@ -474,7 +475,8 @@ public sealed class ChatListener : IDisposable
     /// </summary>
     private bool HasMention(IHandleableChatMessage message)
     {
-        CollectTextRuns(message.Message.Payloads, out _, out var runTexts);
+        var body = new ReadOnlySeString(message.Message.Encode());
+        CollectTextRuns(body.AsSpan(), out var runTexts);
         if (runTexts == null)
             return false;
 
@@ -491,17 +493,19 @@ public sealed class ChatListener : IDisposable
     private void ApplyFade(IHandleableChatMessage message, int step, XivChatType channel)
     {
         var uncolored = ResolveChannelColor(channel);
-        message.Message = new SeString(UiColorDimmer.DimPayloads(message.Message.Payloads, step, uncolored));
-        message.Sender = new SeString(UiColorDimmer.DimPayloads(message.Sender.Payloads, step, uncolored));
+        var body = new ReadOnlySeString(message.Message.Encode());
+        message.Message = UiColorDimmer.DimRoss(body.AsSpan(), step, uncolored).ToDalamudString();
+        var sender = new ReadOnlySeString(message.Sender.Encode());
+        message.Sender = UiColorDimmer.DimRoss(sender.AsSpan(), step, uncolored).ToDalamudString();
     }
 
     /// <returns>Whether the message body matched a mention — feeds the group-sound precedence
     /// rule in <see cref="TryPlayGroupSound"/> without a second segmentation.</returns>
     private bool ApplyBodyHighlighting(IHandleableChatMessage message, int? fadeStep)
     {
-        var payloads = message.Message.Payloads;
+        var body = new ReadOnlySeString(message.Message.Encode());
 
-        CollectTextRuns(payloads, out var runIndices, out var runTexts);
+        CollectTextRuns(body.AsSpan(), out var runTexts);
         if (runTexts == null)
             return false;
 
@@ -519,8 +523,8 @@ public sealed class ChatListener : IDisposable
             return false;
 
         var rewritten = PayloadRewriter.Rewrite(
-            payloads, runIndices!, runTexts, result.RunSpans, _styles, _mentionRenderStyles, fadeStep);
-        message.Message = new SeString(rewritten);
+            body.AsSpan(), runTexts, result.RunSpans, _styles, _mentionRenderStyles, fadeStep);
+        message.Message = rewritten.ToDalamudString();
 
         if (result.HasMention)
             TryPlayMentionSound(message);
@@ -562,13 +566,13 @@ public sealed class ChatListener : IDisposable
             || (style.Foreground == 0 && style.Glow == 0))
             return;
 
-        var payloads = message.Sender.Payloads;
-        CollectTextRuns(payloads, out var runIndices, out var runTexts);
+        var sender = new ReadOnlySeString(message.Sender.Encode());
+        CollectTextRuns(sender.AsSpan(), out var runTexts);
         if (runTexts == null)
             return;
 
-        var rewritten = PayloadRewriter.RewriteUniform(payloads, runIndices!, runTexts, style, fadeStep);
-        message.Sender = new SeString(rewritten);
+        var rewritten = PayloadRewriter.RewriteUniform(sender.AsSpan(), runTexts, style, fadeStep);
+        message.Sender = rewritten.ToDalamudString();
     }
 
     /// <summary>
@@ -597,25 +601,23 @@ public sealed class ChatListener : IDisposable
     }
 
     /// <summary>
-    /// Extracts the non-empty TextPayload runs as parallel index/text lists for PayloadRewriter.
-    /// Like ChatAlerts, every TextPayload counts — including link display text; the rewriters'
-    /// balanced on/off pairs nest inside pre-colored regions and pop back correctly. Both outputs
-    /// are null when the payload list contains no text at all.
+    /// Extracts the non-empty text-payload runs of a parsed message. Like ChatAlerts, every text
+    /// payload counts — including link display text; the rewriters' balanced on/off pairs nest
+    /// inside pre-colored regions and pop back correctly. Iterated in the same order and with the
+    /// same "non-empty text payload = one run" rule <see cref="PayloadRewriter"/> and
+    /// <see cref="UiColorDimmer"/> replay, so spans line up positionally. Null when the message
+    /// contains no text at all.
     /// </summary>
-    private static void CollectTextRuns(
-        IReadOnlyList<Payload> payloads, out List<int>? runIndices, out List<string>? runTexts)
+    private static void CollectTextRuns(ReadOnlySeStringSpan source, out List<string>? runTexts)
     {
-        runIndices = null;
         runTexts = null;
-        for (var i = 0; i < payloads.Count; ++i)
+        foreach (var payload in source)
         {
-            if (payloads[i] is not TextPayload { Text.Length: > 0 } textPayload)
+            if (payload.Type != ReadOnlySePayloadType.Text || payload.Body.Length == 0)
                 continue;
 
-            runIndices ??= [];
             runTexts ??= [];
-            runIndices.Add(i);
-            runTexts.Add(textPayload.Text);
+            runTexts.Add(Encoding.UTF8.GetString(payload.Body));
         }
     }
 

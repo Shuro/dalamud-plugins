@@ -48,6 +48,21 @@ jobs:
       - name: Restore (locked)
         run: dotnet restore GobchatEx.slnx --locked-mode
 
+      # This job builds on Windows, where the WinForms targeting pack is always
+      # present — so a Windows-only transitive dependency (e.g. the NAudio
+      # meta-package pulling NAudio.WinForms) builds green here but fails in
+      # Plogon's build image, which has no Windows Desktop workload. Assert the
+      # restored graph carries no such reference before we ever tag a release.
+      - name: Guard against Windows-only SDK references
+        shell: pwsh
+        run: |
+          $hits = Select-String -Path "GobchatEx/packages.lock.json" -Pattern 'WindowsForms|WindowsDesktop'
+          if ($hits) {
+            Write-Error "packages.lock.json references a Windows-only SDK Plogon cannot build:`n$($hits.Line -join "`n")"
+            exit 1
+          }
+          Write-Host "OK: no WinForms/WindowsDesktop SDK references in the lock file."
+
       - name: Build Release package
         run: dotnet build GobchatEx.slnx -c Release --no-restore
 

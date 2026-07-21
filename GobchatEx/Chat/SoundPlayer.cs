@@ -181,14 +181,26 @@ public sealed class SoundPlayer : IDisposable
 
     private static WaveStream CreateReader(string path)
     {
-        if (!IsOgg(path))
-            return new AudioFileReader(path);
-
         // An .ogg container holds either Vorbis or Opus (what Discord saves);
         // NVorbis only decodes the former, so pick by the codec marker on the
         // first Ogg page instead of trusting the extension. Windows' own ogg
         // codecs are an optional store package, hence two managed decoders.
-        return IsOggOpus(path) ? DecodeOpus(path) : new VorbisWaveReader(path);
+        if (IsOgg(path))
+            return IsOggOpus(path) ? DecodeOpus(path) : new VorbisWaveReader(path);
+
+        // Not AudioFileReader: it ships in the NAudio meta-package's glue
+        // assembly, which drags in the WinForms SDK Plogon can't build against
+        // (see GobchatEx.csproj). Pick the concrete reader by extension using
+        // only NAudio.Core + NAudio.WinMM — wav/aiff read straight through, mp3
+        // decodes through the WinMM ACM decompressor (runs on the player's
+        // Windows box; managed no-op at build time).
+        return Path.GetExtension(path).ToLowerInvariant() switch
+        {
+            ".wav" => new WaveFileReader(path),
+            ".aiff" or ".aif" => new AiffFileReader(path),
+            ".mp3" => new Mp3FileReaderBase(path, waveFormat => new AcmMp3FrameDecompressor(waveFormat)),
+            var ext => throw new NotSupportedException($"Unsupported audio format '{ext}' for alert sound {path}"),
+        };
     }
 
     /// <summary>"OpusHead" sits in the first Ogg page's body; 512 bytes cover any sane header layout.</summary>

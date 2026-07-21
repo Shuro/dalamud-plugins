@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Dalamud.NET.Sdk">
   <PropertyGroup>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <AssemblyName>GobchatExPlugin</AssemblyName>
     <RootNamespace>GobchatEx</RootNamespace>
     <Description>Roleplay Highlighting in the native chat. Mentions notification with sound effects and more.</Description>
@@ -46,7 +46,16 @@
     -->
     <PackageReference Include="Concentus" Version="2.2.2" />
     <PackageReference Include="Concentus.Oggfile" Version="1.0.7" />
-    <PackageReference Include="NAudio" Version="2.2.1" />
+    <!--
+      Only the two NAudio assemblies actually used, NOT the NAudio meta-package:
+      it transitively pulls NAudio.WinForms (a Windows-Desktop/WinForms SDK
+      reference) which Plogon's build image can't provide. NAudio.Core supplies
+      the readers/streams/sample providers; NAudio.WinMM supplies WaveOutEvent
+      and the ACM mp3 decompressor AudioFileReader uses. NAudio.Vorbis depends
+      only on NAudio.Core, so it stays clean too.
+    -->
+    <PackageReference Include="NAudio.Core" Version="2.2.1" />
+    <PackageReference Include="NAudio.WinMM" Version="2.2.1" />
     <PackageReference Include="NAudio.Vorbis" Version="1.5.0" />
   </ItemGroup>
 

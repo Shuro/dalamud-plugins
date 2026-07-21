@@ -46,3 +46,16 @@ packed RGBA values and the UI offers a full color picker
 (`Chat/SeStringColorMacro.cs`, commit `9417191`). The decision itself —
 native-log rewriting, no overlay — is unchanged; the sheet remains in use
 only for dimming colors the game itself embeds.
+
+## Amendment (2026-07-21)
+
+The color macros are no longer hand-encoded. On DalamudPluginsD17 review
+feedback, the build/parse pipeline moved onto Lumina's
+`ReadOnlySeStringBuilder` (`PushColorBgra`/`PushEdgeColorBgra`/`PopColor`,
+`builder.Append(payload)` for foreign payloads) and Lumina's ROSS payload
+reader (`new ReadOnlySeString(seString.Encode())` in, `ToDalamudString()` out).
+The builder owns the macro envelope + integer-expression encoding, so the old
+`Chat/SeStringColorMacro.cs` (which hand-rolled both) was deleted; only the
+0xRRGGBBAA→0xAARRGGBB packing helper survives as `Chat/ChatColor.cs`. The wire
+format (Color `0x13` / EdgeColor `0x14`, packed RGBA) and the decision itself
+are unchanged — this is an encoder swap, not a behavior change.

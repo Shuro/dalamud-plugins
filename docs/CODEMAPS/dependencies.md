@@ -15,10 +15,12 @@ SDK: `Dalamud.NET.Sdk/15.0.0` — pins TargetFramework and implicitly references
 - FFXIVClientStructs — `UIGlobals.PlayChatSoundEffect` (Chat/SoundPlayer.cs)
   and `InfoProxyFriendList` friend-list snapshot (Chat/FriendGroupLookup.cs,
   Windows/SettingsTabs/DebugGroupsPane.cs)
-- Lumina / Lumina.Excel — UIColor sheet, dim-only (Chat/UiColorDimmer.cs
-  darker-row remap of game-embedded link colors, DebugRangePane swatches —
-  the plugin's own colors are raw RGBA, Core/RgbaColor +
-  Chat/SeStringColorMacro), World sheet (Chat/FriendGroupLookup.cs)
+- Lumina — `Lumina.Text` SeStringBuilder/ReadOnlySeString for all chat SeString
+  build + parse (Chat/PayloadRewriter, Chat/UiColorDimmer, Chat/ChatListener);
+  `Lumina.Excel` UIColor sheet for dim-only darker-row remap of game-embedded
+  link colors (Chat/UiColorDimmer.cs) + DebugRangePane swatches — the plugin's
+  own colors are packed RGBA (Core/RgbaColor + Chat/ChatColor); World sheet
+  (Chat/FriendGroupLookup.cs)
 - Newtonsoft.Json (ships with Dalamud) — config persistence; JObject parse of
   Chat 2's config file (Chat/ChatTwoChannelColors.cs)
 - InteropGenerator.Runtime

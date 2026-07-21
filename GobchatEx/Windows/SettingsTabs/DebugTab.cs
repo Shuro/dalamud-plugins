@@ -8,8 +8,10 @@ using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Utility;
 using GobchatEx.Chat;
 using GobchatEx.Localization;
+using LSeStringBuilder = Lumina.Text.SeStringBuilder;
 
 namespace GobchatEx.Windows.SettingsTabs;
 
@@ -87,19 +89,17 @@ internal sealed class DebugTab : ISettingsTab
 
         if (ImGui.Button("Send rainbow A-Z (Echo)"))
         {
-            var pop = SeStringColorMacro.PopColor();
-
-            var b = new SeStringBuilder();
+            var b = new LSeStringBuilder();
             for (var i = 0; i < 26; i++)
             {
                 var hue = i / 26f;
                 var rgb = ColorHelpers.HsvToRgb(new ColorHelpers.HsvaColor(hue, 1f, 1f, 1f));
-                b.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.ColorMacroCode, SeStringColorMacro.PackAarrggbb(rgb)));
-                b.AddText(((char)('A' + i)).ToString());
-                b.Add(pop);
+                b.PushColorBgra(ChatColor.PackAarrggbb(rgb));
+                b.Append(((char)('A' + i)).ToString());
+                b.PopColor();
             }
 
-            Plugin.ChatGui.Print(new XivChatEntry { Message = b.Build(), Type = XivChatType.Echo });
+            Plugin.ChatGui.Print(new XivChatEntry { Message = b.ToReadOnlySeString().ToDalamudString(), Type = XivChatType.Echo });
         }
     }
 
@@ -222,7 +222,7 @@ internal sealed class DebugTab : ISettingsTab
             ImGui.TextUnformatted("Text color");
             ImGui.SetNextItemWidth(pickerWidth);
             ImGui.ColorPicker4("##debug-custom-text-color", ref customTextColor, ImGuiColorEditFlags.AlphaBar);
-            ImGui.TextDisabled($"packed 0x{SeStringColorMacro.PackAarrggbb(customTextColor):X8}");
+            ImGui.TextDisabled($"packed 0x{ChatColor.PackAarrggbb(customTextColor):X8}");
         }
         ImGui.SameLine(0f, 24f * ImGuiHelpers.GlobalScale);
         using (ImRaii.Group())
@@ -230,19 +230,19 @@ internal sealed class DebugTab : ISettingsTab
             ImGui.TextUnformatted("Glow color");
             ImGui.SetNextItemWidth(pickerWidth);
             ImGui.ColorPicker4("##debug-custom-glow-color", ref customGlowColor, ImGuiColorEditFlags.AlphaBar);
-            ImGui.TextDisabled($"packed 0x{SeStringColorMacro.PackAarrggbb(customGlowColor):X8}");
+            ImGui.TextDisabled($"packed 0x{ChatColor.PackAarrggbb(customGlowColor):X8}");
         }
 
         if (ImGui.Button("Send custom color message"))
         {
             var text = string.IsNullOrWhiteSpace(customColorText) ? "GobchatEx custom color test" : customColorText;
-            var b = new SeStringBuilder();
-            b.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.ColorMacroCode, SeStringColorMacro.PackAarrggbb(customTextColor)));
-            b.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.EdgeColorMacroCode, SeStringColorMacro.PackAarrggbb(customGlowColor)));
-            b.AddText(text);
-            b.Add(SeStringColorMacro.PopEdgeColor());
-            b.Add(SeStringColorMacro.PopColor());
-            Plugin.ChatGui.Print(b.Build());
+            var b = new LSeStringBuilder();
+            b.PushColorBgra(ChatColor.PackAarrggbb(customTextColor));
+            b.PushEdgeColorBgra(ChatColor.PackAarrggbb(customGlowColor));
+            b.Append(text);
+            b.PopEdgeColor();
+            b.PopColor();
+            Plugin.ChatGui.Print(b.ToReadOnlySeString().ToDalamudString());
         }
     }
 

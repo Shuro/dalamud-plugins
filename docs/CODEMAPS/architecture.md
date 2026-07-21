@@ -57,9 +57,9 @@ pre-dimmed), then applied to everything else last:
      default on / DetectEmoteInParty off, gated on the Emote style)
      own messages skip the mention overlay (SuppressHighlightFromSelf,
      default on; Echo exempt) — detection still runs for the sound decision
-   → Chat/PayloadRewriter.Rewrite  spans → balanced raw Color/EdgeColor macro
-     pairs (SeStringColorMacro, packed RGBA — not UIColor rows), pre-dimmed
-     via UiColorDimmer.DimRgba when a fade step applies
+   → Chat/PayloadRewriter.Rewrite  spans → balanced Color/EdgeColor macro
+     pairs built with Lumina's ReadOnlySeStringBuilder (packed RGBA — not
+     UIColor rows), pre-dimmed via UiColorDimmer.DimRgba when a fade step applies
    → SoundPlayer.TryPlay on mention (cooldown; own messages suppressed via
      Core/SelfSender) — game sound effect, or custom audio file (ADR 0004)
 
@@ -155,9 +155,11 @@ Every click persists and applies immediately (no debounced commit).
 
 ## Colors (raw RGBA)
 
-All plugin-applied colors are packed 0xRRGGBBAA uints rendered as raw SeString
-Color (0x13) / EdgeColor (0x14) macros (`Chat/SeStringColorMacro` — envelope +
-integer-expression encoding, push/pop pairs), bypassing the UIColor sheet.
+All plugin-applied colors are packed 0xRRGGBBAA uints rendered as SeString
+Color (0x13) / EdgeColor (0x14) macros, emitted through Lumina's
+`ReadOnlySeStringBuilder` (`PushColorBgra`/`PushEdgeColorBgra` + matching pops;
+the builder owns the macro + integer-expression encoding). `Chat/ChatColor`
+packs the 0xAARRGGBB value the builder expects. This bypasses the UIColor sheet.
 Proven against vanilla chat and Chat 2's renderer via the Debug page's probes;
 vanilla ignores the alpha byte, so production forces it opaque.
 `Core/RgbaColor` converts Vector4↔packed and IGameConfig's 0xRRGGBB chat

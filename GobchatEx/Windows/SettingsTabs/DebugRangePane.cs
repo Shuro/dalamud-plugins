@@ -2,13 +2,14 @@
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Objects.SubKinds;
-using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Utility;
 using GobchatEx.Chat;
 using GobchatEx.Config;
 using GobchatEx.Core;
 using Lumina.Excel.Sheets;
+using Lumina.Text;
 
 namespace GobchatEx.Windows.SettingsTabs;
 
@@ -175,7 +176,7 @@ internal sealed class DebugRangePane
         AppendFadeSegment(builder, emote, step, " ");
         AppendFadeSegment(builder, mention, step, "Mention");
         AppendFadeSegment(builder, emote, step, $" at step {step}");
-        Plugin.ChatGui.Print(builder.Build());
+        Plugin.ChatGui.Print(builder.ToReadOnlySeString().ToDalamudString());
 
         PrintChannelNativeFade(step);
 
@@ -197,14 +198,14 @@ internal sealed class DebugRangePane
         var glow = style.Glow == 0 ? 0 : UiColorDimmer.DimRgba(style.Glow, step);
 
         if (foreground != 0)
-            builder.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.ColorMacroCode, SeStringColorMacro.ToOpaqueAarrggbb(foreground)));
+            builder.PushColorBgra(ChatColor.ToOpaqueAarrggbb(foreground));
         if (glow != 0)
-            builder.Add(SeStringColorMacro.MakeColorMacro(SeStringColorMacro.EdgeColorMacroCode, SeStringColorMacro.ToOpaqueAarrggbb(glow)));
-        builder.AddText(text);
+            builder.PushEdgeColorBgra(ChatColor.ToOpaqueAarrggbb(glow));
+        builder.Append(text);
         if (glow != 0)
-            builder.Add(SeStringColorMacro.PopEdgeColor());
+            builder.PopEdgeColor();
         if (foreground != 0)
-            builder.Add(SeStringColorMacro.PopColor());
+            builder.PopColor();
     }
 
     /// <summary>
@@ -221,20 +222,20 @@ internal sealed class DebugRangePane
     private void PrintChannelNativeFade(int step)
     {
         var builder = new SeStringBuilder();
-        builder.AddText("Unformatted text per channel - ");
+        builder.Append("Unformatted text per channel - ");
 
         var first = true;
         foreach (var channel in ChatListener.RangeChannelColorOptions.Keys)
         {
             if (!first)
-                builder.AddText(" | ");
+                builder.Append(" | ");
             first = false;
 
             var (native, source) = plugin.ChatListener.ResolveChannelColorWithSource(channel, liveChatTwoRead: true);
             AppendFadeSegment(builder, (native, 0u), step, $"{channel} ({source})");
         }
 
-        Plugin.ChatGui.Print(builder.Build());
+        Plugin.ChatGui.Print(builder.ToReadOnlySeString().ToDalamudString());
     }
 
     private static void PrintFromTo(string label, (uint Foreground, uint Glow) style, int step)
@@ -242,11 +243,11 @@ internal sealed class DebugRangePane
         var dimmed = UiColorDimmer.DimRgba(style.Foreground, step);
 
         var builder = new SeStringBuilder();
-        builder.AddText($"{label}: ");
+        builder.Append($"{label}: ");
         AppendFadeSegment(builder, style, 0, $"0x{style.Foreground:X8}");
-        builder.AddText(" -> ");
+        builder.Append(" -> ");
         AppendFadeSegment(builder, style, step, $"0x{dimmed:X8}");
-        Plugin.ChatGui.Print(builder.Build());
+        Plugin.ChatGui.Print(builder.ToReadOnlySeString().ToDalamudString());
     }
 
     /// <summary>One outcome line/cell: full, hidden, or the fade step in its actual color.</summary>
