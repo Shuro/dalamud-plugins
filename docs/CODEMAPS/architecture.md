@@ -479,7 +479,8 @@ policy) is validated by manual in-game smoke test (docs/README.md) — ADR
 docs/adr/: 0001 native-chat SeString rewriting · 0002 Dalamud-free parser core ·
 0003 game sound effects only (v1) · 0004 custom sound files via NAudio ·
 0005 per-group alert sounds (+ 2× amendment: channel-scope allow-list fix,
-shared-cooldown UI placement).
+shared-cooldown UI placement) · 0006 platform libraries first (audit verdict +
+the four sanctioned hand-rolled divergences).
 Roadmap: docs/ROADMAP.md (M1–M3.5 and M5 chat logging done; M6 per-group
 sounds and M7 mention history built, awaiting in-game smoke test; M4
 profiles waiting).
