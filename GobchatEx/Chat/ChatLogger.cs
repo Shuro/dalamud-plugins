@@ -24,9 +24,10 @@ namespace GobchatEx.Chat;
 /// only maps Dalamud types and appends to disk, batched via Framework.Update so a busy channel
 /// costs one file open per second, not per line. Logging is a session-scoped manual action:
 /// it is forced off at logout and cannot start without a user-chosen log folder (there is no
-/// default). It never starts by itself, with one deliberate exception: a resume marker stamped
-/// with the game-process identity lets logging continue across plugin reloads/updates within
-/// the same game process and login — never across a game restart or logout
+/// default). It starts by itself in only two cases: at character login when the user opted into
+/// <see cref="ChatLogConfig.AutoStartLogging"/>, and via a resume marker stamped with the
+/// game-process identity that lets logging continue across plugin reloads/updates within the
+/// same game process and login — never across a game restart or logout
 /// (<see cref="StartLogging"/>/<see cref="StopLogging"/>). Chat events, Framework.Update,
 /// settings commits, and Dispose all run on the framework thread, so no locking is needed.
 /// </summary>
@@ -227,6 +228,11 @@ internal sealed class ChatLogger : IDisposable
     {
         FlushNow();
         _session.SetCharacter(Plugin.PlayerState.IsLoaded ? Plugin.PlayerState.CharacterName : null);
+
+        // Login only, not plugin load: reloads are the resume marker's job, and a manual stop
+        // must hold until the next login rather than being undone by a reload.
+        if (_config.AutoStartLogging && !IsLogging)
+            StartLogging();
     }
 
     private void OnLogout(int type, int code)

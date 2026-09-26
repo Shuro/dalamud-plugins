@@ -66,8 +66,8 @@ far-away ping still reads normally. A preview button in the Range tab draws
 the two distances as rings on the ground around your character.
 
 **Chat logging** writes chat to per-session `.log` files on demand — start
-and stop from the Logs tab or the Quickbar; it never starts by itself and
-always stops at logout. One file per login/character switch, configurable
+and stop from the Logs tab or the Quickbar, or opt in to starting it
+automatically at every login; it always stops at logout. One file per login/character switch, configurable
 folder (per-character subfolders optional) and channel selection.
 
 **Quickbar** — a compact hotbar-like overlay with the chat-log start/stop

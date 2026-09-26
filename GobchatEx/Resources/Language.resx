@@ -271,6 +271,10 @@
     <data name="Changelog_V1_0_0_GroupSounds"><value>Per-group alert sounds: configurable per custom group.</value></data>
     <data name="Changelog_V1_0_0_MentionHistory"><value>Mention History: review older mentions of trigger words.</value></data>
     <data name="Changelog_V1_0_0_ChatCommands"><value>Chat commands for macros: run /gex help for the full list.</value></data>
+    <data name="Changelog_V1_0_1_ContextMenuFix"><value>Fixed: the Groups entry no longer appears in right-click menus opened by other plugins, where it could add the wrong player.</value></data>
+    <data name="Changelog_V1_0_1_ChatLogResume"><value>Chat logging keeps running when the plugin reloads or updates mid-session.</value></data>
+    <data name="Changelog_V1_0_1_Internals"><value>Chat coloring and sound file loading rebuilt on the game's own libraries - no visible change.</value></data>
+    <data name="Changelog_V1_0_2_AutoLogging"><value>New: chat logging can start automatically on every login - opt in under Logs.</value></data>
 
     <data name="Placeholder_ComingSoon"><value>Planned for a future release.</value></data>
 
@@ -279,6 +283,9 @@
     <data name="ChatLog_Button_Stop"><value>Stop logging</value></data>
     <data name="ChatLog_Button_StartStop_Tooltip"><value>Logging never starts by itself and always stops at logout. Stopping does not finalize the current file; a new file begins at login, character switch, or when the folder settings change.</value></data>
     <data name="ChatLog_Button_NoFolder_Tooltip"><value>Logging needs a log folder - choose one below.</value></data>
+    <data name="ChatLog_AutoStart"><value>Start logging automatically on login</value></data>
+    <data name="ChatLog_AutoStart_Tooltip"><value>Starts logging every time you log into a character. Stopping it by hand keeps it off until your next login.</value></data>
+    <data name="ChatLog_AutoStart_NoFolder_Tooltip"><value>Automatic logging needs a log folder - choose one below.</value></data>
     <data name="ChatLog_Status_Inactive"><value>Logging is stopped.</value></data>
     <data name="ChatLog_Status_NoFolder"><value>Choose a log folder below to enable logging.</value></data>
     <data name="ChatLog_Status_Active"><value>Logging is active.</value></data>

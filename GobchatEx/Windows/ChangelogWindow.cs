@@ -226,6 +226,14 @@ internal sealed class ChangelogWindow : Window
             .RegisterEntry(Loc.Get("Changelog_V1_0_0_GroupSounds"))
             .RegisterEntry(Loc.Get("Changelog_V1_0_0_MentionHistory"))
             .RegisterEntry(Loc.Get("Changelog_V1_0_0_ChatCommands"));
+
+        NextVersion("v1.0.1")
+            .RegisterEntry(Loc.Get("Changelog_V1_0_1_ContextMenuFix"))
+            .RegisterEntry(Loc.Get("Changelog_V1_0_1_ChatLogResume"))
+            .RegisterEntry(Loc.Get("Changelog_V1_0_1_Internals"));
+
+        NextVersion("v1.0.2")
+            .RegisterImportant(Loc.Get("Changelog_V1_0_2_AutoLogging"));
     }
 
     private readonly record struct Entry(string Text, bool Highlight)

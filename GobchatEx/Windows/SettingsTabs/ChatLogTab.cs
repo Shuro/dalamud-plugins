@@ -13,8 +13,9 @@ using GobchatEx.Localization;
 namespace GobchatEx.Windows.SettingsTabs;
 
 /// <summary>
-/// Chat logging settings (Milestone 5): start/stop button with a live status line, the log folder
-/// (no default — the start button stays disabled until the user picks one), the per-character
+/// Chat logging settings (Milestone 5): start/stop button with a live status line, the opt-in
+/// auto-start-at-login toggle, the log folder (no default — the start button and auto-start toggle
+/// stay disabled until the user picks one), the per-character
 /// subfolder toggle, and the logged-channel grids. The button drives the <see cref="ChatLogger"/>'s
 /// session-scoped state directly (immediate, not routed through the debounced config commit —
 /// logging is a runtime action, not a persisted setting, hence also no nav-rail switch); the
@@ -83,6 +84,20 @@ internal sealed class ChatLogTab : ISettingsTab
         }
         else
             ImGui.TextColored(ImGuiColors.HealerGreen, Loc.Get("ChatLog_Status_WaitingForMessage"));
+
+        // Greyed out rather than hidden, like the start button: it depends on the folder, not on
+        // a feature switch. The stored value is kept while disabled.
+        var noFolder = !logger.HasLogFolder;
+        using (ImRaii.Disabled(noFolder))
+        {
+            var autoStart = config.AutoStartLogging;
+            if (SettingsUi.Toggle(Loc.Get("ChatLog_AutoStart"), ref autoStart))
+                config.AutoStartLogging = autoStart;
+        }
+
+        if (noFolder)
+            SettingsUi.Tooltip(Loc.Get("ChatLog_AutoStart_NoFolder_Tooltip"));
+        ImGuiComponents.HelpMarker(Loc.Get("ChatLog_AutoStart_Tooltip"));
     }
 
     private void DrawFolder()

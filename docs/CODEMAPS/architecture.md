@@ -86,8 +86,9 @@ Login/Logout), never per message.
 
 ## Chat Logging (Milestone 5)
 
-Session-scoped disk logging: manual start/stop only (Quickbar button or
-Logs tab), never auto-starts, forced off at logout, on/off not persisted.
+Session-scoped disk logging: manual start/stop (Quickbar button or Logs
+tab) plus opt-in AutoStartLogging at login (default off), forced off at
+logout, on/off not persisted.
 `Chat/ChatLogger` (its own CheckMessageHandled subscriber) reads
 OriginalSender/OriginalMessage (immune to other plugins' rewrites), skips
 IsHandled-suppressed messages, and batches appends via Framework.Update

@@ -270,6 +270,10 @@
     <data name="Changelog_V1_0_0_GroupSounds"><value>Gruppen-Alarmtöne: konfigurierbar pro eigener Gruppe.</value></data>
     <data name="Changelog_V1_0_0_MentionHistory"><value>Erwähnungsverlauf: ältere Erwähnungen von Auslösewörtern einsehen.</value></data>
     <data name="Changelog_V1_0_0_ChatCommands"><value>Chat-Befehle für Makros: /gex help zeigt die vollständige Liste.</value></data>
+    <data name="Changelog_V1_0_1_ContextMenuFix"><value>Behoben: Der Gruppen-Eintrag erscheint nicht mehr in Rechtsklick-Menüs anderer Plugins, wo er den falschen Spieler hinzufügen konnte.</value></data>
+    <data name="Changelog_V1_0_1_ChatLogResume"><value>Die Chat-Protokollierung läuft weiter, wenn das Plugin während der Sitzung neu lädt oder aktualisiert wird.</value></data>
+    <data name="Changelog_V1_0_1_Internals"><value>Chat-Färbung und das Laden von Sounddateien nutzen jetzt die spieleigenen Bibliotheken - keine sichtbare Änderung.</value></data>
+    <data name="Changelog_V1_0_2_AutoLogging"><value>Neu: Die Chat-Protokollierung kann bei jedem Einloggen automatisch starten - unter Protokolle aktivieren.</value></data>
 
     <data name="Placeholder_ComingSoon"><value>Für eine zukünftige Version geplant.</value></data>
 
@@ -278,6 +282,9 @@
     <data name="ChatLog_Button_Stop"><value>Protokollierung stoppen</value></data>
     <data name="ChatLog_Button_StartStop_Tooltip"><value>Die Protokollierung startet nie von selbst und stoppt immer beim Ausloggen. Stoppen schließt die aktuelle Datei nicht ab; eine neue Datei beginnt bei Login, Charakterwechsel oder geänderten Ordner-Einstellungen.</value></data>
     <data name="ChatLog_Button_NoFolder_Tooltip"><value>Die Protokollierung benötigt einen Protokollordner - unten einen auswählen.</value></data>
+    <data name="ChatLog_AutoStart"><value>Protokollierung beim Einloggen automatisch starten</value></data>
+    <data name="ChatLog_AutoStart_Tooltip"><value>Startet die Protokollierung bei jedem Einloggen mit einem Charakter. Manuell gestoppt bleibt sie bis zum nächsten Einloggen aus.</value></data>
+    <data name="ChatLog_AutoStart_NoFolder_Tooltip"><value>Die automatische Protokollierung benötigt einen Protokollordner - unten einen auswählen.</value></data>
     <data name="ChatLog_Status_Inactive"><value>Protokollierung ist gestoppt.</value></data>
     <data name="ChatLog_Status_NoFolder"><value>Unten einen Protokollordner auswählen, um die Protokollierung zu aktivieren.</value></data>
     <data name="ChatLog_Status_Active"><value>Protokollierung ist aktiv.</value></data>
