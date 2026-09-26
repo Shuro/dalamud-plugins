@@ -52,6 +52,29 @@ public sealed class Plugin : IDalamudPlugin
     // the two can no longer share one value.
     private const ushort SubmenuPrefixColorRow = 500;
 
+    // Game surfaces whose native context menu targets a player, for the OnMenuOpened gate.
+    // Tiers of confidence: "measured" = seen in the Debug tab's context-menu probe;
+    // "ClientStructs" = addon name confirmed by an [Addon(...)] struct in .references;
+    // the rest are community-known social windows — if one is wrong, its surface silently
+    // lacks the Groups entry and the probe tab shows the real name to put here instead.
+    private static readonly HashSet<string> PlayerMenuAddons = new(StringComparer.Ordinal)
+    {
+        "ChatLog",             // measured 2026-07-27
+        "FriendList",          // measured 2026-07-27
+        "_PartyList",          // ClientStructs: HUD party list
+        "LookingForGroup",     // ClientStructs: party finder
+        "SocialList",          // player search
+        "PartyMemberList",     // social window party tab
+        "LinkShell",
+        "CrossWorldLinkshell",
+        "FreeCompany",
+        "ContentMemberList",   // duty member roster
+        "BlackList",
+        "BeginnerChatList",    // novice network
+        "ContactList",         // recent contacts
+        "CircleList",          // fellowships
+    };
+
     public Configuration Configuration { get; init; }
     public readonly WindowSystem WindowSystem = new("GobchatEx");
     internal ChatListener ChatListener { get; init; }
@@ -178,18 +201,37 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     /// <summary>
-    /// Adds a "Groups" submenu entry to any native right-click menu targeting a player name (chat log,
-    /// party list, target, friend list, ...) — not restricted to a specific addon. An earlier version
-    /// filtered on <c>args.AddonName</c> being "ChatLog"/"ChatLogPanel_N", which turned out to be an
-    /// unverified guess that excluded the real chat log addon name entirely (confirmed by other
-    /// plugins' menu items appearing on the exact same right-click while ours never did). Restricting
-    /// by addon was never load-bearing anyway — a player-name context menu is a player-name context
-    /// menu regardless of where it was opened from. The Chat 2 plugin draws its own separate context
-    /// menu entirely outside this addon-based hook — see ChatTwoContextMenuIntegration for that surface.
+    /// Adds a "Groups" submenu entry to native right-click menus that target a player name,
+    /// gated to the <see cref="PlayerMenuAddons"/> allow-list, plus addon-less in-world character
+    /// menus that carry a real target content ID. The gate exists because any
+    /// plugin can open a native context menu through AgentContext (KamiToolKit does — seen
+    /// live from GlamourLog and AetherBags), and such menus arrive here carrying whatever
+    /// *stale* target the agent kept from the last real player right-click — so a non-empty
+    /// target name alone is not evidence the menu is about a player. An earlier version
+    /// rejected addon filtering after a filter on guessed names failed; the Debug tab's
+    /// context-menu probe replaced guessing with measurement (ChatLog/FriendList confirmed
+    /// as real parent addon names, 2026-07-27). Failure modes are asymmetric: an addon
+    /// missing from the list costs one menu entry on that surface, while letting a plugin
+    /// menu through mutates groups with a stale player. The Chat 2 plugin draws its own
+    /// separate context menu entirely outside this addon-based hook — see
+    /// ChatTwoContextMenuIntegration for that surface.
     /// </summary>
     private void OnMenuOpened(IMenuOpenedArgs args)
     {
+#if DEBUG
+        // Must stay above the gate: the probe exists to capture the menus the gate rejects
+        // (plugin-opened native menus with stale targets, unlisted game surfaces).
+        ContextMenuProbe.Record(args);
+#endif
+
         if (args.Target is not MenuTargetDefault target || string.IsNullOrEmpty(target.TargetName))
+            return;
+
+        // No parent addon = right-click on a character in the world (also nameplate/target bar);
+        // the probe showed those carry a real content ID, while plugin-opened menus name their own
+        // addon and read ContentId 0 (measured 2026-09-26).
+        var isWorldMenu = args.AddonName is null && target.TargetContentId != 0;
+        if (!isWorldMenu && (args.AddonName is null || !PlayerMenuAddons.Contains(args.AddonName)))
             return;
 
         var name = target.TargetName;

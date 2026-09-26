@@ -81,6 +81,12 @@ internal sealed class DebugTab : ISettingsTab
             if (glowTab)
                 DrawGlowInjection();
         }
+
+        using (var contextMenuTab = ImRaii.TabItem("Context menus"))
+        {
+            if (contextMenuTab)
+                DrawContextMenuProbe();
+        }
     }
 
     private void DrawGeneral()
@@ -433,6 +439,62 @@ internal sealed class DebugTab : ISettingsTab
 
             ImGui.TableNextColumn();
             ImGui.TextUnformatted($"bg {invocation.ReturnedBackground:X8}, a {invocation.ReturnedAlpha:0.00}");
+        }
+    }
+
+    // Ground truth for the context-menu origin gate: right-click players on each game surface
+    // (chat, party list, friend list, target bar, nameplate, social) plus Glamourlog's item
+    // menus, then compare the Addon column. Plugin-opened native menus (KamiToolKit via
+    // AgentContext) show whatever target the *last real* player right-click left in the agent.
+    private static void DrawContextMenuProbe()
+    {
+        var snapshot = ContextMenuProbe.Snapshot();
+
+        ImGui.TextDisabled($"Native context-menu opens: {ContextMenuProbe.Count} total, newest first (in-memory, gone on reload)");
+        ImGui.SameLine();
+        if (ImGui.SmallButton("Clear"))
+            ContextMenuProbe.Clear();
+
+        using var table = ImRaii.Table("##debug-context-menus", 7,
+            ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable,
+            new Vector2(-1, 220f * ImGuiHelpers.GlobalScale));
+        if (!table)
+            return;
+
+        ImGui.TableSetupScrollFreeze(0, 1);
+        ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn("Menu", ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn("Addon");
+        ImGui.TableSetupColumn("Target name");
+        ImGui.TableSetupColumn("Object ID", ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn("Content ID", ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn("World", ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableHeadersRow();
+
+        for (var i = snapshot.Length - 1; i >= 0; i--)
+        {
+            var entry = snapshot[i];
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(entry.Time.ToString("HH:mm:ss"));
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(entry.MenuType.ToString());
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(entry.AddonName ?? "<null>");
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(entry.TargetName);
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(entry.TargetObjectId == 0 ? "" : $"0x{entry.TargetObjectId:X}");
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(entry.TargetContentId == 0 ? "" : $"0x{entry.TargetContentId:X}");
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(entry.HomeWorld);
         }
     }
 
