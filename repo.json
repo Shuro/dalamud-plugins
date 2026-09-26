@@ -5,7 +5,7 @@
     "Punchline": "Everything you need for a nice roleplay session.",
     "Description": "Highlights Say, Emote, and OOC in the native chat log, alerts you on mentions, and colors sender names by player group — the roleplay suite for FFXIV.",
     "InternalName": "GobchatExPlugin",
-    "AssemblyVersion": "1.0.0",
+    "AssemblyVersion": "1.0.2",
     "RepoUrl": "https://github.com/Shuro/dalamud-plugins",
     "ApplicableVersion": "any",
     "Tags": [
@@ -21,8 +21,8 @@
     "IconUrl": "https://raw.githubusercontent.com/Shuro/dalamud-plugins/main/GobchatEx/images/icon.png",
     "IsHide": false,
     "IsTestingExclusive": false,
-    "DownloadLinkInstall": "https://github.com/Shuro/dalamud-plugins/releases/download/v1.0.0/latest.zip",
-    "DownloadLinkUpdate": "https://github.com/Shuro/dalamud-plugins/releases/download/v1.0.0/latest.zip",
-    "LastUpdate": "1784585787"
+    "DownloadLinkInstall": "https://github.com/Shuro/dalamud-plugins/releases/download/v1.0.2/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/Shuro/dalamud-plugins/releases/download/v1.0.2/latest.zip",
+    "LastUpdate": "1790449149"
   }
 ]
