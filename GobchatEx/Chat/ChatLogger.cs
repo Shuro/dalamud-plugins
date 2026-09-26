@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using Dalamud.Game.Chat;
 using Dalamud.Game.Text;
@@ -8,6 +9,7 @@ using Dalamud.Utility;
 using GobchatEx.Config;
 using GobchatEx.Core;
 using GobchatEx.Core.Util;
+using Newtonsoft.Json;
 
 namespace GobchatEx.Chat;
 
@@ -21,14 +23,22 @@ namespace GobchatEx.Chat;
 /// switch, drop while logged out) live in the testable <see cref="ChatLogSession"/>; this class
 /// only maps Dalamud types and appends to disk, batched via Framework.Update so a busy channel
 /// costs one file open per second, not per line. Logging is a session-scoped manual action:
-/// it never starts by itself, is forced off at logout, cannot start without a user-chosen log
-/// folder (there is no default), and the on/off state is not persisted
+/// it is forced off at logout and cannot start without a user-chosen log folder (there is no
+/// default). It never starts by itself, with one deliberate exception: a resume marker stamped
+/// with the game-process identity lets logging continue across plugin reloads/updates within
+/// the same game process and login — never across a game restart or logout
 /// (<see cref="StartLogging"/>/<see cref="StopLogging"/>). Chat events, Framework.Update,
 /// settings commits, and Dispose all run on the framework thread, so no locking is needed.
 /// </summary>
 internal sealed class ChatLogger : IDisposable
 {
     private const long FlushIntervalMs = 1000;
+    private const string ResumeMarkerFileName = "chatlog-resume.json";
+
+    // Identity of the running game process; a resume marker stamped by a different process is
+    // stale (the game restarted) and must never restart logging.
+    private static readonly int GameProcessId = Environment.ProcessId;
+    private static readonly long GameProcessStart = Process.GetCurrentProcess().StartTime.ToFileTimeUtc();
 
     private readonly ChatLogConfig _config;
     private readonly ChatLogSession _session = new(() => DateTimeOffset.Now);
@@ -63,16 +73,35 @@ internal sealed class ChatLogger : IDisposable
         _config = config;
         SettingsChanged();
 
+        var resume = ReadResumeMarker();
+
         // A mid-session (re)load — plugin update or dev auto-reload — never fires Login, so seed
         // the character now. Plugin construction is only framework-thread when the manifest sets
         // LoadSync (ours doesn't), and IPlayerState throws off-thread, so dispatch.
         if (Plugin.ClientState.IsLoggedIn)
         {
+            // Same game process, same login, folder still usable: continue logging as if the
+            // reload never happened. IsLogging flips before the async seed lands — OnChatMessage
+            // already tolerates that window via its defensive re-seed.
+            if (resume != null && HasLogFolder)
+            {
+                IsLogging = true;
+                Plugin.Log.Information("Chat logging resumed across a plugin reload/update.");
+            }
+
             _ = Plugin.Framework.RunOnFrameworkThread(() =>
             {
                 try
                 {
                     _session.SetCharacter(Plugin.PlayerState.CharacterName);
+
+                    // Still the character the marker was written for -> keep appending to the
+                    // same file; anything else falls back to the session's rotation rules.
+                    if (IsLogging && resume != null
+                        && string.Equals(resume.CharacterName, _session.CharacterName, StringComparison.Ordinal))
+                    {
+                        _session.TryResumeFile(resume.FilePath);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -81,6 +110,12 @@ internal sealed class ChatLogger : IDisposable
                     Plugin.Log.Error(ex, "Initial chat-log character seed failed; retrying on the next message.");
                 }
             });
+        }
+        else if (resume != null)
+        {
+            // Logging never carries across a logout: a marker read while logged out (plugin
+            // reloaded at the title screen mid-session) is void.
+            DeleteResumeMarker();
         }
 
         Plugin.ChatGui.CheckMessageHandled += OnChatMessage;
@@ -100,22 +135,26 @@ internal sealed class ChatLogger : IDisposable
 
     /// <summary>Starts logging; a no-op while no usable folder is configured (there is no
     /// default — the user must pick one). The session file is still created lazily with the
-    /// first message.</summary>
+    /// first message. Drops the resume marker so a plugin reload/update continues logging.</summary>
     internal void StartLogging()
     {
-        if (HasLogFolder)
-            IsLogging = true;
+        if (!HasLogFolder)
+            return;
+        IsLogging = true;
+        WriteResumeMarker();
     }
 
     /// <summary>
     /// Stops logging after flushing what is pending. The session file stays open-ended: starting
     /// again during the same login continues it — rotation stays tied to login/character switch
-    /// and folder changes.
+    /// and folder changes. An explicit stop also voids the resume marker: it must not come back
+    /// on the next reload.
     /// </summary>
     internal void StopLogging()
     {
         FlushNow();
         IsLogging = false;
+        DeleteResumeMarker();
     }
 
     /// <summary>Call after any configuration change (SettingsWindow's commit).</summary>
@@ -147,6 +186,7 @@ internal sealed class ChatLogger : IDisposable
             // old folder). The session deliberately keeps its last folder: with IsLogging false
             // nothing enqueues, so no line can target the stale path.
             IsLogging = false;
+            DeleteResumeMarker(); // a broken folder must not resurrect logging on the next reload
             Plugin.Log.Warning("Chat logging stopped: no usable log folder is configured.");
         }
     }
@@ -194,6 +234,7 @@ internal sealed class ChatLogger : IDisposable
         FlushNow(); // finalize the session's file before the character goes away
         _session.SetCharacter(null);
         IsLogging = false; // logging is per login session — it never carries across a logout
+        DeleteResumeMarker();
     }
 
     private void OnChatMessage(IHandleableChatMessage message)
@@ -264,7 +305,11 @@ internal sealed class ChatLogger : IDisposable
             // format" decision (the app emitted a BOM on the first write).
             File.AppendAllLines(write.FilePath, write.Lines);
             if (write.IsNewFile)
+            {
                 Plugin.Log.Information("Started chat log {Path}.", write.FilePath);
+                if (IsLogging)
+                    WriteResumeMarker(); // marker tracks the live file so a reload reopens it
+            }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -277,4 +322,76 @@ internal sealed class ChatLogger : IDisposable
             Plugin.Log.Error(ex, "Failed to write chat log {Path}; dropping batch, further write errors are suppressed.", write.FilePath);
         }
     }
+
+    /// <summary>
+    /// Reads the resume marker and validates it against the running game process. Logging must
+    /// never auto-start across game sessions, so a marker stamped by another process (the game
+    /// restarted, or crashed with logging on) is stale and deleted on sight; a read failure just
+    /// means "no resume".
+    /// </summary>
+    private static ResumeMarker? ReadResumeMarker()
+    {
+        var path = ResumeMarkerPath();
+        try
+        {
+            if (!File.Exists(path))
+                return null;
+
+            var marker = JsonConvert.DeserializeObject<ResumeMarker>(File.ReadAllText(path));
+            if (marker != null && marker.ProcessId == GameProcessId && marker.ProcessStartTime == GameProcessStart)
+                return marker;
+
+            File.Delete(path);
+            return null;
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        {
+            Plugin.Log.Error(ex, "Failed to read chat-log resume marker {Path}; not resuming.", path);
+            return null;
+        }
+    }
+
+    /// <summary>Records that logging is on so the next plugin lifetime in this game process can
+    /// resume it — written on start and again whenever the session names a file, so the marker
+    /// always points at the live file. Temp-file-then-move like the config saves; failures are
+    /// logged and swallowed (losing resume must not break logging itself).</summary>
+    private void WriteResumeMarker()
+    {
+        var path = ResumeMarkerPath();
+        try
+        {
+            var json = JsonConvert.SerializeObject(
+                new ResumeMarker(GameProcessId, GameProcessStart, _session.CharacterName, _session.CurrentFilePath));
+            var tempPath = path + ".tmp";
+            File.WriteAllText(tempPath, json);
+            File.Move(tempPath, path, overwrite: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Plugin.Log.Error(ex, "Failed to save chat-log resume marker {Path}.", path);
+        }
+    }
+
+    /// <summary>Voids the marker — an explicit stop, a logout, or a broken folder means the next
+    /// plugin lifetime must not resume. Deleting a missing file is a no-op.</summary>
+    private static void DeleteResumeMarker()
+    {
+        var path = ResumeMarkerPath();
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Plugin.Log.Error(ex, "Failed to delete chat-log resume marker {Path}.", path);
+        }
+    }
+
+    private static string ResumeMarkerPath()
+        => Path.Combine(Plugin.PluginInterface.ConfigDirectory.FullName, ResumeMarkerFileName);
+
+    /// <summary>What survives a plugin reload: which game process wrote the marker (resume is
+    /// same-process only), plus the character and file the session was appending to so the same
+    /// file can be continued.</summary>
+    private sealed record ResumeMarker(int ProcessId, long ProcessStartTime, string? CharacterName, string? FilePath);
 }

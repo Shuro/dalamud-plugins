@@ -213,4 +213,63 @@ public sealed class ChatLogSessionTests
             ? Path.Combine(Folder, "John Gobchat")
             : folder);
     }
+
+    [Fact]
+    public void TryResumeFile_SameCharacterAndFolder_ContinuesPreviousFile()
+    {
+        // Reload resume: a plugin reload/update must keep appending to the file the previous
+        // plugin lifetime was writing — not fragment one play session into a file per reload.
+        var session = CreateSession();
+        session.SetCharacter("John Gobchat");
+        var previous = Path.Combine(Folder, "chatlog_2026-07-11_20-00_John-Gobchat.log");
+
+        session.TryResumeFile(previous).Should().BeTrue();
+        session.Enqueue("a");
+        var write = session.DequeueWrite()!;
+
+        write.FilePath.Should().Be(previous);
+        write.IsNewFile.Should().BeFalse(); // appending to the old file, not starting a new one
+    }
+
+    [Fact]
+    public void TryResumeFile_OutsideConfiguredFolder_IsIgnored()
+    {
+        // The resume marker may predate a folder change; a stale path must not pull new lines
+        // into the old location — lazy naming inside the current folder wins.
+        var session = CreateSession();
+        session.SetCharacter("John Gobchat");
+
+        session.TryResumeFile(@"C:\old-logs\chatlog_2026-07-11_20-00_John-Gobchat.log").Should().BeFalse();
+        session.Enqueue("a");
+        var write = session.DequeueWrite()!;
+
+        write.IsNewFile.Should().BeTrue();
+        write.FilePath.Should().Be(Path.Combine(Folder, "chatlog_2026-07-11_21-05_John-Gobchat.log"));
+    }
+
+    [Fact]
+    public void TryResumeFile_WhileLoggedOut_IsIgnored()
+    {
+        // Resume only makes sense inside a login; without a character the drop-while-logged-out
+        // rule stays authoritative.
+        var session = CreateSession();
+
+        session.TryResumeFile(Path.Combine(Folder, "chatlog_2026-07-11_20-00_John-Gobchat.log")).Should().BeFalse();
+
+        session.CurrentFilePath.Should().BeNull();
+    }
+
+    [Fact]
+    public void TryResumeFile_CharacterSwitchAfterResume_RotatesToNewFile()
+    {
+        // Rotation rules outrank resume: a resumed file must not survive a character switch, or
+        // the next character's lines would land in the previous character's log.
+        var session = CreateSession();
+        session.SetCharacter("John Gobchat");
+        session.TryResumeFile(Path.Combine(Folder, "chatlog_2026-07-11_20-00_John-Gobchat.log")).Should().BeTrue();
+
+        session.SetCharacter("Other Name");
+
+        session.CurrentFilePath.Should().BeNull();
+    }
 }

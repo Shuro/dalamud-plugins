@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using GobchatEx.Core.Util;
 
 namespace GobchatEx.Core;
 
@@ -73,6 +74,33 @@ public sealed class ChatLogSession(Func<DateTimeOffset> clock)
 
         CharacterName = normalized;
         CurrentFilePath = null;
+    }
+
+    /// <summary>
+    /// Adopts the file a previous plugin lifetime was appending to (reload/update resume) so the
+    /// next line continues it instead of naming a fresh file. Guarded rather than trusted — the
+    /// resume marker on disk may predate a folder or character change: the path only sticks while
+    /// a character is set and it still lies inside the configured log folder; otherwise normal
+    /// lazy naming applies. Returns whether the file was adopted.
+    /// </summary>
+    public bool TryResumeFile(string? filePath)
+    {
+        if (CharacterName == null || logFolder.Length == 0 || string.IsNullOrWhiteSpace(filePath))
+            return false;
+
+        try
+        {
+            if (!PathSecurityUtil.IsContainedIn(logFolder, filePath))
+                return false;
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException
+            or System.Security.SecurityException)
+        {
+            return false; // malformed marker path — fall back to lazy naming
+        }
+
+        CurrentFilePath = filePath;
+        return true;
     }
 
     /// <summary>Queues one formatted line; dropped while logged out.</summary>
