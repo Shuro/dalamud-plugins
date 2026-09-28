@@ -22,6 +22,14 @@ public sealed class MentionMatcherTests
     }
 
     [Fact]
+    public void FullWidthTrigger_MatchesPlainText()
+    {
+        // The text is matched NFKC-normalized, so the trigger must be normalized too.
+        Find("hey Ali, over here", "Ａｌｉ").Should().Equal(
+            ("Ali", SegmentType.Mention));
+    }
+
+    [Fact]
     public void InsideWord_DoesNotMatch()
     {
         Find("Alice and Kalim ignored it", "Ali").Should().BeEmpty();

@@ -62,10 +62,10 @@ internal sealed class LegacyCommandListener : IDisposable
     /// drops the icon payload, concatenating name and world with no separator at all (e.g. "Lancefer
     /// ChastainZodiark"). This renders that icon boundary as this codebase's own "Name [World]"
     /// bracket convention instead, so the existing group/player command parsers — which already expect
-    /// that bracket format — keep working unmodified. Mirrors <see cref="SenderIdentity"/>'s
-    /// PlayerPayload-first / icon-fallback approach, adapted for a full multi-token message rather
-    /// than a sender-only SeString (so the world-name run has to stop at the first following
-    /// whitespace, not run to the end of the message).
+    /// that bracket format — keep working unmodified. Like <see cref="SenderIdentity"/>'s icon
+    /// fallback, adapted for a full multi-token message rather than a sender-only SeString (so the
+    /// world-name run has to stop at the first following whitespace, not run to the end of the
+    /// message).
     /// </summary>
     private static string BuildCommandText(SeString message)
     {
@@ -74,13 +74,11 @@ internal sealed class LegacyCommandListener : IDisposable
 
         foreach (var payload in message.Payloads)
         {
+            // A player link's PlayerPayload is invisible link data: its visible name (plus icon and
+            // world) follows as ordinary payloads, which the cases below already render — so the
+            // link payload itself is skipped rather than appended a second time.
             switch (payload)
             {
-                case PlayerPayload player:
-                    var world = player.World.ValueNullable?.Name.ExtractText();
-                    sb.Append(GroupMembershipActions.FormatPlayer(player.PlayerName, world));
-                    break;
-
                 case IconPayload { Icon: BitmapFontIcon.CrossWorld }:
                     inWorldRun = true;
                     sb.Append(" [");
@@ -100,6 +98,9 @@ internal sealed class LegacyCommandListener : IDisposable
                     break;
             }
         }
+
+        if (inWorldRun)
+            sb.Append(']'); // icon was the last payload: close the bracket it opened
 
         return sb.ToString();
     }

@@ -188,15 +188,16 @@ public sealed class MentionMatcher
     private static string NormalizeFuzzyToken(string value)
         => UnicodeNormalizer.Normalize(value).Replace('’', '\'').ToLowerInvariant();
 
-    /// <summary>Trims and drops empty words, first-wins case-insensitive dedupe (keeps the first
-    /// occurrence's style, mirroring the pre-styling <c>Distinct(OrdinalIgnoreCase)</c> behavior).</summary>
+    /// <summary>Trims, NFKC-normalizes (the text is matched in normalized form, so a trigger typed in
+    /// full-width or decorative letters must be too) and drops empty words; first-wins
+    /// case-insensitive dedupe keeps the first occurrence's style.</summary>
     private static IReadOnlyList<(Regex Pattern, int StyleId)> BuildPatterns(IEnumerable<MentionWord> words, bool wholeWord)
     {
         var styleById = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var order = new List<string>();
         foreach (var word in words)
         {
-            var trimmed = word.Word?.Trim() ?? string.Empty;
+            var trimmed = UnicodeNormalizer.Normalize(word.Word?.Trim() ?? string.Empty);
             if (trimmed.Length == 0 || !styleById.TryAdd(trimmed, word.StyleId))
                 continue;
             order.Add(trimmed);

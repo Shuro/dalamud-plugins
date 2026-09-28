@@ -19,7 +19,7 @@ using System.Text;
 namespace GobchatEx.Core;
 
 /// <summary>
-/// File and folder naming for the chat logger (Milestone 5), ported from the app's ChatLoggerBase:
+/// File and folder naming for the chat logger:
 /// character names are reduced to file-system-safe tokens (FFXIV names contain apostrophes), and
 /// each session file is named with an invariant, minute-precision timestamp so archives sort
 /// chronologically regardless of the user's locale.
@@ -31,39 +31,21 @@ public static class ChatLogNaming
     /// hyphens become a single '-', everything else (apostrophes, punctuation) dropped. E.g.
     /// "J'ohn Gobchat" -> "John-Gobchat".
     /// </summary>
-    public static string SanitizeForFileName(string? name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-            return string.Empty;
-
-        var sb = new StringBuilder(name.Length);
-        foreach (var ch in name.Trim())
-        {
-            char toAppend;
-            if (char.IsLetterOrDigit(ch))
-                toAppend = ch;
-            else if (ch == '-' || char.IsWhiteSpace(ch))
-                toAppend = '-';
-            else
-                continue; // drop apostrophes, punctuation, invalid path chars
-
-            if (toAppend == '-' && (sb.Length == 0 || sb[sb.Length - 1] == '-'))
-                continue; // collapse runs, no leading hyphen
-            sb.Append(toAppend);
-        }
-
-        while (sb.Length > 0 && sb[sb.Length - 1] == '-')
-            sb.Length--; // no trailing hyphen
-        return sb.ToString();
-    }
+    public static string SanitizeForFileName(string? name) => Sanitize(name, whitespace: '-');
 
     /// <summary>
-    /// Like <see cref="SanitizeForFileName"/> but keeps spaces, so the result reads as a folder name:
-    /// letters/digits and single spaces are kept, runs of whitespace collapse to one space, and
-    /// everything else (apostrophes, punctuation, invalid path chars) is dropped. E.g.
-    /// "J'ohn Gobchat" -> "John Gobchat".
+    /// Like <see cref="SanitizeForFileName"/> but keeps spaces, so the result reads as a folder name
+    /// ("J'ohn Gobchat" -> "John Gobchat"). Hyphens are kept in both forms, so a hyphenated name
+    /// sanitizes the same way in its folder and its file names.
     /// </summary>
-    public static string SanitizeForFolderName(string? name)
+    public static string SanitizeForFolderName(string? name) => Sanitize(name, whitespace: ' ');
+
+    /// <summary>
+    /// Letters/digits and hyphens are kept, whitespace becomes <paramref name="whitespace"/>,
+    /// everything else (apostrophes, punctuation, invalid path chars) is dropped. Separator runs
+    /// collapse to their first separator; no leading or trailing separator.
+    /// </summary>
+    private static string Sanitize(string? name, char whitespace)
     {
         if (string.IsNullOrWhiteSpace(name))
             return string.Empty;
@@ -72,22 +54,24 @@ public static class ChatLogNaming
         foreach (var ch in name.Trim())
         {
             char toAppend;
-            if (char.IsLetterOrDigit(ch))
+            if (char.IsLetterOrDigit(ch) || ch == '-')
                 toAppend = ch;
             else if (char.IsWhiteSpace(ch))
-                toAppend = ' ';
+                toAppend = whitespace;
             else
-                continue; // drop apostrophes, punctuation, invalid path chars
+                continue;
 
-            if (toAppend == ' ' && (sb.Length == 0 || sb[sb.Length - 1] == ' '))
-                continue; // collapse runs, no leading space
+            if (IsSeparator(toAppend) && (sb.Length == 0 || IsSeparator(sb[^1])))
+                continue;
             sb.Append(toAppend);
         }
 
-        while (sb.Length > 0 && sb[sb.Length - 1] == ' ')
-            sb.Length--; // no trailing space
+        while (sb.Length > 0 && IsSeparator(sb[^1]))
+            sb.Length--;
         return sb.ToString();
     }
+
+    private static bool IsSeparator(char c) => c is '-' or ' ';
 
     /// <summary>
     /// Builds the per-session log filename: <c>chatlog_{yyyy-MM-dd_HH-mm}[_{Character}].log</c>,

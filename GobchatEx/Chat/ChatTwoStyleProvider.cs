@@ -183,6 +183,7 @@ internal sealed class ChatTwoStyleProvider : IDisposable
     /// </summary>
     public void SettingsChanged()
     {
+        _evaluateErrorLogged = false;
         RebuildSnapshot();
         SendTabPolicies();
     }
@@ -425,7 +426,7 @@ internal sealed class ChatTwoStyleProvider : IDisposable
             if (!_evaluateErrorLogged)
             {
                 _evaluateErrorLogged = true;
-                Plugin.Log.Warning(ex, "Chat 2 style evaluation failed; messages render unstyled until reconnect/settings change");
+                Plugin.Log.Warning(ex, "Chat 2 style evaluation failed; the message renders unstyled (further failures are not logged until reconnect/settings change)");
             }
 
             return (0, 1f);

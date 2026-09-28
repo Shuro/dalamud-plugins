@@ -164,32 +164,40 @@ internal sealed class GroupsTab : IToggleableTab
         if ((ImGui.Button(Loc.Get("Groups_Custom_Add")) || submitted) && TryAddGroup(newGroupName))
             newGroupName = string.Empty;
 
-        // A purely numeric name would collide with the "<idx> add|remove|clear ..." command grammar
-        // (Task 6), which treats a numeric locator as a 1-based index rather than a name.
-        if (IsPureNumericName(newGroupName.Trim()))
-            ImGui.TextColored(ImGuiColors.DalamudRed, Loc.Get("Groups_Custom_NumericName_Error"));
+        if (NameError(newGroupName.Trim(), except: null) is { } error)
+            ImGui.TextColored(ImGuiColors.DalamudRed, Loc.Get(error));
     }
 
     private bool TryAddGroup(string input)
     {
         var name = input.Trim();
-        if (name.Length == 0 || IsPureNumericName(name))
-            return false;
-        if (config.Groups.Any(g => g.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        if (name.Length == 0 || NameError(name, except: null) != null)
             return false;
 
         config.Groups.Add(new PlayerGroup { Id = Guid.NewGuid().ToString(), Name = name, Active = true });
         return true;
     }
 
-    private static bool IsPureNumericName(string name) => name.Length > 0 && int.TryParse(name, out _);
+    /// <summary>
+    /// The validation error for a trimmed group name, or null when it's usable (empty is reported
+    /// by callers as "nothing to do", not as an error). A purely numeric name would collide with the
+    /// "&lt;idx&gt; add|remove|clear ..." command grammar, which treats a numeric locator as a 1-based
+    /// index; <paramref name="except"/> skips the group being renamed so case-only renames pass.
+    /// </summary>
+    private string? NameError(string trimmed, PlayerGroup? except)
+    {
+        if (trimmed.Length > 0 && int.TryParse(trimmed, out _))
+            return "Groups_Custom_NumericName_Error";
+        if (config.Groups.Any(g => !ReferenceEquals(g, except) && g.Name.Equals(trimmed, StringComparison.OrdinalIgnoreCase)))
+            return "Groups_Custom_DuplicateName_Error";
+        return null;
+    }
 
     /// <summary>
     /// Pencil button opening a rename popup. Renaming is safe: everything downstream
-    /// (group rules, Chat 2 styling) is keyed by the group's Id, and the /gobchat group
+    /// (group rules, Chat 2 styling) is keyed by the group's Id, and the /gex group
     /// command resolves names live per invocation — only saved user macros using the old
-    /// name stop matching. Validation mirrors <see cref="TryAddGroup"/>, except the
-    /// duplicate check skips the group itself so case-only renames pass.
+    /// name stop matching. Validation is shared with <see cref="TryAddGroup"/> (<see cref="NameError"/>).
     /// </summary>
     private void DrawRenameControl(PlayerGroup group)
     {
@@ -212,15 +220,11 @@ internal sealed class GroupsTab : IToggleableTab
             ref renameBuffer, 64, ImGuiInputTextFlags.EnterReturnsTrue);
 
         var trimmed = renameBuffer.Trim();
-        var numeric = IsPureNumericName(trimmed);
-        var duplicate = config.Groups.Any(g => !ReferenceEquals(g, group)
-            && g.Name.Equals(trimmed, StringComparison.OrdinalIgnoreCase));
-        var valid = trimmed.Length > 0 && !numeric && !duplicate;
+        var error = NameError(trimmed, except: group);
+        var valid = trimmed.Length > 0 && error == null;
 
-        if (numeric)
-            ImGui.TextColored(ImGuiColors.DalamudRed, Loc.Get("Groups_Custom_NumericName_Error"));
-        else if (duplicate)
-            ImGui.TextColored(ImGuiColors.DalamudRed, Loc.Get("Groups_Custom_DuplicateName_Error"));
+        if (error != null)
+            ImGui.TextColored(ImGuiColors.DalamudRed, Loc.Get(error));
 
         bool clicked;
         using (ImRaii.Disabled(!valid))

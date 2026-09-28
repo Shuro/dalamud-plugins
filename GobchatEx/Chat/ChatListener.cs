@@ -398,7 +398,7 @@ public sealed class ChatListener : IDisposable
                 return;
 
             _chatMessageErrorLogged = true;
-            Plugin.Log.Warning(ex, "Chat formatting failed; messages render unformatted until the next settings change");
+            Plugin.Log.Warning(ex, "Chat formatting failed; the message renders unformatted (further failures are not logged until the next settings change)");
         }
     }
 

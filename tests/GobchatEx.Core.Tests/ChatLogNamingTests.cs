@@ -28,7 +28,9 @@ public sealed class ChatLogNamingTests
     [Theory]
     [InlineData("J'ohn Gobchat", "John Gobchat")] // apostrophe dropped, space kept
     [InlineData("  A   B  ", "A B")]              // whitespace runs collapse, trimmed
-    [InlineData("!!!", "")]                       // punctuation-only -> falls back to base folder
+    [InlineData("Jean-Luc Picard", "Jean-Luc Picard")] // hyphen kept, same as the file name
+    [InlineData("-John- ", "John")]               // no leading/trailing separator
+    [InlineData("!!!", "")]                      // punctuation-only -> falls back to base folder
     [InlineData(null, "")]
     public void SanitizeForFolderName_KeepsLettersDigitsAndSingleSpaces(string? name, string expected)
     {
