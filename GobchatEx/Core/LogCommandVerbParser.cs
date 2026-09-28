@@ -26,11 +26,7 @@ public static class LogCommandVerbParser
 {
     public static LogCommandVerbKind Parse(string args)
     {
-        var trimmed = args.Trim();
-        var firstSpace = trimmed.IndexOf(' ');
-        var verb = firstSpace < 0 ? trimmed : trimmed[..firstSpace];
-
-        return verb.ToLowerInvariant() switch
+        return CommandText.SplitVerb(args).Verb.ToLowerInvariant() switch
         {
             "start" => LogCommandVerbKind.Start,
             "stop" => LogCommandVerbKind.Stop,

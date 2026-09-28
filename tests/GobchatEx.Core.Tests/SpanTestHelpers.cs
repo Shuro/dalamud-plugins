@@ -5,15 +5,9 @@ namespace GobchatEx.Core.Tests;
 
 internal static class SpanTestHelpers
 {
-    /// <summary>
-    /// Mirrors <see cref="MessageSegmenter"/>'s private <c>InitialSpans</c> seeding (one Undefined
-    /// span tiling each non-empty run) — keep in sync.
-    /// </summary>
+    /// <summary>The segmenter's own seeding (Core is compiled into this assembly, so internal is visible).</summary>
     public static IReadOnlyList<IReadOnlyList<SegmentSpan>> InitialSpans(IReadOnlyList<string> runs)
-        => runs.Select(IReadOnlyList<SegmentSpan> (r) => r.Length > 0
-                ? [new SegmentSpan(0, r.Length, SegmentType.Undefined)]
-                : [])
-            .ToList();
+        => MessageSegmenter.InitialSpans(runs);
 
     /// <summary>Mention rules with only whole-word triggers populated, at the default fuzzy level.</summary>
     public static MentionRules WholeWordRules(params string[] triggers)

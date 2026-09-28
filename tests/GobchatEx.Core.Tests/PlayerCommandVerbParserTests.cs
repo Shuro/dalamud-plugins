@@ -45,11 +45,31 @@ public sealed class PlayerCommandVerbParserTests
     [Fact]
     public void DistanceWithNoName_ParsesToDistance_WithEmptyRest()
     {
-        // The parser doesn't validate the name is present — ExecuteDistance's own empty-check
-        // (PlayerCommandHandler.cs) owns that, so it can print the syntax error message.
+        // The verb parser doesn't validate the name is present — ParseDistanceTarget reports an
+        // empty target as null, so the handler can print the syntax error message.
         var verb = PlayerCommandVerbParser.Parse("distance");
 
         verb.Kind.Should().Be(PlayerCommandVerbKind.Distance);
         verb.Rest.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("Bob", "Bob", null)]
+    [InlineData("  Bob Smith  ", "Bob Smith", null)]
+    [InlineData("Bob Smith [Zodiark]", "Bob Smith", "Zodiark")]
+    [InlineData("Bob Smith[Zodiark]", "Bob Smith", "Zodiark")]
+    [InlineData("K'hit Nunu-Nu", "K'hit Nunu-Nu", null)]
+    [InlineData("Bob (alt)", "Bob (alt)", null)] // unsplittable text is taken whole as the name
+    public void ParseDistanceTarget_SplitsNameAndWorld(string rest, string name, string? world)
+    {
+        PlayerCommandVerbParser.ParseDistanceTarget(rest).Should().Be((name, world));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void ParseDistanceTarget_EmptyTarget_IsNull(string rest)
+    {
+        PlayerCommandVerbParser.ParseDistanceTarget(rest).Should().BeNull();
     }
 }

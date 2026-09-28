@@ -15,6 +15,15 @@ namespace GobchatEx.Config;
 /// </summary>
 public sealed class Configuration
 {
+    // Section file names, shared by Sections (saving) and Load.
+    private const string GeneralFile = "general.json";
+    private const string FormattingFile = "formatting.json";
+    private const string MentionsFile = "mentions.json";
+    private const string GroupsFile = "groups.json";
+    private const string RangeFilterFile = "rangefilter.json";
+    private const string TabsFile = "tabs.json";
+    private const string ChatLogFile = "chatlog.json";
+
     public GeneralConfig General { get; init; } = new();
     public FormattingConfig Formatting { get; init; } = new();
     public MentionsConfig Mentions { get; init; } = new();
@@ -29,13 +38,13 @@ public sealed class Configuration
     /// </summary>
     internal (string FileName, object Section)[] Sections =>
     [
-        ("general.json", General),
-        ("formatting.json", Formatting),
-        ("mentions.json", Mentions),
-        ("groups.json", Groups),
-        ("rangefilter.json", RangeFilter),
-        ("tabs.json", Tabs),
-        ("chatlog.json", ChatLog),
+        (GeneralFile, General),
+        (FormattingFile, Formatting),
+        (MentionsFile, Mentions),
+        (GroupsFile, Groups),
+        (RangeFilterFile, RangeFilter),
+        (TabsFile, Tabs),
+        (ChatLogFile, ChatLog),
     ];
 
     /// <summary>
@@ -85,18 +94,18 @@ public sealed class Configuration
     {
         var config = new Configuration
         {
-            General = LoadSection<GeneralConfig>("general.json"),
-            Formatting = LoadSection<FormattingConfig>("formatting.json"),
-            Mentions = LoadSection<MentionsConfig>("mentions.json"),
-            Groups = LoadSection<GroupsConfig>("groups.json"),
-            RangeFilter = LoadSection<RangeFilterConfig>("rangefilter.json"),
-            Tabs = LoadSection<TabsConfig>("tabs.json"),
-            ChatLog = LoadSection<ChatLogConfig>("chatlog.json"),
+            General = LoadSection<GeneralConfig>(GeneralFile),
+            Formatting = LoadSection<FormattingConfig>(FormattingFile),
+            Mentions = LoadSection<MentionsConfig>(MentionsFile),
+            Groups = LoadSection<GroupsConfig>(GroupsFile),
+            RangeFilter = LoadSection<RangeFilterConfig>(RangeFilterFile),
+            Tabs = LoadSection<TabsConfig>(TabsFile),
+            ChatLog = LoadSection<ChatLogConfig>(ChatLogFile),
         };
 
         // FriendGroups are seeded in FfGroup order, but a hand-edited groups.json may not be:
-        // normalize the live list once here so per-frame consumers (the Groups tab) can iterate
-        // it directly. GroupRuleBuilder still orders defensively when building rules.
+        // normalize the live list once here — the Groups tab and GroupRuleBuilder's precedence
+        // both iterate it directly.
         config.Groups.FriendGroups.Sort((a, b) => Comparer<int?>.Default.Compare(a.FfGroup, b.FfGroup));
 
         return config;

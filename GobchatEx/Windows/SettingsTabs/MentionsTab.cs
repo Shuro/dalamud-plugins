@@ -185,7 +185,7 @@ internal sealed class MentionsTab : IToggleableTab
         var submitted = ImGui.InputTextWithHint("##newTrigger", Loc.Get("Mentions_Trigger_Hint"), ref newTrigger, 64,
             ImGuiInputTextFlags.EnterReturnsTrue);
         ImGui.SameLine();
-        if ((ImGui.Button(Loc.Get("Mentions_Trigger_Add")) || submitted) && TryAddUnique(config.MentionTriggers, newTrigger))
+        if ((ImGui.Button(Loc.Get("Mentions_Trigger_Add")) || submitted) && MentionTrigger.TryAddUnique(config.MentionTriggers, newTrigger))
             newTrigger = string.Empty;
 
         if (config.MentionTriggers.Count == 0)
@@ -197,20 +197,6 @@ internal sealed class MentionsTab : IToggleableTab
         var removed = DrawStyledWordTable("##triggers", config.MentionTriggers, Loc.Get("Mentions_Trigger_Remove_Tooltip"));
         if (removed >= 0)
             config.MentionTriggers.RemoveAt(removed);
-    }
-
-    /// <summary>Trims, rejects empty input and case-insensitive duplicates, then appends
-    /// (with no color override — set from the swatches afterward). True when added.</summary>
-    private static bool TryAddUnique(List<MentionTrigger> list, string input)
-    {
-        var value = input.Trim();
-        if (value.Length == 0)
-            return false;
-        if (list.Any(x => string.Equals(x.Word, value, StringComparison.OrdinalIgnoreCase)))
-            return false;
-
-        list.Add(new MentionTrigger { Word = value });
-        return true;
     }
 
     /// <summary>
@@ -512,7 +498,7 @@ internal sealed class MentionsTab : IToggleableTab
         newCustomWordByCharacter[character.Name] = newWord;
 
         ImGui.SameLine();
-        if ((ImGui.Button($"{Loc.Get("Mentions_Trigger_Add")}##word") || submitted) && TryAddUnique(character.CustomWords, newWord))
+        if ((ImGui.Button($"{Loc.Get("Mentions_Trigger_Add")}##word") || submitted) && MentionTrigger.TryAddUnique(character.CustomWords, newWord))
             newCustomWordByCharacter[character.Name] = string.Empty;
 
         if (character.CustomWords.Count == 0)

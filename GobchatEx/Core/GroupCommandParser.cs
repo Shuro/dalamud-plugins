@@ -35,13 +35,6 @@ public sealed record GroupCommand(
 /// </summary>
 public static class GroupCommandParser
 {
-    /// <summary>
-    /// "name [world]" player tail (character class ported from PlayerGroupCommandHandler; the acute
-    /// accent ´ is a literal character since verbatim strings don't process escapes). Shared with
-    /// PlayerCommandHandler's "distance" target, which anchors it the same way.
-    /// </summary>
-    public const string NameTailPattern = @"\b(?<composite>(?<name>[ \w'`´-]+)(?<server>\s*\[\w+\])?)?";
-
     // Optional player after the task: a name (lazy, so an optional "[World]" can follow), then
     // end of input. Stricter than the old ".*?" junk-skipping tail on purpose — an anchored
     // grammar must not silently drop unparseable text.

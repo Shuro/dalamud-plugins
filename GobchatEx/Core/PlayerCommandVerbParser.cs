@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace GobchatEx.Core;
 
 /// <summary>Which "/gex player ..." verb <see cref="PlayerCommandVerbParser.Parse"/> selected.</summary>
@@ -26,23 +28,40 @@ public readonly record struct PlayerCommandVerb(PlayerCommandVerbKind Kind, stri
 /// </summary>
 public static class PlayerCommandVerbParser
 {
+    // "name [world]" distance target (character class ported from the app's
+    // PlayerGroupCommandHandler; ´ is a literal since verbatim strings don't process escapes).
+    private static readonly Regex DistanceTarget = new(
+        @"^\b(?:(?<name>[ \w'`´-]+)(?<server>\s*\[\w+\])?)?$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
     public static PlayerCommandVerb Parse(string args)
     {
-        var trimmed = args.Trim();
-        var firstSpace = trimmed.IndexOf(' ');
-        var verb = firstSpace < 0 ? trimmed : trimmed[..firstSpace];
+        var (verb, rest) = CommandText.SplitVerb(args);
 
-        switch (verb.ToLowerInvariant())
+        return verb.ToLowerInvariant() switch
         {
-            case "count":
-                return new PlayerCommandVerb(PlayerCommandVerbKind.Count, string.Empty);
-            case "list":
-                return new PlayerCommandVerb(PlayerCommandVerbKind.List, string.Empty);
-            case "distance":
-                var rest = firstSpace < 0 ? string.Empty : trimmed[(firstSpace + 1)..];
-                return new PlayerCommandVerb(PlayerCommandVerbKind.Distance, rest);
-            default:
-                return new PlayerCommandVerb(PlayerCommandVerbKind.Invalid, string.Empty);
-        }
+            "count" => new PlayerCommandVerb(PlayerCommandVerbKind.Count, string.Empty),
+            "list" => new PlayerCommandVerb(PlayerCommandVerbKind.List, string.Empty),
+            "distance" => new PlayerCommandVerb(PlayerCommandVerbKind.Distance, rest),
+            _ => new PlayerCommandVerb(PlayerCommandVerbKind.Invalid, string.Empty),
+        };
+    }
+
+    /// <summary>
+    /// Splits a "distance" target into name and optional world ("Bob Smith [Zodiark]"); null when
+    /// empty. Text the grammar can't split is taken whole as the name.
+    /// </summary>
+    public static (string Name, string? World)? ParseDistanceTarget(string rest)
+    {
+        var trimmed = rest.Trim();
+        if (trimmed.Length == 0)
+            return null;
+
+        var match = DistanceTarget.Match(trimmed);
+        var name = match.Success && match.Groups["name"].Success ? match.Groups["name"].Value.Trim() : trimmed;
+        var world = match.Success && match.Groups["server"].Success
+            ? match.Groups["server"].Value.Trim(' ', '[', ']')
+            : null;
+        return (name, world);
     }
 }

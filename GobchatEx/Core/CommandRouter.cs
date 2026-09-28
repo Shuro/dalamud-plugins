@@ -44,35 +44,19 @@ public static class CommandRouter
 {
     public static CommandRoute Parse(string args)
     {
-        var trimmed = args.TrimStart();
-        if (trimmed.Length == 0)
-            return new CommandRoute(CommandRouteKind.ToggleSettings, string.Empty);
+        var (verb, rest) = CommandText.SplitVerb(args);
 
-        var firstSpace = trimmed.IndexOf(' ');
-        var firstWord = firstSpace < 0 ? trimmed : trimmed[..firstSpace];
-        var rest = firstSpace < 0 ? string.Empty : trimmed[(firstSpace + 1)..];
-
-        if (firstWord.Equals("group", StringComparison.OrdinalIgnoreCase)
-            || firstWord.Equals("g", StringComparison.OrdinalIgnoreCase))
-            return new CommandRoute(CommandRouteKind.Group, rest);
-
-        if (firstWord.Equals("player", StringComparison.OrdinalIgnoreCase)
-            || firstWord.Equals("p", StringComparison.OrdinalIgnoreCase))
-            return new CommandRoute(CommandRouteKind.Player, rest);
-
-        if (firstWord.Equals("mention", StringComparison.OrdinalIgnoreCase))
-            return new CommandRoute(CommandRouteKind.Mention, rest);
-
-        if (firstWord.Equals("log", StringComparison.OrdinalIgnoreCase))
-            return new CommandRoute(CommandRouteKind.Log, rest);
-
-        if (firstWord.Equals("help", StringComparison.OrdinalIgnoreCase))
-            return new CommandRoute(CommandRouteKind.Help, string.Empty);
-
-        if (firstWord.Equals("config", StringComparison.OrdinalIgnoreCase)
-            && rest.Trim().Equals("open", StringComparison.OrdinalIgnoreCase))
-            return new CommandRoute(CommandRouteKind.ConfigOpen, string.Empty);
-
-        return new CommandRoute(CommandRouteKind.Unknown, trimmed);
+        return verb.ToLowerInvariant() switch
+        {
+            "" => new CommandRoute(CommandRouteKind.ToggleSettings, string.Empty),
+            "group" or "g" => new CommandRoute(CommandRouteKind.Group, rest),
+            "player" or "p" => new CommandRoute(CommandRouteKind.Player, rest),
+            "mention" => new CommandRoute(CommandRouteKind.Mention, rest),
+            "log" => new CommandRoute(CommandRouteKind.Log, rest),
+            "help" => new CommandRoute(CommandRouteKind.Help, string.Empty),
+            "config" when rest.Trim().Equals("open", StringComparison.OrdinalIgnoreCase)
+                => new CommandRoute(CommandRouteKind.ConfigOpen, string.Empty),
+            _ => new CommandRoute(CommandRouteKind.Unknown, args.Trim()),
+        };
     }
 }

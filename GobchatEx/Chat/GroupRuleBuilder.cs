@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using GobchatEx.Config;
 using GobchatEx.Core;
 
@@ -9,9 +8,9 @@ namespace GobchatEx.Chat;
 /// Single source of the group-rule precedence invariant, shared by the native pass
 /// (<see cref="ChatListener"/>) and the Chat 2 provider (<see cref="ChatTwoStyleProvider"/>):
 /// custom groups first, in config order (GroupMatcher's first-match-wins gives them precedence
-/// over friend groups on the same sender), then the 7 friend groups sorted by FfGroup
-/// defensively (they're always seeded 0..6 in order, but a hand-edited config shouldn't break
-/// precedence). Style dictionaries stay caller-built — the native pass styles
+/// over friend groups on the same sender), then the 7 friend groups in FfGroup order
+/// (Configuration.Load normalizes a hand-edited groups.json, and nothing reorders them
+/// afterward). Style dictionaries stay caller-built — the native pass styles
 /// foreground/glow, the provider Chat 2 backgrounds — and they're keyed by id, so only the
 /// rule list carries the ordering.
 /// </summary>
@@ -33,17 +32,9 @@ internal static class GroupRuleBuilder
             rules.Add(new GroupRule(group.Id, group.Active, FfGroup: null, members));
         }
 
-        foreach (var group in OrderedFriendGroups(groups))
+        foreach (var group in groups.FriendGroups)
             rules.Add(new GroupRule(group.Id, group.Active, group.FfGroup, Members: []));
 
         return rules;
     }
-
-    /// <summary>
-    /// The FfGroup-ordered friend groups — <see cref="Build"/>'s per-settings-change defensive
-    /// ordering. The Groups tab iterates the live list directly; Configuration.Load normalizes
-    /// its order once, so the displayed order still matches the matching order.
-    /// </summary>
-    private static IEnumerable<PlayerGroup> OrderedFriendGroups(GroupsConfig groups)
-        => groups.FriendGroups.OrderBy(g => g.FfGroup);
 }

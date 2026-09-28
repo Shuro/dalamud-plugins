@@ -2,14 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 using GobchatEx.Core;
 using GobchatEx.Localization;
 
 namespace GobchatEx.Chat;
 
 /// <summary>
-/// Parses "/gobchat player ..." (stripped by <see cref="CommandDispatcher"/> before this is called):
+/// Parses "/gex player ..." (stripped by <see cref="CommandDispatcher"/> before this is called):
 /// "count" and "list" report nearby players — excluding the local player — via
 /// <see cref="SenderDistance.Snapshot"/>; "distance &lt;name&gt; [world]" reports the distance to one
 /// named player via <see cref="SenderDistance.Resolve"/>. Both are framework-thread-only, which is
@@ -20,10 +19,6 @@ namespace GobchatEx.Chat;
 /// </summary>
 internal static class PlayerCommandHandler
 {
-    private static readonly Regex DistanceTarget = new(
-        "^" + GroupCommandParser.NameTailPattern + "$",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
     public static void Execute(Plugin plugin, string args)
     {
         var verb = PlayerCommandVerbParser.Parse(args);
@@ -72,18 +67,13 @@ internal static class PlayerCommandHandler
 
     private static void ExecuteDistance(string args)
     {
-        var trimmed = args.Trim();
-        if (trimmed.Length == 0)
+        if (PlayerCommandVerbParser.ParseDistanceTarget(args) is not { } target)
         {
             Plugin.ChatGui.PrintError(Loc.Get("Commands_Player_InvalidSyntax"));
             return;
         }
 
-        var match = DistanceTarget.Match(trimmed);
-        var name = match.Success && match.Groups["name"].Success ? match.Groups["name"].Value.Trim() : trimmed;
-        var world = match.Success && match.Groups["server"].Success
-            ? match.Groups["server"].Value.Trim(' ', '[', ']')
-            : null;
+        var (name, world) = target;
 
         var distance = SenderDistance.Resolve(name, world);
         if (distance == null)

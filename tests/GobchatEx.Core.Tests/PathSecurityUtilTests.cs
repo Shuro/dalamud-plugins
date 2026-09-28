@@ -93,4 +93,40 @@ public sealed class PathSecurityUtilTests
         FluentActions.Invoking(() => PathSecurityUtil.ResolveWithin(@"C:\root", ""))
             .Should().Throw<ArgumentNullException>();
     }
+
+    // ResolveLogFolder tests build their roots from the temp directory so they run on any OS.
+    private static readonly string ConfigDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "gex-config");
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void ResolveLogFolder_Unconfigured_IsEmptyAndValid(string configured)
+    {
+        PathSecurityUtil.ResolveLogFolder(configured, ConfigDir, out var invalid).Should().BeEmpty();
+        invalid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ResolveLogFolder_Relative_ResolvesInsideConfigDir()
+    {
+        PathSecurityUtil.ResolveLogFolder(" logs ", ConfigDir, out var invalid)
+            .Should().Be(System.IO.Path.Combine(ConfigDir, "logs"));
+        invalid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ResolveLogFolder_RelativeEscape_IsInvalid()
+    {
+        PathSecurityUtil.ResolveLogFolder(System.IO.Path.Combine("..", "elsewhere"), ConfigDir, out var invalid)
+            .Should().BeEmpty();
+        invalid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ResolveLogFolder_FullyQualified_IsTrustedAnywhere()
+    {
+        var picked = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "picked", "logs");
+        PathSecurityUtil.ResolveLogFolder(picked, ConfigDir, out var invalid).Should().Be(picked);
+        invalid.Should().BeFalse();
+    }
 }

@@ -28,10 +28,7 @@ public static class MentionCommandVerbParser
 {
     public static MentionCommandVerb Parse(string args)
     {
-        var trimmed = args.Trim();
-        var firstSpace = trimmed.IndexOf(' ');
-        var verb = firstSpace < 0 ? trimmed : trimmed[..firstSpace];
-        var rest = firstSpace < 0 ? string.Empty : trimmed[(firstSpace + 1)..];
+        var (verb, rest) = CommandText.SplitVerb(args);
 
         return verb.ToLowerInvariant() switch
         {

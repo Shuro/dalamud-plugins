@@ -101,7 +101,8 @@ public sealed class MessageSegmenter
         return result;
     }
 
-    private static IReadOnlyList<IReadOnlyList<SegmentSpan>> InitialSpans(IReadOnlyList<string> runTexts)
+    /// <summary>One Undefined span tiling each non-empty run — the seed every token-rule pass starts from.</summary>
+    internal static IReadOnlyList<IReadOnlyList<SegmentSpan>> InitialSpans(IReadOnlyList<string> runTexts)
         => runTexts
             .Select(IReadOnlyList<SegmentSpan> (text) => text.Length > 0
                 ? [new SegmentSpan(0, text.Length, SegmentType.Undefined)]

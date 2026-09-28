@@ -182,7 +182,7 @@ internal sealed class ChatLogger : IDisposable
         _formatter = new ChatLogFormatter(
             string.IsNullOrWhiteSpace(_config.LogFormat) ? ChatLogConfig.DefaultLogFormat : _config.LogFormat);
 
-        ResolvedLogFolder = ResolveLogFolder(
+        ResolvedLogFolder = PathSecurityUtil.ResolveLogFolder(
             _config.LogFolder, Plugin.PluginInterface.ConfigDirectory.FullName, out var invalid);
         if (invalid && !LogFolderInvalid)
             Plugin.Log.Warning(
@@ -202,38 +202,6 @@ internal sealed class ChatLogger : IDisposable
             IsLogging = false;
             DeleteResumeMarker(); // a broken folder must not resurrect logging on the next reload
             Plugin.Log.Warning("Chat logging stopped: no usable log folder is configured.");
-        }
-    }
-
-    /// <summary>
-    /// Resolves the configured log folder. There is no default: empty means unconfigured and
-    /// resolves to an empty string, which keeps logging disabled. The folder picker stores
-    /// absolute paths (allowed anywhere); a hand-edited relative path must resolve inside the
-    /// config directory (PathSecurityUtil) — escaping or malformed paths are flagged invalid
-    /// and also resolve to empty.
-    /// </summary>
-    internal static string ResolveLogFolder(string configured, string configDir, out bool invalid)
-    {
-        invalid = false;
-        var trimmed = configured.Trim();
-        if (trimmed.Length == 0)
-            return string.Empty;
-
-        try
-        {
-            // IsPathFullyQualified, not IsPathRooted: drive-relative ("C:logs") and root-relative
-            // ("\logs") strings count as rooted but GetFullPath resolves them against the current
-            // working directory — they must go through the containment check, not the
-            // trusted-picker branch, or a hand-edited config escapes the sandbox.
-            return Path.IsPathFullyQualified(trimmed)
-                ? Path.GetFullPath(trimmed)
-                : PathSecurityUtil.ResolveWithin(configDir, trimmed);
-        }
-        catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException
-            or UnauthorizedAccessException or System.Security.SecurityException)
-        {
-            invalid = true;
-            return string.Empty;
         }
     }
 

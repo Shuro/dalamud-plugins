@@ -14,6 +14,7 @@
 
 using System;
 using System.IO;
+using System.Security;
 
 namespace GobchatEx.Core.Util;
 
@@ -71,5 +72,37 @@ public static class PathSecurityUtil
                 $"Path '{pathMaybeRelative}' resolves outside the allowed directory.");
 
         return fullPath;
+    }
+
+    /// <summary>
+    /// Resolves the chat logger's configured log folder. There is no default: empty means unconfigured and
+    /// resolves to an empty string, which keeps logging disabled. The folder picker stores
+    /// absolute paths (allowed anywhere); a hand-edited relative path must resolve inside the
+    /// config directory (<see cref="ResolveWithin"/>) — escaping or malformed paths are flagged invalid
+    /// and also resolve to empty.
+    /// </summary>
+    public static string ResolveLogFolder(string configured, string configDir, out bool invalid)
+    {
+        invalid = false;
+        var trimmed = configured.Trim();
+        if (trimmed.Length == 0)
+            return string.Empty;
+
+        try
+        {
+            // IsPathFullyQualified, not IsPathRooted: drive-relative ("C:logs") and root-relative
+            // ("\logs") strings count as rooted but GetFullPath resolves them against the current
+            // working directory — they must go through the containment check, not the
+            // trusted-picker branch, or a hand-edited config escapes the sandbox.
+            return Path.IsPathFullyQualified(trimmed)
+                ? Path.GetFullPath(trimmed)
+                : PathSecurityUtil.ResolveWithin(configDir, trimmed);
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException
+            or UnauthorizedAccessException or SecurityException)
+        {
+            invalid = true;
+            return string.Empty;
+        }
     }
 }

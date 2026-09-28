@@ -47,14 +47,12 @@ internal static class MentionCommandHandler
             return;
         }
 
-        var triggers = plugin.Configuration.Mentions.MentionTriggers;
-        if (triggers.Any(x => string.Equals(x.Word, word, StringComparison.OrdinalIgnoreCase)))
+        if (!MentionTrigger.TryAddUnique(plugin.Configuration.Mentions.MentionTriggers, word))
         {
             Plugin.ChatGui.Print(string.Format(Loc.Get("Commands_Mention_AlreadyExists"), word));
             return;
         }
 
-        triggers.Add(new MentionTrigger { Word = word });
         plugin.ConfigCommitter.CommitIfChanged();
         Plugin.ChatGui.Print(string.Format(Loc.Get("Commands_Mention_Added"), word));
     }
