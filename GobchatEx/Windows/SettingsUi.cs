@@ -14,10 +14,9 @@ using GobchatEx.Localization;
 namespace GobchatEx.Windows;
 
 /// <summary>
-/// Small shared widgets for the settings tabs: accent-colored section
-/// headers (Dalamud's ImGui bindings have no SeparatorText), labelled
-/// green/red toggle switches, Ctrl+Shift-gated destructive buttons,
-/// hover tooltips, and the 3-column channel checkbox grids.
+/// Small shared widgets for the settings tabs and plugin windows (section
+/// headers, toggle switches, gated destructive buttons, tooltips, status
+/// glyphs, color editors, channel grids, highlighted text).
 /// </summary>
 internal static class SettingsUi
 {
@@ -75,16 +74,9 @@ internal static class SettingsUi
     /// split by a partial match (e.g. "shu" highlighted inside "shuro") stays together; a
     /// single word wider than the limit overflows, like ImGui's own wrapping. Spans must be
     /// sorted and non-overlapping (they come from the segmenter, which merges overlaps).
-    /// Used by the mention tester and the mention history hover.
+    /// <paramref name="colorForSpan"/> resolves each span's own color (a per-word override, or the
+    /// default mention color). Used by the mention tester and the mention history hover.
     /// </summary>
-    public static void HighlightedTextWrapped(
-        string text, IReadOnlyList<SegmentSpan> spans, Vector4 highlightColor, float wrapWidth)
-        => HighlightedTextWrapped(text, spans, (_, _) => highlightColor, wrapWidth);
-
-    /// <summary>Per-span-color overload: <paramref name="colorForSpan"/> resolves each mention
-    /// span's own color (e.g. a per-word override, falling back to the default elsewhere) instead
-    /// of sharing one color across every span. Used by the mention history hover, where different
-    /// spans in the same message can carry different override colors.</summary>
     public static void HighlightedTextWrapped(
         string text, IReadOnlyList<SegmentSpan> spans, Func<SegmentSpan, int, Vector4> colorForSpan, float wrapWidth)
     {
@@ -342,6 +334,25 @@ internal static class SettingsUi
         Tooltip(tooltip);
 
         return clicked;
+    }
+
+    /// <summary>
+    /// "Label ✓" status line: a frame-aligned label followed by a colored FontAwesome glyph that
+    /// carries <paramref name="tooltip"/> on hover.
+    /// </summary>
+    public static void StatusGlyph(string label, FontAwesomeIcon icon, Vector4 color, string tooltip)
+    {
+        ImGui.AlignTextToFramePadding();
+        ImGui.TextUnformatted(label);
+
+        ImGui.SameLine();
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+        {
+            ImGui.AlignTextToFramePadding();
+            ImGui.TextColored(color, icon.ToIconString());
+        }
+
+        Tooltip(tooltip);
     }
 
     /// <summary>

@@ -280,7 +280,6 @@
     <data name="Changelog_Unreleased_LogFolder"><value>Behoben: Das Eintippen eines neuen Protokollordners während der Protokollierung legt keine verwaisten Ordner mehr an - der Pfad gilt nach Enter oder beim Verlassen des Feldes.</value></data>
     <data name="Changelog_Unreleased_Sounds"><value>Eigene Alarmtöne lassen sich sauber schnell hintereinander abspielen, und .aif/.aiff-Dateien sind wählbar. Sounddateien über 30 Sekunden fallen auf den Spielsound zurück.</value></data>
 
-    <data name="Placeholder_ComingSoon"><value>Für eine zukünftige Version geplant.</value></data>
 
     <data name="ChatLog_TabName"><value>Protokolle</value></data>
     <data name="ChatLog_Button_Start"><value>Protokollierung starten</value></data>

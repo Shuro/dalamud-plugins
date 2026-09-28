@@ -305,9 +305,8 @@ public class SettingsWindow : Window
                 var tab = section.Tabs[tabIndex];
                 var chatTwoUnavailable = tab is ChatTwoTab && !plugin.ChatTwoStyles.IsConnected;
 
-                // Not-yet-implemented pages and an unavailable Chat 2 tab stay visible but dimmed.
-                using var dim = ImRaii.PushColor(ImGuiCol.Text, dimColor,
-                    tab is PlaceholderTab || chatTwoUnavailable);
+                // An unavailable Chat 2 tab stays visible but dimmed.
+                using var dim = ImRaii.PushColor(ImGuiCol.Text, dimColor, chatTwoUnavailable);
 
                 // Full-width invisible selectable, then icon + label (and, for toggleable tabs,
                 // a right-aligned switch) drawn on top so the whole row is clickable.
@@ -365,7 +364,8 @@ public class SettingsWindow : Window
     {
         var styles = plugin.ChatTwoStyles;
         var connected = styles.IsConnected;
-        var icon = (connected ? FontAwesomeIcon.Check : FontAwesomeIcon.Times).ToIconString();
+        var iconGlyph = connected ? FontAwesomeIcon.Check : FontAwesomeIcon.Times;
+        var icon = iconGlyph.ToIconString();
         var buttonLabel = Loc.Get(connected ? "ChatTwo_Disconnect" : "ChatTwo_Connect");
 
         float iconWidth;
@@ -379,21 +379,8 @@ public class SettingsWindow : Window
         if (slack > 0)
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + slack);
 
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted("Chat 2");
-
-        ImGui.SameLine();
-        using (ImRaii.PushFont(UiBuilder.IconFont))
-        {
-            ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(connected ? ImGuiColors.HealerGreen : ImGuiColors.DalamudGrey3, icon);
-        }
-
-        if (ImGui.IsItemHovered())
-        {
-            using (ImRaii.Tooltip())
-                ImGui.TextUnformatted(Loc.Get(connected ? "ChatTwo_Status_Connected" : "ChatTwo_Status_NotConnected"));
-        }
+        SettingsUi.StatusGlyph("Chat 2", iconGlyph, connected ? ImGuiColors.HealerGreen : ImGuiColors.DalamudGrey3,
+            Loc.Get(connected ? "ChatTwo_Status_Connected" : "ChatTwo_Status_NotConnected"));
 
         ImGui.SameLine();
         if (!ImGui.Button(buttonLabel))

@@ -352,11 +352,7 @@ internal sealed class DebugTab : ISettingsTab
             changed |= ImGui.Checkbox("no hide", ref noHide);
             ImGui.SameLine();
             ImGui.TextUnformatted(name);
-            if (ImGui.IsItemHovered())
-            {
-                using (ImRaii.Tooltip())
-                    ImGui.TextUnformatted(id.ToString());
-            }
+            SettingsUi.Tooltip(id.ToString());
 
             if (!changed)
                 continue;
@@ -420,22 +416,15 @@ internal sealed class DebugTab : ISettingsTab
 
             ImGui.TableNextColumn();
             ImGui.TextUnformatted(invocation.ChatType.ToString());
-            if (ImGui.IsItemHovered())
-            {
-                using (ImRaii.Tooltip())
-                    ImGui.TextUnformatted($"{(XivChatType)invocation.ChatType} (content ID {invocation.ContentId:X})");
-            }
+            SettingsUi.Tooltip($"{(XivChatType)invocation.ChatType} (content ID {invocation.ContentId:X})");
 
             ImGui.TableNextColumn();
             ImGui.TextUnformatted(invocation.SenderRaw);
 
             ImGui.TableNextColumn();
             ImGui.TextUnformatted(Truncate(invocation.ContentText, 60));
-            if (invocation.ContentText.Length > 60 && ImGui.IsItemHovered())
-            {
-                using (ImRaii.Tooltip())
-                    ImGui.TextUnformatted(invocation.ContentText);
-            }
+            if (invocation.ContentText.Length > 60)
+                SettingsUi.Tooltip(invocation.ContentText);
 
             ImGui.TableNextColumn();
             ImGui.TextUnformatted($"bg {invocation.ReturnedBackground:X8}, a {invocation.ReturnedAlpha:0.00}");

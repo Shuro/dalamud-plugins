@@ -51,10 +51,8 @@ public class MentionHistoryWindow : Window
             return;
         }
 
-        // "V2" because ImGui persists resizable-table column widths by ID: the 4-column
-        // layout's saved settings applied the old stretchy Message width to whatever column
-        // sat at that index — the new fixed Mentions column came out absurdly wide. A fresh
-        // ID sheds the stale settings (the plugin is unpublished, nothing to migrate).
+        // ImGui persists resizable-table column widths by ID; bump the suffix whenever the
+        // column layout changes, or the old widths land on the wrong columns.
         using var table = ImRaii.Table("##mentionHistoryV2", 5,
             ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersOuter | ImGuiTableFlags.ScrollY
             | ImGuiTableFlags.Resizable);

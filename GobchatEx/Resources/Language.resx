@@ -281,7 +281,6 @@
     <data name="Changelog_Unreleased_LogFolder"><value>Fixed: typing a new log folder while logging no longer creates stray folders - the path applies when you press Enter or leave the field.</value></data>
     <data name="Changelog_Unreleased_Sounds"><value>Custom alert sounds replay cleanly in quick succession, and .aif/.aiff files can be picked. Sound files over 30 seconds fall back to the game sound.</value></data>
 
-    <data name="Placeholder_ComingSoon"><value>Planned for a future release.</value></data>
 
     <data name="ChatLog_TabName"><value>Logs</value></data>
     <data name="ChatLog_Button_Start"><value>Start logging</value></data>

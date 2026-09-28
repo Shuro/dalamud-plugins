@@ -151,34 +151,12 @@ internal sealed class GeneralTab : ISettingsTab
 
         var loaded = connected || chatTwoLoaded;
 
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted("Chat 2");
-
-        ImGui.SameLine();
-        using (ImRaii.PushFont(UiBuilder.IconFont))
-        {
-            ImGui.AlignTextToFramePadding();
-            if (connected)
-                ImGui.TextColored(ImGuiColors.HealerGreen, FontAwesomeIcon.Check.ToIconString());
-            else if (loaded)
-                ImGui.TextColored(ImGuiColors.DalamudOrange, FontAwesomeIcon.Question.ToIconString());
-            else
-                ImGui.TextColored(ImGuiColors.DalamudRed, FontAwesomeIcon.Times.ToIconString());
-        }
-
-        if (!ImGui.IsItemHovered())
-            return;
-
-        using (ImRaii.Tooltip())
-            ImGui.TextUnformatted(ChatTwoTooltip(connected, loaded));
-    }
-
-    private static string ChatTwoTooltip(bool connected, bool loaded)
-    {
         if (connected)
-            return Loc.Get("ChatTwo_Status_Connected");
-
-        return Loc.Get(loaded ? "General_ChatTwo_NoStyling" : "General_ChatTwo_NotInstalled");
+            SettingsUi.StatusGlyph("Chat 2", FontAwesomeIcon.Check, ImGuiColors.HealerGreen, Loc.Get("ChatTwo_Status_Connected"));
+        else if (loaded)
+            SettingsUi.StatusGlyph("Chat 2", FontAwesomeIcon.Question, ImGuiColors.DalamudOrange, Loc.Get("General_ChatTwo_NoStyling"));
+        else
+            SettingsUi.StatusGlyph("Chat 2", FontAwesomeIcon.Times, ImGuiColors.DalamudRed, Loc.Get("General_ChatTwo_NotInstalled"));
     }
 
     /// <summary>
