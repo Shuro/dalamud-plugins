@@ -51,6 +51,7 @@ public sealed class ChatListener : IDisposable
     private Dictionary<string, (uint Foreground, uint Glow)> _groupStyles = new();
     private Dictionary<string, PlayerGroup> _groupsById = new();
     private bool _enabled;
+    private bool _overlayMentions;
     private bool _detectEmoteInSay;
     private bool _detectEmoteInParty;
     private bool _rangeEnabled;
@@ -249,12 +250,13 @@ public sealed class ChatListener : IDisposable
         _rangeChannels = [.. _config.RangeFilter.RangeFilterChannels];
         _chatTwoChannelColors = ChatTwoChannelColors.Read();
 
-        // Mention detection also runs highlight-disabled when the sound alert needs it (the
-        // rewriter then renders those spans plain via (0, 0)) or when the range filter's
-        // mention bypass needs to know whether a fading message mentions the player.
-        var wantMentions = _config.Formatting.MentionStyle.Enabled || _config.Mentions.MentionSoundEnabled
-            || (_rangeEnabled && _config.RangeFilter.RangeFilterMentionsIgnoreRange);
-        var mentionRules = wantMentions ? BuildMentionRules(_config.Mentions) : NoMentionRules;
+        // Mention detection runs whenever the mentions feature is on (BuildMentionRules returns
+        // NoMentionRules otherwise), independent of the Mention style and the sound: the mention
+        // history records every detected mention, and the range filter's bypass needs it too.
+        // With the Mention style off the overlay is skipped (_overlayMentions), so a detected
+        // name keeps its Say/Emote color instead of rendering plain.
+        var mentionRules = BuildMentionRules(_config.Mentions);
+        _overlayMentions = _config.Formatting.MentionStyle.Enabled;
         _segmenter = new MessageSegmenter(rules, mentionRules);
         _mentionWordStyles = mentionRules.Styles ?? [];
         _mentionRenderStyles = _config.Formatting.MentionStyle.Enabled ? _mentionWordStyles : [];
@@ -407,11 +409,11 @@ public sealed class ChatListener : IDisposable
         // instead of flattening everything to one grey line.
         var fadeStep = RangeFadeStep(message);
 
-        // The mention sound is independent of the highlighting gate: SettingsChanged builds
-        // mention rules whenever the sound alert needs them, so when the highlighting pass
-        // (which plays the sound itself) doesn't run for this message, probe here — bounded
-        // to conversational channels (see MentionSoundChannels). The MentionsEnabled guard
-        // skips a per-message segmentation that could never match (BuildMentionRules returns
+        // Mention detection is independent of the highlighting gate: when the highlighting pass
+        // (which plays the sound itself) doesn't run for this message, probe here — bounded to
+        // conversational channels (see MentionSoundChannels) — so the sound and the mention
+        // history also cover channels that aren't highlighted. The MentionsEnabled guard skips
+        // a per-message segmentation that could never match (BuildMentionRules returns
         // NoMentionRules with the master switch off). The mention outcome feeds the group
         // pass: a message that fired (or could have fired) the mention alert never also plays
         // a group sound (ADR 0005).
@@ -420,7 +422,7 @@ public sealed class ChatListener : IDisposable
         {
             mentioned = ApplyBodyHighlighting(message, fadeStep);
         }
-        else if (_config.Mentions.MentionSoundEnabled && _config.Mentions.MentionsEnabled
+        else if (_config.Mentions.MentionsEnabled
             && MentionSoundChannels.Contains(message.LogKind)
             && HasMention(message))
         {
@@ -518,7 +520,7 @@ public sealed class ChatListener : IDisposable
             && message.LogKind != XivChatType.Echo
             && IsFromSelf(message);
         var result = _segmenter.Segment(runTexts, DefaultTypeFor(message.LogKind),
-            overlayMentions: !suppressOwnHighlight, detectEmote: DetectEmoteFor(message.LogKind));
+            overlayMentions: _overlayMentions && !suppressOwnHighlight, detectEmote: DetectEmoteFor(message.LogKind));
         if (result == null)
             return false;
 

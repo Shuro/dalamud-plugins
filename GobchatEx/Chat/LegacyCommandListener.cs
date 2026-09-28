@@ -40,13 +40,14 @@ internal sealed class LegacyCommandListener : IDisposable
         if (message.LogKind != XivChatType.Echo)
             return;
 
-        var rest = LegacyEchoCommand.TryMatch(BuildCommandText(message.Message));
-        if (rest == null)
-            return;
-
+        // Whole body guarded, not just the dispatch: Dalamud forwards this plugin's
+        // CheckMessageHandled subscribers as one multicast, so a throw escaping here would skip
+        // any GobchatEx handler subscribed after this one.
         try
         {
-            CommandDispatcher.Execute(plugin, rest);
+            var rest = LegacyEchoCommand.TryMatch(BuildCommandText(message.Message));
+            if (rest != null)
+                CommandDispatcher.Execute(plugin, rest);
         }
         catch (Exception ex)
         {

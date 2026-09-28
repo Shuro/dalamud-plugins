@@ -38,10 +38,13 @@ GobchatEx/
 
 ## Chat Pipeline (per message, framework thread, native log)
 
-Three independent `IChatGui.CheckMessageHandled` subscribers (fires after
-every plugin's ChatMessage pass), deliberately not one: a failure in any
-must not break the others. `Chat/ChatListener` (rewrite), `Chat/ChatLogger`
-(disk log), `Chat/LegacyCommandListener` (legacy command fallback).
+Three separate `IChatGui.CheckMessageHandled` subscribers (fires after
+every plugin's ChatMessage pass): `Chat/ChatLogger` (disk log),
+`Chat/ChatListener` (rewrite), `Chat/LegacyCommandListener` (legacy command
+fallback), in that subscription order. Dalamud's per-plugin scoped ChatGui
+forwards them as ONE multicast (no per-handler try/catch), so an exception
+escaping any handler would skip the later ones — each handler therefore
+guards its whole body itself and never throws out of the chat pass.
 
 ChatListener runs three passes in `OnChatMessage`, in order — the fade step
 is computed first and threaded into passes 1–2 (so their colors emit
@@ -123,6 +126,9 @@ Plugin.OnCommand ─┐
 LegacyCommand  ───┘    → Core/CommandRouter.Parse
 Listener                 empty        → toggle settings window
 ("/e gc …" echo          group|g …    → Chat/GroupCommandHandler
+                            (Core/GroupCommandParser: anchored idx/task/name
+                             forms; name locator disambiguated against the
+                             existing groups)
 fallback, gated by       player|p …   → Chat/PlayerCommandHandler
 GeneralConfig.Legacy-      (Core/PlayerCommandVerbParser: count / list /
 EchoCommandFallback;        distance <name> [world] — via SenderDistance)
@@ -445,7 +451,8 @@ UI language unless GeneralConfig.LanguageOverride is set; re-resolved via
 - GobchatEx/Core/MessageSegmenter.cs (164) — pipeline orchestration + mention overlay + emote autodetect + channel default type
 - GobchatEx/Windows/MentionHistoryWindow.cs (160) — recent-mentions table, per-span coloring, group context menu
 - GobchatEx/Windows/SettingsWindowTheme.cs (153) — Guid-keyed window color-scheme registry
-- GobchatEx/Chat/GroupCommandHandler.cs (145) — /gex group add|remove|list parsing + execution
+- GobchatEx/Chat/GroupCommandHandler.cs — /gex group add|remove|clear|list execution
+- GobchatEx/Core/GroupCommandParser.cs — /gex group grammar (pure, anchored)
 - GobchatEx/Core/MentionRuleBuilder.cs (143) — style-id allocation, first-wins dedupe
 - GobchatEx/Windows/RangeRingsOverlay.cs (142) — preview rings: WorldToScreen projection onto the background draw list
 - GobchatEx/Chat/PayloadRewriter.cs (144) — span → raw color-macro payload translation (+ RewriteUniform)
@@ -466,8 +473,8 @@ Dalamud using-directive there breaks `dotnet test` (ADR 0002). Covers the
 parser/mention/group/range engines (incl. MentionRuleBuilder's style-id
 allocation, MentionStyleResolver's per-component fallback, RangeFade's
 opacity remap and RangeRingMath's preview geometry), command routing
-(CommandRouter, PlayerCommandVerbParser, LogCommandVerbParser,
-MentionCommandVerbParser, LegacyEchoCommand), and the chat-log engine
+(CommandRouter, GroupCommandParser, PlayerCommandVerbParser,
+LogCommandVerbParser, MentionCommandVerbParser, LegacyEchoCommand), and the chat-log engine
 (ChatLogSession with injected clock, ChatLogFormatter, ChatLogNaming,
 PathSecurityUtil). Loc tests run against throwaway resx fixtures. The
 Dalamud-facing layer (Chat 2 IPC, logger I/O, Quickbar, per-group sound

@@ -20,6 +20,12 @@ namespace GobchatEx.Core;
 /// The fixed delimiter rules, ported from Gobchat's default_profile.json.
 /// List order is processing order and therefore precedence: earlier rules
 /// claim text first (OOC beats Emote beats Say).
+/// <para>
+/// Quote styles that share an opening token live in ONE rule with every accepted closer. As
+/// separate rules (the app's layout), the first one claimed the shared opener and — never
+/// finding its own closer — marked everything to the end of the message, so „…” or «…» dragged
+/// the rest of the line (including a following *emote*) into Say.
+/// </para>
 /// </summary>
 public static class DefaultRules
 {
@@ -29,10 +35,8 @@ public static class DefaultRules
         new(SegmentType.Emote, ["*"], ["*"]),
         new(SegmentType.Emote, ["<"], [">"]),
         new(SegmentType.Say,   ["\""], ["\""]),          // straight quotes
-        new(SegmentType.Say,   ["„"], ["“"]),  // „…“ (German)
-        new(SegmentType.Say,   ["„"], ["”"]),  // „…”
+        new(SegmentType.Say,   ["„"], ["“", "”"]),  // „…“ (German) and „…”
         new(SegmentType.Say,   ["“"], ["”"]),  // “…”
-        new(SegmentType.Say,   ["»"], ["«"]),  // »…«
-        new(SegmentType.Say,   ["«"], ["»"]),  // «…»
+        new(SegmentType.Say,   ["»", "«"], ["«", "»"]),  // »…« and «…»
     ];
 }

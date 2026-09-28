@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Concentus;
 using Concentus.Oggfile;
 using FFXIVClientStructs.FFXIV.Client.UI;
@@ -16,10 +17,17 @@ namespace GobchatEx.Chat;
 /// Plays the mention and per-group alerts, each with its own cooldown timer: a built-in chat
 /// sound effect (volume follows the game's own sound-effects mixer) or a custom audio file via
 /// NAudio (own volume, ADR 0004). Must be called from the framework thread (chat handlers and
-/// the config UI both are). Files are loaded lazily on first play and cached per path — the
-/// mention sound plus any number of per-group sounds share one player (ADR 0005) — so a
-/// settings edit costs one file read on the next alert; a failed file play logs, falls back to
+/// the config UI both are). Files are decoded lazily on first play and cached per path as raw
+/// PCM — the mention sound plus any number of per-group sounds share one player (ADR 0005) — so
+/// a settings edit costs one file read on the next alert; a failed file play logs, falls back to
 /// the game effect and retries the file on the following alert.
+/// <para>
+/// Every play gets its own <see cref="WaveOutEvent"/> over its own stream on the shared PCM
+/// buffer. Rewinding one shared reader and restarting one shared output raced: Stop() doesn't
+/// join the playback thread, so an immediate Play() (0 s cooldown, preview spam) could run two
+/// playback threads over the same stream. Now a new alert just stops the previous one, which
+/// shares nothing with it.
+/// </para>
 /// </summary>
 public sealed class SoundPlayer : IDisposable
 {
@@ -30,18 +38,28 @@ public sealed class SoundPlayer : IDisposable
     // files (one mention sound + a few groups), so the cap only guards a pathological config,
     // and re-loading a few short alert files is cheap.
     private const int MaxCachedFiles = 8;
-    private readonly Dictionary<string, CachedAudio> _cache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, DecodedAudio> _cache = new(StringComparer.OrdinalIgnoreCase);
 
-    private sealed class CachedAudio(WaveStream reader, VolumeSampleProvider volume, WaveOutEvent output) : IDisposable
+    private Playback? _current;
+
+    /// <summary>A file's whole decoded content; immutable, shared by every play of that file.</summary>
+    private sealed record DecodedAudio(byte[] Pcm, WaveFormat Format);
+
+    /// <summary>
+    /// One play: its own stream and output device. Disposed exactly once — by its own
+    /// PlaybackStopped (raised on NAudio's playback thread), by the next alert stopping it, or by
+    /// the player's Dispose, whichever comes first.
+    /// </summary>
+    private sealed class Playback(WaveStream stream, WaveOutEvent output) : IDisposable
     {
-        public WaveStream Reader => reader;
-        public VolumeSampleProvider Volume => volume;
-        public WaveOutEvent Output => output;
+        private int _disposed;
 
         public void Dispose()
         {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0)
+                return;
             output.Dispose();
-            reader.Dispose();
+            stream.Dispose();
         }
     }
 
@@ -96,56 +114,109 @@ public sealed class SoundPlayer : IDisposable
         {
             if (!_cache.TryGetValue(path, out var audio))
                 audio = LoadFile(path);
-            // Clamped here rather than trusting the config: the UI caps at
-            // 100 %, but a hand-edited value must not blast clipped audio.
-            // Per play, not per load — two alerts sharing one file can carry
-            // different volume sliders.
-            audio.Volume.Volume = Math.Clamp(volume, 0f, 1f);
 
-            audio.Output.Stop();
-            audio.Reader.Position = 0;
-            audio.Output.Play();
+            StopCurrent();
+            _current = Start(audio, volume);
             return true;
         }
         catch (Exception ex)
         {
             Plugin.Log.Error(ex, "Playing alert sound file {Path} failed; the game sound effect plays instead", path);
-            if (_cache.Remove(path, out var broken))
-                broken.Dispose();
+            _cache.Remove(path);
             return false;
         }
     }
 
-    private CachedAudio LoadFile(string path)
+    /// <summary>Drops the cached decode for <paramref name="path"/> so the next play re-reads the
+    /// file — the settings UI calls this when a file is (re)picked or previewed, since a file
+    /// replaced on disk under the same path would otherwise keep playing the old audio.</summary>
+    public void Invalidate(string path)
     {
-        if (_cache.Count >= MaxCachedFiles)
-            DisposeCache();
+        if (!string.IsNullOrEmpty(path))
+            _cache.Remove(path);
+    }
 
-        // ToSampleProvider converts whatever the reader emits (float for
-        // wav/mp3/vorbis, 16-bit PCM for opus) into the float samples the
-        // volume wrapper expects, so every format shares one playback chain.
-        var reader = CreateReader(path);
+    private static Playback Start(DecodedAudio audio, float volume)
+    {
+        var stream = new RawSourceWaveStream(new MemoryStream(audio.Pcm, writable: false), audio.Format);
         WaveOutEvent? output = null;
+        Playback? playback = null;
         try
         {
-            var volume = new VolumeSampleProvider(reader.ToSampleProvider());
+            // ToSampleProvider converts whatever the decoder emitted (float for vorbis, 16-bit
+            // PCM for wav/mp3/opus) into the float samples the volume wrapper expects. Clamped
+            // here rather than trusting the config: the UI caps at 100 %, but a hand-edited value
+            // must not blast clipped audio.
+            var volumeProvider = new VolumeSampleProvider(stream.ToSampleProvider())
+            {
+                Volume = Math.Clamp(volume, 0f, 1f),
+            };
             output = new WaveOutEvent();
-            output.Init(volume);
+            output.Init(volumeProvider);
 
-            var audio = new CachedAudio(reader, volume, output);
-            _cache[path] = audio;
-            return audio;
+            var created = new Playback(stream, output);
+            playback = created;
+            output.PlaybackStopped += (_, _) => created.Dispose();
+            output.Play();
+            return created;
         }
         catch
         {
-            // Init can fail at the device level (no output device, exclusive-mode conflict),
-            // by which point the WaveOutEvent already holds an event handle — and since a
-            // failed load never reaches the cache, nothing else would ever dispose it, and
-            // every retry on the same path would leak another one.
-            output?.Dispose();
-            reader.Dispose();
+            // Init can fail at the device level (no output device, exclusive-mode conflict), by
+            // which point the WaveOutEvent already holds an event handle nothing else would free.
+            // Through the Playback once it exists: its dispose-once guard also covers a
+            // PlaybackStopped that may already have fired.
+            if (playback != null)
+            {
+                playback.Dispose();
+            }
+            else
+            {
+                output?.Dispose();
+                stream.Dispose();
+            }
+
             throw;
         }
+    }
+
+    private void StopCurrent()
+    {
+        _current?.Dispose();
+        _current = null;
+    }
+
+    private DecodedAudio LoadFile(string path)
+    {
+        if (_cache.Count >= MaxCachedFiles)
+            _cache.Clear();
+
+        var audio = IsOgg(path) && IsOggOpus(path) ? DecodeOpus(path) : DecodeWithReader(path);
+        _cache[path] = audio;
+        return audio;
+    }
+
+    /// <summary>Reads a wav/aiff/mp3/vorbis file fully into memory in the reader's own output
+    /// format, under the same <see cref="MaxDecodedSeconds"/> ceiling as opus.</summary>
+    private static DecodedAudio DecodeWithReader(string path)
+    {
+        using var reader = CreateReader(path);
+        var limit = (long)reader.WaveFormat.AverageBytesPerSecond * MaxDecodedSeconds;
+
+        using var pcm = new MemoryStream();
+        var buffer = new byte[Math.Max(reader.WaveFormat.BlockAlign, 1) * 4096];
+        int read;
+        while ((read = reader.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            pcm.Write(buffer, 0, read);
+            if (pcm.Length > limit)
+                throw new InvalidDataException($"Audio runs past the {MaxDecodedSeconds}s ceiling for alert sounds");
+        }
+
+        if (pcm.Length == 0)
+            throw new InvalidDataException("No audio decoded: empty stream");
+
+        return new DecodedAudio(pcm.ToArray(), reader.WaveFormat);
     }
 
     /// <summary>
@@ -185,8 +256,9 @@ public sealed class SoundPlayer : IDisposable
         // NVorbis only decodes the former, so pick by the codec marker on the
         // first Ogg page instead of trusting the extension. Windows' own ogg
         // codecs are an optional store package, hence two managed decoders.
+        // Opus never reaches here — LoadFile and GetDuration route it to the Ogg-page paths.
         if (IsOgg(path))
-            return IsOggOpus(path) ? DecodeOpus(path) : new VorbisWaveReader(path);
+            return new VorbisWaveReader(path);
 
         // Not AudioFileReader: it ships in the NAudio meta-package's glue
         // assembly, which drags in the WinForms SDK Plogon can't build against
@@ -226,11 +298,11 @@ public sealed class SoundPlayer : IDisposable
 
     /// <summary>
     /// Decodes the whole file to PCM up front — alert sounds are seconds
-    /// long — so replays rewind a MemoryStream instead of re-decoding.
+    /// long — so replays read the cached PCM instead of re-decoding.
     /// Files running past <see cref="MaxDecodedSeconds"/> are rejected,
     /// which surfaces as the usual failed-play fallback.
     /// </summary>
-    private static WaveStream DecodeOpus(string path)
+    private static DecodedAudio DecodeOpus(string path)
     {
         using var file = File.OpenRead(path);
 
@@ -239,7 +311,7 @@ public sealed class SoundPlayer : IDisposable
         OpusCodecFactory.AttemptToUseNativeLibrary = false;
         var opus = new OpusOggReadStream(OpusCodecFactory.CreateDecoder(OpusSampleRate, OpusChannels), file);
 
-        var pcm = new MemoryStream();
+        using var pcm = new MemoryStream();
         while (opus.HasNextPacket)
         {
             if (pcm.Length > MaxDecodedBytes)
@@ -253,16 +325,12 @@ public sealed class SoundPlayer : IDisposable
         if (pcm.Length == 0)
             throw new InvalidDataException($"No Opus audio decoded: {opus.LastError ?? "empty stream"}");
 
-        pcm.Position = 0;
-        return new RawSourceWaveStream(pcm, new WaveFormat(OpusSampleRate, 16, OpusChannels));
+        return new DecodedAudio(pcm.ToArray(), new WaveFormat(OpusSampleRate, 16, OpusChannels));
     }
 
-    private void DisposeCache()
+    public void Dispose()
     {
-        foreach (var audio in _cache.Values)
-            audio.Dispose();
+        StopCurrent();
         _cache.Clear();
     }
-
-    public void Dispose() => DisposeCache();
 }

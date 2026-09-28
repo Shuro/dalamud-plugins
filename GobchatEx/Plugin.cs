@@ -315,10 +315,8 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnLanguageChanged(string langCode)
     {
-        var culture = Configuration.General.LanguageOverride is LanguageOverride.None
-            ? new CultureInfo(langCode)
-            : new CultureInfo(Configuration.General.LanguageOverride.Code());
-        Loc.Culture = culture;
+        var overrideCode = Configuration.General.LanguageOverride.Code();
+        Loc.Culture = new CultureInfo(overrideCode.Length > 0 ? overrideCode : langCode);
     }
 
     /// <summary>

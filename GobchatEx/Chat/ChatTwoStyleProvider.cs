@@ -218,7 +218,11 @@ internal sealed class ChatTwoStyleProvider : IDisposable
     }
 #endif
 
-    private void OnAvailable() => TryConnect();
+    // IPC callbacks arrive on whatever thread Chat 2 raises them from — Available fires during
+    // Chat 2's own (possibly off-thread) plugin load — while TryConnect and the tab-policy
+    // pruning touch the live config the settings UI iterates on the framework thread. Marshal
+    // both over; RunOnFrameworkThread runs inline when already there.
+    private void OnAvailable() => RunOnFrameworkThread(TryConnect);
 
     /// <summary>
     /// Chat 2 going away (disabled/unloaded) never calls back through the IPC gates above — the
@@ -240,8 +244,31 @@ internal sealed class ChatTwoStyleProvider : IDisposable
 
     private void OnTabsChanged(Dictionary<Guid, string> tabs)
     {
-        KnownTabs = new Dictionary<Guid, string>(tabs);
-        PruneStalePolicies();
+        var copy = new Dictionary<Guid, string>(tabs);
+        RunOnFrameworkThread(() =>
+        {
+            KnownTabs = copy;
+            PruneStalePolicies();
+        });
+    }
+
+    private void RunOnFrameworkThread(Action action)
+    {
+        _ = Plugin.Framework.RunOnFrameworkThread(() =>
+        {
+            if (_disposed)
+                return;
+
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                // Fire-and-forget dispatch: surface the failure instead of losing it in the task.
+                Plugin.Log.Error(ex, "Chat 2 IPC callback failed");
+            }
+        });
     }
 
     /// <summary>
@@ -281,7 +308,9 @@ internal sealed class ChatTwoStyleProvider : IDisposable
         foreach (var id in stale)
             _config.Tabs.ChatTwoTabPolicies.Remove(id);
 
-        _config.Save();
+        // Only the section that changed — a full Save() would also flush any half-finished
+        // edit sitting in the settings window's debounce window for unrelated sections.
+        Configuration.SaveSection("tabs.json", Configuration.Serialize(_config.Tabs));
     }
 
     /// <summary>

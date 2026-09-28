@@ -275,6 +275,11 @@
     <data name="Changelog_V1_0_1_ChatLogResume"><value>Chat logging keeps running when the plugin reloads or updates mid-session.</value></data>
     <data name="Changelog_V1_0_1_Internals"><value>Chat coloring and sound file loading rebuilt on the game's own libraries - no visible change.</value></data>
     <data name="Changelog_V1_0_2_AutoLogging"><value>New: chat logging can start automatically on every login - opt in under Logs.</value></data>
+    <data name="Changelog_Unreleased_GroupCommandFix"><value>Fixed: /gex group commands for a group whose name ends in a number (e.g. "Team 2") no longer change a different group.</value></data>
+    <data name="Changelog_Unreleased_QuoteFix"><value>Fixed: speech in „…” or «…» quotes no longer colors the rest of the line, including a following *emote*.</value></data>
+    <data name="Changelog_Unreleased_MentionHistory"><value>Mention history now also records mentions on channels without RP highlighting (Tells, FC, Linkshells), even with the mention sound off.</value></data>
+    <data name="Changelog_Unreleased_LogFolder"><value>Fixed: typing a new log folder while logging no longer creates stray folders - the path applies when you press Enter or leave the field.</value></data>
+    <data name="Changelog_Unreleased_Sounds"><value>Custom alert sounds replay cleanly in quick succession, and .aif/.aiff files can be picked. Sound files over 30 seconds fall back to the game sound.</value></data>
 
     <data name="Placeholder_ComingSoon"><value>Planned for a future release.</value></data>
 

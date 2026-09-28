@@ -21,7 +21,7 @@ namespace GobchatEx.Chat;
 internal static class PlayerCommandHandler
 {
     private static readonly Regex DistanceTarget = new(
-        "^" + GroupCommandHandler.NameTailPattern + "$",
+        "^" + GroupCommandParser.NameTailPattern + "$",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     public static void Execute(Plugin plugin, string args)

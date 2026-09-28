@@ -35,6 +35,6 @@ internal sealed class FriendListAddonListener : IDisposable
     private void OnAddonEvent(AddonEvent type, AddonArgs args)
     {
         _friendGroups.Refresh();
-        Plugin.Log.Information($"{args.AddonName} fired {type}; refreshed friend group lookup.");
+        Plugin.Log.Debug($"{args.AddonName} fired {type}; refreshed friend group lookup.");
     }
 }

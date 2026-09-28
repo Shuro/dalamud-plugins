@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "v*"
+  # Manual runs (any branch) only build + test: the tag-bound steps below — version check,
+  # GitHub release, repo.json — are gated on a v* tag ref.
   workflow_dispatch:
 
 permissions:
@@ -24,6 +26,7 @@ jobs:
           fetch-depth: 0
 
       - name: Verify tag matches project version
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         run: |
           $tag = "${{ github.ref_name }}"
@@ -70,6 +73,7 @@ jobs:
         run: dotnet test tests/GobchatEx.Core.Tests/GobchatEx.Core.Tests.csproj -c Release --no-build
 
       - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
@@ -81,6 +85,7 @@ jobs:
             --repo "${{ github.repository }}"
 
       - name: Generate repo.json
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         run: |
           ./scripts/generate-repo.ps1 `
@@ -89,6 +94,7 @@ jobs:
             -OutputPath "$env:RUNNER_TEMP/repo.json"
 
       - name: Commit repo.json to main
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         run: |
           git config user.name "github-actions[bot]"

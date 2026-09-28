@@ -206,7 +206,7 @@ internal sealed class MentionsTab : IToggleableTab
         var value = input.Trim();
         if (value.Length == 0)
             return false;
-        if (list.Any(x => x.Word.Equals(value, StringComparison.OrdinalIgnoreCase)))
+        if (list.Any(x => string.Equals(x.Word, value, StringComparison.OrdinalIgnoreCase)))
             return false;
 
         list.Add(new MentionTrigger { Word = value });

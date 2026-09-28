@@ -1,108 +1,68 @@
 using System;
-using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 using GobchatEx.Config;
+using GobchatEx.Core;
 using GobchatEx.Localization;
 
 namespace GobchatEx.Chat;
 
 /// <summary>
-/// Parses "/gobchat group ..." (and its "g" alias, stripped by <see cref="CommandDispatcher"/> before
-/// this is called). Grammar: "&lt;idx&gt; task player [world]" or "task &lt;idx&gt; player [world]" for
-/// a numeric locator — both orders, mirroring the old app's PlayerGroupCommandHandler exactly — plus
-/// "&lt;name&gt; task player [world]" for a group referenced by name. Name-locator-first only: a group
-/// name can contain spaces, so "task &lt;name&gt; player" would be ambiguous about where the name ends
-/// and the player begins; the natural "MyGroup add Bob" reading order avoids that ambiguity entirely.
-/// A purely numeric name is rejected at group-creation time (GroupsTab), so a numeric locator can never
-/// be mistaken for a name. "list" prints the custom groups with their 1-based indices.
+/// Executes "/gobchat group ..." (and its "g" alias, stripped by <see cref="CommandDispatcher"/> before
+/// this is called). Parsing lives in <see cref="GroupCommandParser"/> (Dalamud-free, unit tested):
+/// "&lt;idx&gt; task player [world]", "task &lt;idx&gt; player [world]", or "&lt;name&gt; task player
+/// [world]". A purely numeric name is rejected at group-creation time (GroupsTab), so a numeric
+/// locator can never be mistaken for a name. "list" prints the custom groups with their 1-based indices.
 /// </summary>
 internal static class GroupCommandHandler
 {
-    // Ported verbatim from PlayerGroupCommandHandler's name-tail pattern (the acute accent ´ is
-    // written as a literal character here rather than a string escape, since verbatim strings don't
-    // process backslash escapes). Internal so PlayerCommandHandler can build its own "name [world]"
-    // regex from the same fragment instead of duplicating the character class.
-    internal const string NameTailPattern = @"\b(?<composite>(?<name>[ \w'`´-]+)(?<server>\s*\[\w+\])?)?";
-
-    private static readonly Regex IndexFirst = new(
-        @"(?<locator>\d+)\b\s+\b(?<task>add|remove|clear)\b\s*.*?" + NameTailPattern,
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
-    private static readonly Regex TaskFirst = new(
-        @"(?<task>add|remove|clear)\b\s+\b(?<locator>\d+)\b\s*.*?" + NameTailPattern,
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
-    private static readonly Regex NameLocatorFirst = new(
-        @"(?<locator>.+?)\s+\b(?<task>add|remove|clear)\b\s*.*?" + NameTailPattern,
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
     public static void Execute(Plugin plugin, string args)
     {
-        if (args.Trim().Equals("list", StringComparison.OrdinalIgnoreCase))
+        if (GroupCommandParser.IsList(args))
         {
             ListGroups(plugin);
             return;
         }
 
-        var match = IndexFirst.Match(args);
-        if (!match.Success)
-            match = TaskFirst.Match(args);
-        if (!match.Success)
-            match = NameLocatorFirst.Match(args);
-
-        if (!match.Success)
+        var command = GroupCommandParser.Parse(args, name => FindByName(plugin, name) != null);
+        if (command == null || (command.Task != GroupCommandTask.Clear && command.PlayerName == null))
         {
             Plugin.ChatGui.PrintError(Loc.Get("Commands_Group_InvalidSyntax"));
             return;
         }
 
-        var locatorText = match.Groups["locator"].Value.Trim();
-        var task = match.Groups["task"].Value.ToLowerInvariant();
-        var playerName = match.Groups["name"].Success ? match.Groups["name"].Value.Trim() : null;
-        var playerWorld = match.Groups["server"].Success
-            ? match.Groups["server"].Value.Trim(' ', '[', ']')
-            : null;
-
-        if (task != "clear" && string.IsNullOrEmpty(playerName))
-        {
-            Plugin.ChatGui.PrintError(Loc.Get("Commands_Group_InvalidSyntax"));
-            return;
-        }
-
-        var group = ResolveGroup(plugin, locatorText);
+        var group = ResolveGroup(plugin, command);
         if (group == null)
         {
-            Plugin.ChatGui.PrintError(string.Format(Loc.Get("Commands_Group_InvalidLocator"), locatorText));
+            Plugin.ChatGui.PrintError(string.Format(Loc.Get("Commands_Group_InvalidLocator"), command.Locator));
             return;
         }
 
-        switch (task)
+        switch (command.Task)
         {
-            case "clear":
+            case GroupCommandTask.Clear:
                 ExecuteClear(plugin, group);
                 break;
-            case "add":
-                ExecuteAdd(plugin, group, playerName!, playerWorld);
+            case GroupCommandTask.Add:
+                ExecuteAdd(plugin, group, command.PlayerName!, command.PlayerWorld);
                 break;
-            case "remove":
-                ExecuteRemove(plugin, group, playerName!, playerWorld);
+            case GroupCommandTask.Remove:
+                ExecuteRemove(plugin, group, command.PlayerName!, command.PlayerWorld);
                 break;
         }
     }
 
-    private static PlayerGroup? ResolveGroup(Plugin plugin, string locatorText)
+    private static PlayerGroup? ResolveGroup(Plugin plugin, GroupCommand command)
     {
-        if (int.TryParse(locatorText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var idx))
-        {
-            return idx >= 1 && idx <= plugin.Configuration.Groups.Groups.Count
-                ? plugin.Configuration.Groups.Groups[idx - 1]
-                : null;
-        }
+        var groups = plugin.Configuration.Groups.Groups;
+        if (command.Index is { } idx)
+            return idx >= 1 && idx <= groups.Count ? groups[idx - 1] : null;
 
-        return plugin.Configuration.Groups.Groups
-            .FirstOrDefault(g => g.Name.Equals(locatorText, StringComparison.OrdinalIgnoreCase));
+        return command.GroupName is { } name ? FindByName(plugin, name) : null;
     }
+
+    private static PlayerGroup? FindByName(Plugin plugin, string name)
+        => plugin.Configuration.Groups.Groups
+            .FirstOrDefault(g => g.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 
     private static void ExecuteAdd(Plugin plugin, PlayerGroup group, string name, string? world)
     {

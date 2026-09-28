@@ -124,15 +124,23 @@ public sealed class MessageSegmenterTests
     }
 
     [Fact]
-    public void DefaultRules_GermanOpenWithRightDoubleClose_MarksSayToEnd()
+    public void DefaultRules_GermanOpenWithRightDoubleClose_MarkSay()
     {
-        // „hallo” — open U+201E, close U+201D. The „…“ rule shares the open token and runs
-        // first: it claims the „ and, finding no “, marks to end of message (unclosed
-        // semantics). Pinned as-is: the quoted text is Say either way, which is what the
-        // table entry is for — but trailing text rides along.
+        // „hallo” — open U+201E, close U+201D. Shares the „ opener with „…“, so both closers
+        // live in one rule; trailing text must stay untyped rather than riding along to the end.
         SegmentSingleRun(DefaultSegmenter(), "sie sagt „hallo” ja", out _).Should().Equal(
             ("sie sagt ", SegmentType.Undefined),
-            ("„hallo” ja", SegmentType.Say));
+            ("„hallo”", SegmentType.Say),
+            (" ja", SegmentType.Undefined));
+    }
+
+    [Fact]
+    public void DefaultRules_GermanOpenWithRightDoubleClose_LeavesFollowingEmoteIntact()
+    {
+        SegmentSingleRun(DefaultSegmenter(), "„Hallo” sagte er *nickt*", out _).Should().Equal(
+            ("„Hallo”", SegmentType.Say),
+            (" sagte er ", SegmentType.Undefined),
+            ("*nickt*", SegmentType.Emote));
     }
 
     [Fact]
@@ -158,14 +166,12 @@ public sealed class MessageSegmenterTests
     [Fact]
     public void DefaultRules_GuillemetsOutward_MarkSay()
     {
-        // «bonjour» — open U+00AB, close U+00BB. The earlier »…« rule opens on the closing
-        // » and (unclosed) claims it to end of message; the «…» rule then types «bonjour.
-        // Pinned as-is: the quoted text is Say either way — deleting the «…» entry from
-        // the table would leave «bonjour Undefined and fail here.
+        // «bonjour» — open U+00AB, close U+00BB. One rule covers both guillemet directions, so
+        // the closing » can't be mistaken for an opener and drag the trailing text along.
         SegmentSingleRun(DefaultSegmenter(), "il dit «bonjour» oui", out _).Should().Equal(
             ("il dit ", SegmentType.Undefined),
-            ("«bonjour", SegmentType.Say),
-            ("» oui", SegmentType.Say));
+            ("«bonjour»", SegmentType.Say),
+            (" oui", SegmentType.Undefined));
     }
 
     [Fact]

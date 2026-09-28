@@ -89,6 +89,13 @@ internal sealed class ChatLogger : IDisposable
                 IsLogging = true;
                 Plugin.Log.Information("Chat logging resumed across a plugin reload/update.");
             }
+            else if (resume != null)
+            {
+                // The folder broke while unloaded: void the marker, or fixing the folder and
+                // reloading later in the same process would resume logging nobody restarted.
+                resume = null;
+                DeleteResumeMarker();
+            }
 
             _ = Plugin.Framework.RunOnFrameworkThread(() =>
             {
@@ -248,18 +255,21 @@ internal sealed class ChatLogger : IDisposable
         if (!IsLogging || message.IsHandled || !_channels.Contains(message.LogKind))
             return;
 
-        // Login raced ahead of the player data, or the hot-reload seed is still in flight.
-        if (_session.CharacterName == null)
-        {
-            if (!Plugin.PlayerState.IsLoaded)
-                return; // logged out: dropped by design
-            _session.SetCharacter(Plugin.PlayerState.CharacterName);
-            if (_session.CharacterName == null)
-                return;
-        }
-
+        // Everything past the cheap gate is guarded: Dalamud forwards this plugin's
+        // CheckMessageHandled subscribers as one multicast, so a throw escaping here would skip
+        // ChatListener and LegacyCommandListener (subscribed after this one) for the message.
         try
         {
+            // Login raced ahead of the player data, or the hot-reload seed is still in flight.
+            if (_session.CharacterName == null)
+            {
+                if (!Plugin.PlayerState.IsLoaded)
+                    return; // logged out: dropped by design
+                _session.SetCharacter(Plugin.PlayerState.CharacterName);
+                if (_session.CharacterName == null)
+                    return;
+            }
+
             // The message object is pooled and only valid during this callback — extract plain
             // strings now, keep no reference. Original* is the pre-plugin-edit text: the log
             // archives what the game said, not GobchatEx's recoloring or another plugin's edits.

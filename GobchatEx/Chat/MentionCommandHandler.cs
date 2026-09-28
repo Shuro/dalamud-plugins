@@ -49,7 +49,7 @@ internal static class MentionCommandHandler
         }
 
         var triggers = plugin.Configuration.Mentions.MentionTriggers;
-        if (triggers.Any(x => x.Word.Equals(word, StringComparison.OrdinalIgnoreCase)))
+        if (triggers.Any(x => string.Equals(x.Word, word, StringComparison.OrdinalIgnoreCase)))
         {
             Plugin.ChatGui.Print(string.Format(Loc.Get("Commands_Mention_AlreadyExists"), word));
             return;
@@ -70,7 +70,7 @@ internal static class MentionCommandHandler
         }
 
         var triggers = plugin.Configuration.Mentions.MentionTriggers;
-        if (triggers.RemoveAll(x => x.Word.Equals(word, StringComparison.OrdinalIgnoreCase)) == 0)
+        if (triggers.RemoveAll(x => string.Equals(x.Word, word, StringComparison.OrdinalIgnoreCase)) == 0)
         {
             Plugin.ChatGui.Print(string.Format(Loc.Get("Commands_Mention_NotFound"), word));
             return;

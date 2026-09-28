@@ -8,8 +8,9 @@ namespace GobchatEx.Config;
 public class MentionsConfig : IAlertSoundSettings
 {
     // Bumped from 1: MentionTriggers changed shape (List<string> -> List<MentionTrigger>, adding
-    // a per-word color/glow override) — a breaking, non-migrated change (plugin unpublished; an
-    // old mentions.json fails to deserialize and this section resets once).
+    // a per-word color/glow override) — a breaking, non-migrated change made before the first
+    // release. A leftover v1 mentions.json fails to deserialize: the section loads with defaults
+    // (logged on each start) and the file is replaced on the first mentions edit.
     public int Version { get; set; } = 2;
 
     /// <summary>

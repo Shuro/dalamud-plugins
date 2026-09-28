@@ -29,6 +29,8 @@ internal sealed class ChatLogTab : ISettingsTab
     private readonly ChatLogConfig config;
     private readonly ChatLogger logger;
     private readonly FileDialogManager fileDialog = new();
+    private string folderBuffer = string.Empty;
+    private bool folderInputActive;
 
     public ChatLogTab(ChatLogConfig config, ChatLogger logger)
     {
@@ -102,13 +104,21 @@ internal sealed class ChatLogTab : ISettingsTab
 
     private void DrawFolder()
     {
-        var path = config.LogFolder;
         var reserved = SettingsUi.IconButtonWidth(FontAwesomeIcon.FolderOpen)
             + SettingsUi.IconButtonWidth(FontAwesomeIcon.Undo)
             + ImGui.GetStyle().ItemSpacing.X * 2f;
         ImGui.SetNextItemWidth(-reserved);
-        if (ImGui.InputTextWithHint("##logFolder", Loc.Get("ChatLog_Folder_Hint"), ref path, 260))
-            config.LogFolder = path;
+        // Typed into a buffer and applied only on Enter or when the field loses focus: writing
+        // config per keystroke let the debounced commit apply half-typed paths ("D:\L") while
+        // logging ran, rotating the session and creating folders/files there on the next flush.
+        // Re-seeded from config while not being edited, so the picker and reset land here too.
+        if (!folderInputActive)
+            folderBuffer = config.LogFolder;
+        var submitted = ImGui.InputTextWithHint("##logFolder", Loc.Get("ChatLog_Folder_Hint"), ref folderBuffer, 260,
+            ImGuiInputTextFlags.EnterReturnsTrue);
+        folderInputActive = ImGui.IsItemActive();
+        if (submitted || ImGui.IsItemDeactivatedAfterEdit())
+            config.LogFolder = folderBuffer;
 
         ImGui.SameLine();
         if (ImGuiComponents.IconButton(FontAwesomeIcon.FolderOpen))

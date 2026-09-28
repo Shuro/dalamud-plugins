@@ -155,11 +155,13 @@ internal sealed class AlertSoundEditor
         ImGui.SameLine();
         if (ImGuiComponents.IconButton(FontAwesomeIcon.FolderOpen))
         {
-            fileDialog.OpenFileDialog(Loc.Get("Sound_BrowseTitle"), "Audio{.wav,.mp3,.ogg}",
+            fileDialog.OpenFileDialog(Loc.Get("Sound_BrowseTitle"), "Audio{.wav,.mp3,.ogg,.aif,.aiff}",
                 (ok, file) =>
                 {
-                    if (ok)
-                        settings.SoundFilePath = file;
+                    if (!ok)
+                        return;
+                    settings.SoundFilePath = file;
+                    Forget(file);
                 });
         }
 
@@ -170,6 +172,11 @@ internal sealed class AlertSoundEditor
 
         if (settings.SoundFilePath.Length == 0)
             return;
+
+        // A preview re-reads the file from disk (fresh probe + decode), so a file replaced under
+        // the same path is picked up without a plugin reload.
+        if (previewClicked)
+            Forget(settings.SoundFilePath);
 
         var probe = ProbePath(settings.SoundFilePath);
         if (previewClicked)
@@ -182,6 +189,12 @@ internal sealed class AlertSoundEditor
         else if (probe.Duration is { } duration && duration > MaxAlertDuration)
             SettingsUi.Warning(string.Format(Loc.Get("Sound_FileTooLong"),
                 duration.TotalSeconds, MaxAlertDuration.TotalSeconds));
+    }
+
+    private void Forget(string path)
+    {
+        probes.Remove(path);
+        soundPlayer.Invalidate(path);
     }
 
     private PathProbe ProbePath(string path)

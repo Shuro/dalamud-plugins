@@ -194,15 +194,15 @@ internal sealed class ChangelogWindow : Window
         return this;
     }
 
-    private ChangelogWindow RegisterEntry(string text)
+    private ChangelogWindow RegisterEntry(string textKey)
     {
-        entries[^1].Items.Add(new Entry(text, false));
+        entries[^1].Items.Add(new Entry(textKey, false));
         return this;
     }
 
-    private ChangelogWindow RegisterImportant(string text)
+    private ChangelogWindow RegisterImportant(string textKey)
     {
-        entries[^1].Items.Add(new Entry(text, true));
+        entries[^1].Items.Add(new Entry(textKey, true));
         var (title, items, _) = entries[^1];
         entries[^1] = (title, items, true);
         return this;
@@ -216,27 +216,36 @@ internal sealed class ChangelogWindow : Window
     private void SeedEntries()
     {
         NextVersion("v1.0.0")
-            .RegisterImportant(Loc.Get("Changelog_V1_0_0_Headline"))
-            .RegisterEntry(Loc.Get("Changelog_V1_0_0_ChatHighlighting"))
-            .RegisterEntry(Loc.Get("Changelog_V1_0_0_PlayerMentions"))
-            .RegisterEntry(Loc.Get("Changelog_V1_0_0_PlayerGroups"))
-            .RegisterEntry(Loc.Get("Changelog_V1_0_0_RangeFilter"))
-            .RegisterEntry(Loc.Get("Changelog_V1_0_0_ChatLogging"))
-            .RegisterEntry(Loc.Get("Changelog_V1_0_0_MentionSounds"))
-            .RegisterEntry(Loc.Get("Changelog_V1_0_0_GroupSounds"))
-            .RegisterEntry(Loc.Get("Changelog_V1_0_0_MentionHistory"))
-            .RegisterEntry(Loc.Get("Changelog_V1_0_0_ChatCommands"));
+            .RegisterImportant("Changelog_V1_0_0_Headline")
+            .RegisterEntry("Changelog_V1_0_0_ChatHighlighting")
+            .RegisterEntry("Changelog_V1_0_0_PlayerMentions")
+            .RegisterEntry("Changelog_V1_0_0_PlayerGroups")
+            .RegisterEntry("Changelog_V1_0_0_RangeFilter")
+            .RegisterEntry("Changelog_V1_0_0_ChatLogging")
+            .RegisterEntry("Changelog_V1_0_0_MentionSounds")
+            .RegisterEntry("Changelog_V1_0_0_GroupSounds")
+            .RegisterEntry("Changelog_V1_0_0_MentionHistory")
+            .RegisterEntry("Changelog_V1_0_0_ChatCommands");
 
         NextVersion("v1.0.1")
-            .RegisterEntry(Loc.Get("Changelog_V1_0_1_ContextMenuFix"))
-            .RegisterEntry(Loc.Get("Changelog_V1_0_1_ChatLogResume"))
-            .RegisterEntry(Loc.Get("Changelog_V1_0_1_Internals"));
+            .RegisterEntry("Changelog_V1_0_1_ContextMenuFix")
+            .RegisterEntry("Changelog_V1_0_1_ChatLogResume")
+            .RegisterEntry("Changelog_V1_0_1_Internals");
 
         NextVersion("v1.0.2")
-            .RegisterImportant(Loc.Get("Changelog_V1_0_2_AutoLogging"));
+            .RegisterImportant("Changelog_V1_0_2_AutoLogging");
+
+        NextVersion("Unreleased")
+            .RegisterEntry("Changelog_Unreleased_GroupCommandFix")
+            .RegisterEntry("Changelog_Unreleased_QuoteFix")
+            .RegisterEntry("Changelog_Unreleased_MentionHistory")
+            .RegisterEntry("Changelog_Unreleased_LogFolder")
+            .RegisterEntry("Changelog_Unreleased_Sounds");
     }
 
-    private readonly record struct Entry(string Text, bool Highlight)
+    // Holds the resource key, resolved per draw, so the entries follow a UI language switch
+    // like every other string (the list itself is seeded once, in the constructor).
+    private readonly record struct Entry(string TextKey, bool Highlight)
     {
         public void Draw()
         {
@@ -244,7 +253,7 @@ internal sealed class ChangelogWindow : Window
             ImGui.Bullet();
             ImGui.SameLine();
             using (ImRaii.TextWrapPos(0f))
-                ImGui.TextUnformatted(Text);
+                ImGui.TextUnformatted(Loc.Get(TextKey));
         }
     }
 }
