@@ -76,6 +76,8 @@ public sealed class Plugin : IDalamudPlugin
     };
 
     public Configuration Configuration { get; init; }
+    // The one write path for Configuration; its Changed event rebuilds everything derived from it.
+    internal ConfigCommitter ConfigCommitter { get; init; }
     public readonly WindowSystem WindowSystem = new("GobchatEx");
     internal ChatListener ChatListener { get; init; }
     internal ChatLogger ChatLogger { get; init; }
@@ -104,11 +106,12 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin()
     {
         Configuration = Configuration.Load();
+        ConfigCommitter = new ConfigCommitter(Configuration);
 
         OnLanguageChanged(PluginInterface.UiLanguage);
 
         // Before SettingsWindow, which hands these to its tabs.
-        ChatTwoStyles = new ChatTwoStyleProvider(Configuration, FriendGroups);
+        ChatTwoStyles = new ChatTwoStyleProvider(Configuration, ConfigCommitter, FriendGroups);
         ChatLogger = new ChatLogger(Configuration.ChatLog);
 #if DEBUG
         // Debug builds only: the styling-IPC exerciser behind the Debug page. It suspends the
@@ -159,6 +162,9 @@ public sealed class Plugin : IDalamudPlugin
         ContextMenu.OnMenuOpened += OnMenuOpened;
         ChatTwoIntegration = new ChatTwoContextMenuIntegration(this);
 
+        // Last: a commit's cascade touches every consumer above.
+        ConfigCommitter.Changed += OnConfigChanged;
+
         Log.Information($"{PluginInterface.Manifest.Name} loaded.");
     }
 
@@ -166,16 +172,18 @@ public sealed class Plugin : IDalamudPlugin
     {
         // WindowSystem.RemoveAllWindows never fires OnClose, so commit any
         // settings edit still inside its debounce window here — before the
-        // ChatListener/ChatTwoStyles consumers a commit notifies are disposed.
-        // Guarded so a failed commit can't abort the rest of the teardown.
+        // consumers a commit notifies are disposed. Guarded so a failed commit
+        // can't abort the rest of the teardown.
         try
         {
-            SettingsWindow.CommitIfChanged();
+            ConfigCommitter.CommitIfChanged();
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Failed to commit pending settings edits during dispose.");
         }
+
+        ConfigCommitter.Changed -= OnConfigChanged;
 
 #if DEBUG
         ChatTwoStyleTester.Dispose();
@@ -302,10 +310,6 @@ public sealed class Plugin : IDalamudPlugin
     /// The window opens itself next frame via PreOpenCheck; see ChangelogWindow.ForceOpen.</summary>
     internal void ShowChangelog() => ChangelogWindow.ForceOpen = true;
 
-    /// <summary>Lets ChangelogWindow's direct config writes avoid tripping SettingsWindow's
-    /// debounced commit cascade when both windows are open at once.</summary>
-    internal void RebaselineSettingsWindow() => SettingsWindow.RequestRebaseline();
-
     /// <summary>Opens (never closes) and focuses the settings window — the Quickbar's cog.</summary>
     public void OpenSettingsUI()
     {
@@ -320,9 +324,14 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     /// <summary>
-    /// Re-resolves Loc.Culture from the current Configuration.General.LanguageOverride
-    /// and Dalamud's own UI language. Call after any save that could have
-    /// changed LanguageOverride (SettingsWindow's commit).
+    /// Applies a committed configuration change to everything derived from it, including
+    /// Loc.Culture (LanguageOverride may have changed).
     /// </summary>
-    internal void RefreshLanguage() => OnLanguageChanged(PluginInterface.UiLanguage);
+    private void OnConfigChanged()
+    {
+        ChatListener.SettingsChanged();
+        ChatLogger.SettingsChanged();
+        ChatTwoStyles.SettingsChanged();
+        OnLanguageChanged(PluginInterface.UiLanguage);
+    }
 }

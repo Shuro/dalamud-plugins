@@ -63,6 +63,7 @@ internal sealed class ChatTwoStyleProvider : IDisposable
         string? LocalCurrentWorld);
 
     private readonly Configuration _config;
+    private readonly ConfigCommitter _committer;
     private readonly FriendGroupLookup _friendGroups;
 
     private readonly ICallGateSubscriber<int> _styleVersion;
@@ -98,9 +99,10 @@ internal sealed class ChatTwoStyleProvider : IDisposable
     /// <summary>Chat 2's tabs (persistent id → name), from GetTabs/TabsChanged. Read by the settings UI.</summary>
     internal Dictionary<Guid, string> KnownTabs { get; private set; } = [];
 
-    public ChatTwoStyleProvider(Configuration config, FriendGroupLookup friendGroups)
+    public ChatTwoStyleProvider(Configuration config, ConfigCommitter committer, FriendGroupLookup friendGroups)
     {
         _config = config;
+        _committer = committer;
         _friendGroups = friendGroups;
 
         _styleVersion = Plugin.PluginInterface.GetIpcSubscriber<int>("ChatTwo.StyleVersion");
@@ -309,9 +311,7 @@ internal sealed class ChatTwoStyleProvider : IDisposable
         foreach (var id in stale)
             _config.Tabs.ChatTwoTabPolicies.Remove(id);
 
-        // Only the section that changed — a full Save() would also flush any half-finished
-        // edit sitting in the settings window's debounce window for unrelated sections.
-        Configuration.SaveSection("tabs.json", Configuration.Serialize(_config.Tabs));
+        _committer.CommitIfChanged();
     }
 
     /// <summary>

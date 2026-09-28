@@ -10,9 +10,8 @@ namespace GobchatEx.Chat;
 /// by the slash command, the native right-click context menu, and the Chat 2 IPC integration alike.
 /// Bound to one (name, world) pair at construction (the right-clicked or /gobchat-group-targeted
 /// player); callers iterate <see cref="GroupsConfig.Groups"/> and pass each <see cref="PlayerGroup"/>
-/// in turn. Mutates the live <see cref="Plugin.Configuration"/> directly and persists + applies via
-/// <see cref="Persist"/> — the same instance the settings window edits, so there is no conflict if
-/// the window happens to be open (its instant-apply commit would just re-save the same state).
+/// in turn. Mutates the live <see cref="Plugin.Configuration"/> directly and commits through
+/// <see cref="Config.ConfigCommitter"/>, the same path the settings window uses.
 /// </summary>
 internal sealed class GroupMembershipActions
 {
@@ -83,10 +82,5 @@ internal sealed class GroupMembershipActions
 
     private void Persist() => Persist(plugin);
 
-    private static void Persist(Plugin plugin)
-    {
-        plugin.Configuration.Save();
-        plugin.ChatListener.SettingsChanged();
-        plugin.ChatTwoStyles.SettingsChanged();
-    }
+    private static void Persist(Plugin plugin) => plugin.ConfigCommitter.CommitIfChanged();
 }

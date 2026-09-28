@@ -16,13 +16,11 @@ namespace GobchatEx.Windows;
 
 /// <summary>
 /// Settings window with a sectioned nav rail (General / Roleplay, divider,
-/// About); pages without plugin functionality yet are placeholders. Right
-/// side is the page content; a Ko-fi heart sits in the title bar and a
-/// Ko-fi button in the footer bar. Edits
-/// apply instantly: tabs write straight to the live configuration and the
-/// window commits (persists + applies) detected changes on a debounced
-/// tick — see <see cref="CommitIfChanged"/>. There are no Save/Cancel
-/// buttons; destructive actions are Ctrl+Shift-gated instead.
+/// About). Right side is the page content; a Ko-fi heart sits in the title
+/// bar and a Ko-fi button in the footer bar. Edits apply instantly: tabs
+/// write straight to the live configuration and the window commits them
+/// through <see cref="ConfigCommitter"/> on a debounced tick. There are no
+/// Save/Cancel buttons; destructive actions are Ctrl+Shift-gated instead.
 /// </summary>
 public class SettingsWindow : Window
 {
@@ -61,23 +59,7 @@ public class SettingsWindow : Window
     private readonly List<NavSection> sections;
     private ISettingsTab currentTab;
 
-    /// <summary>
-    /// Per-section JSON snapshots of the configuration as of the last commit,
-    /// parallel to <see cref="Configuration.Sections"/> — the change-detection
-    /// baseline for <see cref="CommitIfChanged"/>.
-    /// </summary>
-    private string[] lastPersisted;
     private long nextCommitCheck;
-
-    /// <summary>
-    /// Requests that <see cref="Update"/> re-baseline change detection before
-    /// its next commit check. Set while the window is closed (construction,
-    /// OnClose): external writers (chat context menu, /gobchat group) persist
-    /// and apply on their own, so their edits must not be committed again when
-    /// the window opens. Handled in Update rather than OnOpen because the
-    /// window host runs Update before it fires the open transition.
-    /// </summary>
-    private bool rebaseline = true;
 
     /// <summary>
     /// Window-frame colors held open across the frame: pushed in
@@ -103,8 +85,6 @@ public class SettingsWindow : Window
         };
         Size = new Vector2(700, 500);
         SizeCondition = ImGuiCond.FirstUseEver;
-
-        lastPersisted = SnapshotSections();
 
         sections =
         [
@@ -178,86 +158,15 @@ public class SettingsWindow : Window
     public override void Update()
     {
         var now = Environment.TickCount64;
-
-        if (rebaseline)
-        {
-            rebaseline = false;
-            lastPersisted = SnapshotSections();
-            nextCommitCheck = now + CommitDebounceMs;
-            return;
-        }
-
         if (now < nextCommitCheck)
             return;
 
         nextCommitCheck = now + CommitDebounceMs;
-        CommitIfChanged();
+        plugin.ConfigCommitter.CommitIfChanged();
     }
 
     /// <summary>Commits an edit made within the debounce window before closing.</summary>
-    public override void OnClose()
-    {
-        CommitIfChanged();
-        rebaseline = true;
-    }
-
-    /// <summary>
-    /// Lets an external writer that just persisted its own section (e.g. ChangelogWindow, which
-    /// isn't modal and can be dismissed while this window is still open) resync the commit
-    /// baseline without waiting for a close/open cycle. Commits first, same as OnClose, so a real
-    /// pending edit in another tab isn't silently absorbed into the new baseline unsaved.
-    /// </summary>
-    internal void RequestRebaseline()
-    {
-        CommitIfChanged();
-        rebaseline = true;
-    }
-
-    /// <summary>
-    /// Instant-apply core: tabs (and the nav rail's toggles) write straight
-    /// to the live configuration, and this detects those edits by comparing
-    /// per-section JSON snapshots against the last-committed ones — one
-    /// mechanism for every widget, no per-site change plumbing. On a change:
-    /// persist only the section files that changed (reusing their snapshots),
-    /// then rebuild the chat pipeline and Chat 2 styling and re-resolve the
-    /// UI language once. The baseline advances even if a disk write failed
-    /// (SaveSection logs and swallows I/O errors) — the in-memory apply has
-    /// already happened either way.
-    /// </summary>
-    internal void CommitIfChanged()
-    {
-        var sections = plugin.Configuration.Sections;
-        var changed = false;
-
-        for (var i = 0; i < sections.Length; i++)
-        {
-            var json = Configuration.Serialize(sections[i].Section);
-            if (json == lastPersisted[i])
-                continue;
-
-            Configuration.SaveSection(sections[i].FileName, json);
-            lastPersisted[i] = json;
-            changed = true;
-        }
-
-        if (!changed)
-            return;
-
-        plugin.ChatListener.SettingsChanged();
-        plugin.ChatLogger.SettingsChanged();
-        plugin.ChatTwoStyles.SettingsChanged();
-        plugin.RefreshLanguage();
-    }
-
-    /// <summary>One change-detection snapshot per section, parallel to <see cref="Configuration.Sections"/>.</summary>
-    private string[] SnapshotSections()
-    {
-        var sections = plugin.Configuration.Sections;
-        var snapshot = new string[sections.Length];
-        for (var i = 0; i < sections.Length; i++)
-            snapshot[i] = Configuration.Serialize(sections[i].Section);
-        return snapshot;
-    }
+    public override void OnClose() => plugin.ConfigCommitter.CommitIfChanged();
 
     /// <summary>
     /// Draw() runs between the window host's title-bar rendering (inside

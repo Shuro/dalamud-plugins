@@ -18,11 +18,8 @@ namespace GobchatEx.Windows;
 /// SeedEntries' entry list and ChangelogDisplayType allows it; AboutTab's "View
 /// Changelog" button forces it open on demand via <see cref="ForceOpen"/>.
 ///
-/// Persists its own two config fields immediately (Configuration.SaveSection)
-/// instead of going through SettingsWindow's debounced commit — the same
-/// "external writer" pattern SettingsWindow's `rebaseline` field documents for
-/// the chat context-menu group actions, so the seen-watermark survives even if
-/// the settings window is never opened.
+/// Commits its own two config fields immediately (ConfigCommitter) so the
+/// seen-watermark survives even if the settings window is never opened.
 /// </summary>
 internal sealed class ChangelogWindow : Window
 {
@@ -179,13 +176,7 @@ internal sealed class ChangelogWindow : Window
         var general = plugin.Configuration.General;
         general.ChangelogLastSeenVersion = version;
         general.ChangelogDisplayType = type;
-        Configuration.SaveSection("general.json", Configuration.Serialize(general));
-
-        // SettingsWindow may be open at the same time (its own AboutTab is what triggers this
-        // window) and would otherwise see General's JSON diverge from its debounced-commit
-        // baseline on its next tick and needlessly redo this write plus the full SettingsChanged
-        // cascade. Tell it to resync instead.
-        plugin.RebaselineSettingsWindow();
+        plugin.ConfigCommitter.CommitIfChanged();
     }
 
     private ChangelogWindow NextVersion(string title)

@@ -11,9 +11,8 @@ namespace GobchatEx.Chat;
 /// "add"/"remove" edit <see cref="Config.MentionsConfig.MentionTriggers"/> — the same list the
 /// Mentions tab's trigger editor mutates, with the same trim-and-case-insensitive-dedupe rule, so
 /// command and tab always agree on what counts as a duplicate — and "list" prints them. Edits
-/// persist and apply through the same path as <see cref="GroupMembershipActions"/>: mutate the
-/// live config, save, notify both render pipelines; the settings window being open is fine (its
-/// instant-apply commit would just re-save the same state). The "add"/"remove"/"list" verb parsing
+/// mutate the live config and commit through <see cref="Config.ConfigCommitter"/>. The
+/// "add"/"remove"/"list" verb parsing
 /// itself lives in <see cref="MentionCommandVerbParser"/> (Dalamud-free, unit tested).
 /// </summary>
 internal static class MentionCommandHandler
@@ -56,7 +55,7 @@ internal static class MentionCommandHandler
         }
 
         triggers.Add(new MentionTrigger { Word = word });
-        Persist(plugin);
+        plugin.ConfigCommitter.CommitIfChanged();
         Plugin.ChatGui.Print(string.Format(Loc.Get("Commands_Mention_Added"), word));
     }
 
@@ -76,7 +75,7 @@ internal static class MentionCommandHandler
             return;
         }
 
-        Persist(plugin);
+        plugin.ConfigCommitter.CommitIfChanged();
         Plugin.ChatGui.Print(string.Format(Loc.Get("Commands_Mention_Removed"), word));
     }
 
@@ -86,17 +85,5 @@ internal static class MentionCommandHandler
         Plugin.ChatGui.Print(triggers.Count == 0
             ? Loc.Get("Commands_Mention_ListEmpty")
             : string.Format(Loc.Get("Commands_Mention_List"), string.Join(", ", triggers.Select(t => t.Word))));
-    }
-
-    /// <summary>
-    /// Same persist-and-apply path as <see cref="GroupMembershipActions"/>: the Chat 2 provider
-    /// builds its mention-bypass segmenter from the same trigger list, so it must be notified
-    /// alongside the native-log listener.
-    /// </summary>
-    private static void Persist(Plugin plugin)
-    {
-        plugin.Configuration.Save();
-        plugin.ChatListener.SettingsChanged();
-        plugin.ChatTwoStyles.SettingsChanged();
     }
 }

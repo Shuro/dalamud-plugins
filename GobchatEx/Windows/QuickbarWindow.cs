@@ -17,8 +17,8 @@ namespace GobchatEx.Windows;
 /// features, plus quick access to the settings window. Icon-only to stay
 /// small; tooltips carry the names. Visibility is
 /// driven entirely by <see cref="Config.GeneralConfig.ShowQuickbar"/> — see
-/// <see cref="PreOpenCheck"/> — and every click persists and applies itself
-/// immediately (the settings window's debounced commit is not involved).
+/// <see cref="PreOpenCheck"/> — and every click commits immediately through
+/// <see cref="Config.ConfigCommitter"/>.
 /// </summary>
 public class QuickbarWindow : Window
 {
@@ -209,7 +209,7 @@ public class QuickbarWindow : Window
         if (FeatureButton(FontAwesomeIcon.Font, formatting.RpHighlightEnabled))
         {
             formatting.RpHighlightEnabled = !formatting.RpHighlightEnabled;
-            PersistAndApply();
+            plugin.ConfigCommitter.CommitIfChanged();
         }
         SettingsUi.Tooltip(Loc.Get("Formatting_TabName"));
         ImGui.SameLine();
@@ -218,7 +218,7 @@ public class QuickbarWindow : Window
         if (FeatureButton(FontAwesomeIcon.At, mentions.MentionsEnabled))
         {
             mentions.MentionsEnabled = !mentions.MentionsEnabled;
-            PersistAndApply();
+            plugin.ConfigCommitter.CommitIfChanged();
         }
         SettingsUi.Tooltip(Loc.Get("Mentions_TabName"));
         ImGui.SameLine();
@@ -227,7 +227,7 @@ public class QuickbarWindow : Window
         if (FeatureButton(FontAwesomeIcon.Users, groups.GroupsEnabled))
         {
             groups.GroupsEnabled = !groups.GroupsEnabled;
-            PersistAndApply();
+            plugin.ConfigCommitter.CommitIfChanged();
         }
         SettingsUi.Tooltip(Loc.Get("Groups_TabName"));
         ImGui.SameLine();
@@ -236,7 +236,7 @@ public class QuickbarWindow : Window
         if (FeatureButton(FontAwesomeIcon.Ruler, range.RangeFilterEnabled))
         {
             range.RangeFilterEnabled = !range.RangeFilterEnabled;
-            PersistAndApply();
+            plugin.ConfigCommitter.CommitIfChanged();
         }
         SettingsUi.Tooltip(Loc.Get("Range_TabName"));
 
@@ -255,7 +255,7 @@ public class QuickbarWindow : Window
         if (ImGuiComponents.IconButton(FontAwesomeIcon.Times))
         {
             plugin.Configuration.General.ShowQuickbar = false; // PreOpenCheck closes next frame
-            PersistAndApply();
+            plugin.ConfigCommitter.CommitIfChanged();
         }
         SettingsUi.Tooltip(Loc.Get("Quickbar_Hide_Tooltip"));
     }
@@ -302,15 +302,5 @@ public class QuickbarWindow : Window
             ImGui.GetColorU32(ImGuiCol.Separator));
         ImGui.Dummy(new Vector2(1f * ImGuiHelpers.GlobalScale, height));
         ImGui.SameLine();
-    }
-
-    // Mirrors GroupMembershipActions.Persist: writers outside the settings
-    // window persist and apply on their own. An open SettingsWindow's debounced
-    // commit just redundantly re-commits identical JSON — harmless.
-    private void PersistAndApply()
-    {
-        plugin.Configuration.Save();
-        plugin.ChatListener.SettingsChanged();
-        plugin.ChatTwoStyles.SettingsChanged();
     }
 }

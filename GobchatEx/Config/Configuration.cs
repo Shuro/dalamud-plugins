@@ -24,8 +24,8 @@ public sealed class Configuration
     public ChatLogConfig ChatLog { get; init; } = new();
 
     /// <summary>
-    /// The fixed section→file mapping that <see cref="Save"/> and the settings
-    /// window's per-section change detection iterate over.
+    /// The fixed section→file mapping <see cref="ConfigCommitter"/>'s per-section
+    /// change detection iterates over.
     /// </summary>
     internal (string FileName, object Section)[] Sections =>
     [
@@ -39,8 +39,8 @@ public sealed class Configuration
     ];
 
     /// <summary>
-    /// The one serializer definition for both disk writes and the settings
-    /// window's change-detection snapshots — the two must use identical
+    /// The one serializer definition for both disk writes and the committer's
+    /// change-detection snapshots — the two must use identical
     /// settings to compare equal. Plain Newtonsoft.Json (no TypeNameHandling):
     /// sections always deserialize into their concrete types, so no
     /// polymorphic type metadata needs to round-trip.
@@ -48,22 +48,14 @@ public sealed class Configuration
     internal static string Serialize(object section) =>
         JsonConvert.SerializeObject(section, Newtonsoft.Json.Formatting.Indented);
 
-    /// <summary>Persists every section to its own file.</summary>
-    public void Save()
-    {
-        foreach (var (fileName, section) in Sections)
-            SaveSection(fileName, Serialize(section));
-    }
-
     /// <summary>
-    /// Writes one section file, JSON already serialized — lets the settings
-    /// window reuse the snapshots it built for change detection and write only
-    /// the sections that actually changed. Writes via temp-file-then-move so a
-    /// crash mid-write can't leave a truncated file. A failed write (locked
-    /// file, permission error, disk full) is logged and swallowed rather than
-    /// thrown — callers include the chat context-menu group actions and Chat 2
-    /// tab-policy pruning, which must not throw mid-frame over a transient
-    /// I/O error.
+    /// Writes one section file, JSON already serialized — lets the committer
+    /// reuse its change-detection snapshots and write only the sections that
+    /// actually changed. Writes via temp-file-then-move so a crash mid-write
+    /// can't leave a truncated file. A failed write (locked file, permission
+    /// error, disk full) is logged and swallowed rather than thrown — commits
+    /// run from chat commands, context menus and Chat 2 callbacks, which must
+    /// not throw mid-frame over a transient I/O error.
     /// </summary>
     internal static void SaveSection(string fileName, string json)
     {

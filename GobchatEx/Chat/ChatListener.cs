@@ -222,7 +222,7 @@ public sealed class ChatListener : IDisposable
     private void OnLogout(int type, int code)
         => SettingsChanged();
 
-    /// <summary>Call after any configuration change (and Save()).</summary>
+    /// <summary>Rebuilds everything derived from configuration; called by the ConfigCommitter cascade and on login/logout.</summary>
     public void SettingsChanged()
     {
         _chatMessageErrorLogged = false;
