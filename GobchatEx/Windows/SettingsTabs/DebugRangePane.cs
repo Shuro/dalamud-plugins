@@ -28,7 +28,11 @@ internal sealed class DebugRangePane
 {
     private readonly Plugin plugin;
 
-    // ImGui previews of the fade-step UIColor rows, decoded from the sheet's Dark field.
+    // A reference UIColor row per fade step (0 = full visibility .. darkest), previewed in ImGui
+    // from the sheet's Dark field. Only a reference shade: real messages keep their channel's hue.
+    // Rows 3-5 were tuned in-game; 1, 2 and 6 are unverified guesses extending the ramp.
+    private static readonly ushort[] StepPreviewRows = [1, 2, 3, 4, 5, 6];
+
     // Resolved once; the sheet is static data.
     private readonly Vector4[] stepPreviewColors;
 
@@ -40,10 +44,10 @@ internal sealed class DebugRangePane
         this.plugin = plugin;
 
         var sheet = Plugin.DataManager.GetExcelSheet<UIColor>();
-        stepPreviewColors = new Vector4[ChatListener.FadeStepColors.Length];
+        stepPreviewColors = new Vector4[StepPreviewRows.Length];
         for (var i = 0; i < stepPreviewColors.Length; i++)
         {
-            stepPreviewColors[i] = sheet.TryGetRow(ChatListener.FadeStepColors[i], out var row)
+            stepPreviewColors[i] = sheet.TryGetRow(StepPreviewRows[i], out var row)
                 ? RgbaColor.ToVector4(row.Dark)
                 : new Vector4(0.5f, 0.5f, 0.5f, 1f);
         }
@@ -138,7 +142,7 @@ internal sealed class DebugRangePane
         ImGui.TextDisabled("Test messages — printed to the native log to judge step legibility");
         ImGui.Checkbox("Also print From -> To hex reference lines", ref showFromToColors);
 
-        for (var step = 0; step < ChatListener.FadeStepColors.Length; step++)
+        for (var step = 0; step < UiColorDimmer.StepCount; step++)
         {
             if (step > 0)
                 ImGui.SameLine();
@@ -210,7 +214,7 @@ internal sealed class DebugRangePane
 
     /// <summary>
     /// One line, one segment per range-filterable channel (<see
-    /// cref="ChatListener.RangeChannelColorOptions"/>), each showing plain unformatted text dimmed
+    /// cref="ChatChannels.RangeColorOptions"/>), each showing plain unformatted text dimmed
     /// from that channel's own configured chat color via <see
     /// cref="ChatListener.ResolveChannelColorWithSource"/> (passing <c>liveChatTwoRead: true</c> so
     /// a Chat 2 color edited moments ago shows up immediately, unlike production's cached read) —
@@ -225,7 +229,7 @@ internal sealed class DebugRangePane
         builder.Append("Unformatted text per channel - ");
 
         var first = true;
-        foreach (var channel in ChatListener.RangeChannelColorOptions.Keys)
+        foreach (var channel in ChatChannels.RangeColorOptions.Keys)
         {
             if (!first)
                 builder.Append(" | ");

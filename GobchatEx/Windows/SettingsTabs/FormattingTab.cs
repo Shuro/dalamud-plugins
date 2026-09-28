@@ -1,6 +1,5 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Config;
-using Dalamud.Game.Text;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
@@ -13,57 +12,10 @@ namespace GobchatEx.Windows.SettingsTabs;
 
 /// <summary>
 /// Mirrors the app's Formatting page: segment colors ("Color selection for
-/// text types") plus the channels RP formatting applies to. Linkshells and
-/// cross-world linkshells are tucked into collapsed headers so the main
-/// channel grid stays scannable.
+/// text types") plus the channels RP formatting applies to.
 /// </summary>
 internal sealed class FormattingTab : IToggleableTab
 {
-    // These three grids also define ChatListener.MentionSoundChannels' conversational-channel
-    // universe (which ChatListener.GroupingChannels derives from in turn) — keep that set in
-    // sync when adding or removing a channel here. Internal because ChatLogTab offers the same
-    // conversational channels in its own grids.
-    internal static readonly (string LabelKey, XivChatType Type)[] MainChannels =
-    [
-        ("Formatting_Channel_Say", XivChatType.Say),
-        ("Formatting_Channel_Emote", XivChatType.CustomEmote),
-        ("Formatting_Channel_StandardEmote", XivChatType.StandardEmote),
-        ("Formatting_Channel_Yell", XivChatType.Yell),
-        ("Formatting_Channel_Shout", XivChatType.Shout),
-        ("Formatting_Channel_Party", XivChatType.Party),
-        ("Formatting_Channel_CrossParty", XivChatType.CrossParty),
-        ("Formatting_Channel_Alliance", XivChatType.Alliance),
-        ("Formatting_Channel_FreeCompany", XivChatType.FreeCompany),
-        ("Formatting_Channel_TellIn", XivChatType.TellIncoming),
-        ("Formatting_Channel_TellOut", XivChatType.TellOutgoing),
-        ("Formatting_Channel_NoviceNetwork", XivChatType.NoviceNetwork),
-        ("Formatting_Channel_Echo", XivChatType.Echo),
-    ];
-
-    internal static readonly (string LabelKey, XivChatType Type)[] LinkshellChannels =
-    [
-        ("Formatting_Channel_Linkshell1", XivChatType.Ls1),
-        ("Formatting_Channel_Linkshell2", XivChatType.Ls2),
-        ("Formatting_Channel_Linkshell3", XivChatType.Ls3),
-        ("Formatting_Channel_Linkshell4", XivChatType.Ls4),
-        ("Formatting_Channel_Linkshell5", XivChatType.Ls5),
-        ("Formatting_Channel_Linkshell6", XivChatType.Ls6),
-        ("Formatting_Channel_Linkshell7", XivChatType.Ls7),
-        ("Formatting_Channel_Linkshell8", XivChatType.Ls8),
-    ];
-
-    internal static readonly (string LabelKey, XivChatType Type)[] CrossworldLinkshellChannels =
-    [
-        ("Formatting_Channel_Cwls1", XivChatType.CrossLinkShell1),
-        ("Formatting_Channel_Cwls2", XivChatType.CrossLinkShell2),
-        ("Formatting_Channel_Cwls3", XivChatType.CrossLinkShell3),
-        ("Formatting_Channel_Cwls4", XivChatType.CrossLinkShell4),
-        ("Formatting_Channel_Cwls5", XivChatType.CrossLinkShell5),
-        ("Formatting_Channel_Cwls6", XivChatType.CrossLinkShell6),
-        ("Formatting_Channel_Cwls7", XivChatType.CrossLinkShell7),
-        ("Formatting_Channel_Cwls8", XivChatType.CrossLinkShell8),
-    ];
-
     public string Name => Loc.Get("Formatting_TabName");
     public FontAwesomeIcon Icon => FontAwesomeIcon.Font;
 
@@ -223,14 +175,5 @@ internal sealed class FormattingTab : IToggleableTab
     private static uint? ImportGameChannelRow(UiConfigOption option)
         => Plugin.GameConfig.TryGet(option, out uint value) ? RgbaColor.FromGameConfigColor(value) : null;
 
-    private void DrawChannels()
-    {
-        SettingsUi.ChannelGrid("##channels-main", MainChannels, config.HighlightChannels);
-
-        if (ImGui.CollapsingHeader(Loc.Get("Formatting_Channels_Linkshells")))
-            SettingsUi.ChannelGrid("##channels-ls", LinkshellChannels, config.HighlightChannels);
-
-        if (ImGui.CollapsingHeader(Loc.Get("Formatting_Channels_CrossworldLinkshells")))
-            SettingsUi.ChannelGrid("##channels-cwls", CrossworldLinkshellChannels, config.HighlightChannels);
-    }
+    private void DrawChannels() => SettingsUi.ConversationalChannelGrids("channels", config.HighlightChannels);
 }

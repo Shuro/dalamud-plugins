@@ -33,6 +33,9 @@ internal static class UiColorDimmer
     // illegible on some chat theme.
     private static readonly float[] StepFactors = [1.0f, 0.84f, 0.68f, 0.52f, 0.36f, 0.20f];
 
+    /// <summary>Number of fade steps (0 = undimmed .. StepCount - 1 = darkest).</summary>
+    public static int StepCount => StepFactors.Length;
+
     private static readonly Dictionary<(ushort Row, int Step), ushort> DimCache = new();
     private static List<(ushort Row, Vector3 Rgb)>? palette;
 
@@ -145,7 +148,7 @@ internal static class UiColorDimmer
     /// The sheet row nearest to <paramref name="row"/>'s color darkened by the step's factor.
     /// Memoized — the linear sheet scan runs once per distinct (row, step).
     /// </summary>
-    public static ushort DimRow(ushort row, int step)
+    private static ushort DimRow(ushort row, int step)
     {
         if (DimCache.TryGetValue((row, step), out var cached))
             return cached;

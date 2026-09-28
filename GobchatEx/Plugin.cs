@@ -270,26 +270,9 @@ public sealed class Plugin : IDalamudPlugin
             return;
         }
 
-        var actions = new GroupMembershipActions(this, name, world);
-        var items = new List<IMenuItem>(Configuration.Groups.Groups.Count);
-
-        foreach (var group in Configuration.Groups.Groups)
-        {
-            var inGroup = actions.IsInGroup(group);
-            items.Add(new MenuItem
-            {
-                Name = inGroup
-                    ? string.Format(Loc.Get("Groups_ContextMenu_RemoveFrom"), group.Name)
-                    : string.Format(Loc.Get("Groups_ContextMenu_AddTo"), group.Name),
-                OnClicked = _ =>
-                {
-                    if (inGroup)
-                        actions.RemoveFromGroup(group);
-                    else
-                        actions.AddToGroup(group);
-                },
-            });
-        }
+        var items = new GroupMembershipActions(this, name, world).MenuEntries()
+            .Select(IMenuItem (entry) => new MenuItem { Name = entry.Label, OnClicked = _ => entry.Toggle() })
+            .ToList();
 
         clicked.OpenSubmenu(Loc.Get("Groups_ContextMenu_SubmenuName"), items);
     }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Text;
@@ -8,6 +7,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility.Raii;
+using GobchatEx.Chat;
 using GobchatEx.Core;
 using GobchatEx.Localization;
 
@@ -362,8 +362,7 @@ internal static class SettingsUi
     /// (a live config list, mutated in place). A non-null HelpKey draws a help marker after
     /// that checkbox (the Range tab's engine-limit note).
     /// </summary>
-    public static void ChannelGrid(
-        string id, (string LabelKey, XivChatType Type, string? HelpKey)[] choices, List<XivChatType> channels)
+    public static void ChannelGrid(string id, ChannelChoice[] choices, List<XivChatType> channels)
     {
         using var table = ImRaii.Table(id, 3);
         if (!table)
@@ -387,10 +386,21 @@ internal static class SettingsUi
         }
     }
 
-    /// <summary>Overload without per-item help markers (the Formatting tab's grids).</summary>
-    public static void ChannelGrid(
-        string id, (string LabelKey, XivChatType Type)[] choices, List<XivChatType> channels)
-        => ChannelGrid(id, [.. choices.Select(c => (c.LabelKey, c.Type, (string?)null))], channels);
+    /// <summary>
+    /// The conversational-channel picker shared by the Formatting and Logs tabs: the main grid,
+    /// plus linkshells and cross-world linkshells tucked into collapsed headers so the main grid
+    /// stays scannable. <paramref name="idPrefix"/> keeps each tab's table IDs distinct.
+    /// </summary>
+    public static void ConversationalChannelGrids(string idPrefix, List<XivChatType> channels)
+    {
+        ChannelGrid($"##{idPrefix}-main", ChatChannels.Main, channels);
+
+        if (ImGui.CollapsingHeader(Loc.Get("Formatting_Channels_Linkshells")))
+            ChannelGrid($"##{idPrefix}-ls", ChatChannels.Linkshells, channels);
+
+        if (ImGui.CollapsingHeader(Loc.Get("Formatting_Channels_CrossworldLinkshells")))
+            ChannelGrid($"##{idPrefix}-cwls", ChatChannels.CrossworldLinkshells, channels);
+    }
 
     /// <summary>
     /// A removable-entry list flowing two entries per row (trash button + label, twice),

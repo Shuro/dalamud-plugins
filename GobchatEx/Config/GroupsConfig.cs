@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 
 namespace GobchatEx.Config;
 
-/// <summary>Player-group settings (Milestone 2), persisted to groups.json.</summary>
+/// <summary>Player-group settings, persisted to groups.json.</summary>
 [Serializable]
 public class GroupsConfig
 {
@@ -14,13 +15,13 @@ public class GroupsConfig
     public bool GroupsEnabled { get; set; } = true;
 
     /// <summary>
-    /// Shared cooldown for all per-group alert sounds (Milestone 6): after any group sound
+    /// Shared cooldown for all per-group alert sounds: after any group sound
     /// plays, further group sounds stay quiet for this long. One timer across all groups —
     /// spam protection, not a per-group rhythm (ADR 0005).
     /// </summary>
     public int GroupSoundCooldownMs { get; set; } = 5000;
 
-    /// <summary>Custom player groups (Milestone 2), reorderable, matched by player-name trigger lists.</summary>
+    /// <summary>Custom player groups, reorderable, matched by player-name trigger lists.</summary>
     public List<PlayerGroup> Groups { get; set; } = [];
 
     /// <summary>
@@ -32,6 +33,10 @@ public class GroupsConfig
     // attribute on FormattingConfig.HighlightChannels for the Json.NET Reuse-append bug it fixes.
     [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
     public List<PlayerGroup> FriendGroups { get; set; } = CreateDefaultFriendGroups();
+
+    /// <summary>Custom groups followed by friend groups.</summary>
+    [JsonIgnore]
+    public IEnumerable<PlayerGroup> AllGroups => Groups.Concat(FriendGroups);
 
     /// <summary>Stable ids and <c>FfGroup</c> indices mirror FFXIVClientStructs' DisplayGroup enum (Star=1..Club=7, offset by -1).</summary>
     private static List<PlayerGroup> CreateDefaultFriendGroups() =>

@@ -39,7 +39,7 @@ internal sealed class ChatTwoContextMenuIntegration : IDisposable
 
         register = Plugin.PluginInterface.GetIpcSubscriber<string>("ChatTwo.Register");
         unregister = Plugin.PluginInterface.GetIpcSubscriber<string, object?>("ChatTwo.Unregister");
-        available = Plugin.PluginInterface.GetIpcSubscriber<object?>("ChatTwo.Available");
+        available = ChatTwoIpc.Available();
         invoke = Plugin.PluginInterface
             .GetIpcSubscriber<string, PlayerPayload?, ulong, Payload?, SeString?, SeString?, object?>("ChatTwo.Invoke");
 
@@ -138,22 +138,10 @@ internal sealed class ChatTwoContextMenuIntegration : IDisposable
             return;
         }
 
-        var actions = new GroupMembershipActions(plugin, name, world);
-
-        foreach (var group in plugin.Configuration.Groups.Groups)
+        foreach (var (label, toggle) in new GroupMembershipActions(plugin, name, world).MenuEntries())
         {
-            var inGroup = actions.IsInGroup(group);
-            var label = inGroup
-                ? string.Format(Loc.Get("Groups_ContextMenu_RemoveFrom"), group.Name)
-                : string.Format(Loc.Get("Groups_ContextMenu_AddTo"), group.Name);
-
-            if (!ImGui.Selectable(label))
-                continue;
-
-            if (inGroup)
-                actions.RemoveFromGroup(group);
-            else
-                actions.AddToGroup(group);
+            if (ImGui.Selectable(label))
+                toggle();
         }
     }
 }

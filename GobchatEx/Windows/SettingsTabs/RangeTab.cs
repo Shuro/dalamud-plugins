@@ -1,6 +1,5 @@
 using System;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Game.Text;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
@@ -24,19 +23,6 @@ internal sealed class RangeTab : IToggleableTab
     // precise. Ctrl+click the slider to type any higher value: ImGui only clamps typed input
     // when AlwaysClamp is set, which it isn't here.
     private const float MaxCutOffSliderYalms = 60f;
-
-    // Only proximity channels are offered: range-filtering a server-wide channel (party, FC,
-    // linkshells) would hide messages based on where the sender happens to be standing.
-    // Say/Emote carry the engine-limit help marker: the game engine only delivers them up to
-    // ~20 yalms, so distances configured beyond that never see a message on these channels.
-    private static readonly (string LabelKey, XivChatType Type, string? HelpKey)[] Channels =
-    [
-        ("Formatting_Channel_Say", XivChatType.Say, "Range_EngineLimit_Tooltip"),
-        ("Formatting_Channel_Emote", XivChatType.CustomEmote, "Range_EngineLimit_Tooltip"),
-        ("Formatting_Channel_StandardEmote", XivChatType.StandardEmote, null),
-        ("Formatting_Channel_Yell", XivChatType.Yell, null),
-        ("Formatting_Channel_Shout", XivChatType.Shout, null),
-    ];
 
     public string Name => Loc.Get("Range_TabName");
     public FontAwesomeIcon Icon => FontAwesomeIcon.Ruler;
@@ -71,7 +57,7 @@ internal sealed class RangeTab : IToggleableTab
 
         ImGuiHelpers.ScaledDummy(10f);
         SettingsUi.SectionHeader(Loc.Get("Range_Channels_Header"), Loc.Get("Range_Channels_Tooltip"));
-        SettingsUi.ChannelGrid("##range-channels", Channels, config.RangeFilterChannels);
+        SettingsUi.ChannelGrid("##range-channels", ChatChannels.Range, config.RangeFilterChannels);
 
         ImGuiHelpers.ScaledDummy(10f);
         SettingsUi.SectionHeader(Loc.Get("Range_ChatTwo_Header"), Loc.Get("Range_ChatTwo_Header_Tooltip"));

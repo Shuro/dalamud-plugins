@@ -1,14 +1,17 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using GobchatEx.Config;
 using GobchatEx.Core;
+using GobchatEx.Localization;
 
 namespace GobchatEx.Chat;
 
 /// <summary>
 /// Shared add/remove/membership-check logic for one player against a custom group's member list, used
 /// by the slash command, the native right-click context menu, and the Chat 2 IPC integration alike.
-/// Bound to one (name, world) pair at construction (the right-clicked or /gobchat-group-targeted
+/// Bound to one (name, world) pair at construction (the right-clicked or /gex-group-targeted
 /// player); callers iterate <see cref="GroupsConfig.Groups"/> and pass each <see cref="PlayerGroup"/>
 /// in turn. Mutates the live <see cref="Plugin.Configuration"/> directly and commits through
 /// <see cref="Config.ConfigCommitter"/>, the same path the settings window uses.
@@ -49,6 +52,21 @@ internal sealed class GroupMembershipActions
 
         Persist();
         return true;
+    }
+
+    /// <summary>
+    /// One "Add to"/"Remove from" toggle per custom group, labeled by the player's current
+    /// membership — shared by the native right-click menu and Chat 2's integration menu.
+    /// </summary>
+    public IEnumerable<(string Label, Action Toggle)> MenuEntries()
+    {
+        foreach (var group in plugin.Configuration.Groups.Groups)
+        {
+            if (IsInGroup(group))
+                yield return (string.Format(Loc.Get("Groups_ContextMenu_RemoveFrom"), group.Name), () => RemoveFromGroup(group));
+            else
+                yield return (string.Format(Loc.Get("Groups_ContextMenu_AddTo"), group.Name), () => AddToGroup(group));
+        }
     }
 
     /// <summary>

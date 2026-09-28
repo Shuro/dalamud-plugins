@@ -14,7 +14,7 @@ using Newtonsoft.Json;
 namespace GobchatEx.Chat;
 
 /// <summary>
-/// Writes chat to per-session .log files (Milestone 5). Deliberately its own
+/// Writes chat to per-session .log files. Deliberately its own
 /// CheckMessageHandled subscriber rather than a hook inside ChatListener: it reads
 /// OriginalSender/OriginalMessage — which no plugin can mutate, so multicast ordering is
 /// irrelevant to log content — and a logging failure must never break highlighting (or vice
@@ -74,57 +74,7 @@ internal sealed class ChatLogger : IDisposable
         _config = config;
         SettingsChanged();
 
-        var resume = ReadResumeMarker();
-
-        // A mid-session (re)load — plugin update or dev auto-reload — never fires Login, so seed
-        // the character now. Plugin construction is only framework-thread when the manifest sets
-        // LoadSync (ours doesn't), and IPlayerState throws off-thread, so dispatch.
-        if (Plugin.ClientState.IsLoggedIn)
-        {
-            // Same game process, same login, folder still usable: continue logging as if the
-            // reload never happened. IsLogging flips before the async seed lands — OnChatMessage
-            // already tolerates that window via its defensive re-seed.
-            if (resume != null && HasLogFolder)
-            {
-                IsLogging = true;
-                Plugin.Log.Information("Chat logging resumed across a plugin reload/update.");
-            }
-            else if (resume != null)
-            {
-                // The folder broke while unloaded: void the marker, or fixing the folder and
-                // reloading later in the same process would resume logging nobody restarted.
-                resume = null;
-                DeleteResumeMarker();
-            }
-
-            _ = Plugin.Framework.RunOnFrameworkThread(() =>
-            {
-                try
-                {
-                    _session.SetCharacter(Plugin.PlayerState.CharacterName);
-
-                    // Still the character the marker was written for -> keep appending to the
-                    // same file; anything else falls back to the session's rotation rules.
-                    if (IsLogging && resume != null
-                        && string.Equals(resume.CharacterName, _session.CharacterName, StringComparison.Ordinal))
-                    {
-                        _session.TryResumeFile(resume.FilePath);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // Fire-and-forget dispatch: without this, a throw would vanish into the
-                    // discarded task; the defensive re-seed in OnChatMessage still recovers.
-                    Plugin.Log.Error(ex, "Initial chat-log character seed failed; retrying on the next message.");
-                }
-            });
-        }
-        else if (resume != null)
-        {
-            // Logging never carries across a logout: a marker read while logged out (plugin
-            // reloaded at the title screen mid-session) is void.
-            DeleteResumeMarker();
-        }
+        ResumeAfterReload();
 
         Plugin.ChatGui.CheckMessageHandled += OnChatMessage;
         Plugin.ClientState.Login += OnLogin;
@@ -139,6 +89,62 @@ internal sealed class ChatLogger : IDisposable
         Plugin.ClientState.Login -= OnLogin;
         Plugin.ChatGui.CheckMessageHandled -= OnChatMessage;
         FlushNow(); // after unsubscribing, so nothing enqueues mid-teardown
+    }
+
+    /// <summary>
+    /// Continues logging across a plugin reload/update when a valid resume marker exists (same game
+    /// process, still logged in, folder still usable) — as if the reload never happened. A marker
+    /// that can't be honored is voided, so a later fix/reload can't resume logging nobody restarted.
+    /// </summary>
+    private void ResumeAfterReload()
+    {
+        var resume = ReadResumeMarker();
+
+        if (!Plugin.ClientState.IsLoggedIn)
+        {
+            // Logging never carries across a logout: a marker read while logged out (plugin
+            // reloaded at the title screen mid-session) is void.
+            if (resume != null)
+                DeleteResumeMarker();
+            return;
+        }
+
+        if (resume != null && !HasLogFolder)
+        {
+            DeleteResumeMarker(); // the folder broke while unloaded
+            resume = null;
+        }
+
+        if (resume != null)
+        {
+            // IsLogging flips before the async seed lands — OnChatMessage tolerates that window
+            // via its defensive re-seed.
+            IsLogging = true;
+            Plugin.Log.Information("Chat logging resumed across a plugin reload/update.");
+        }
+
+        // A mid-session (re)load never fires Login, so seed the character now. Plugin construction
+        // is only framework-thread with LoadSync (ours doesn't set it), and IPlayerState throws
+        // off-thread, so dispatch.
+        _ = Plugin.Framework.RunOnFrameworkThread(() =>
+        {
+            try
+            {
+                _session.SetCharacter(Plugin.PlayerState.CharacterName);
+
+                // Still the character the marker was written for -> keep appending to the same
+                // file; anything else falls back to the session's rotation rules.
+                if (IsLogging && resume != null
+                    && string.Equals(resume.CharacterName, _session.CharacterName, StringComparison.Ordinal))
+                    _session.TryResumeFile(resume.FilePath);
+            }
+            catch (Exception ex)
+            {
+                // Fire-and-forget dispatch: without this, a throw would vanish into the discarded
+                // task; the defensive re-seed in OnChatMessage still recovers.
+                Plugin.Log.Error(ex, "Initial chat-log character seed failed; retrying on the next message.");
+            }
+        });
     }
 
     /// <summary>Starts logging; a no-op while no usable folder is configured (there is no
@@ -273,9 +279,7 @@ internal sealed class ChatLogger : IDisposable
             // The message object is pooled and only valid during this callback — extract plain
             // strings now, keep no reference. Original* is the pre-plugin-edit text: the log
             // archives what the game said, not GobchatEx's recoloring or another plugin's edits.
-            var timestamp = message.Timestamp > 0
-                ? DateTimeOffset.FromUnixTimeSeconds(message.Timestamp).ToLocalTime()
-                : DateTimeOffset.Now;
+            var timestamp = message.LocalTimestamp();
             // ResolveDisplay keeps the game-rendered sender prefix (friend-group glyph, party
             // number) that Resolve's clean name drops — the log archives what the player sees.
             SenderIdentity.ResolveDisplay(message.OriginalSender.ToDalamudString(), out var name, out var world);

@@ -100,7 +100,7 @@ internal sealed class MentionsTab : IToggleableTab
         MentionRules? rules = null;
         if (testMessage.Length > 0)
         {
-            rules = ChatListener.BuildMentionRules(config);
+            rules = MentionRulesFactory.Build(config);
             var segmenter = new MessageSegmenter((IReadOnlyList<TokenRule>)[], rules);
             if (segmenter.Segment([testMessage]) is { HasMention: true } result)
             {
@@ -362,7 +362,7 @@ internal sealed class MentionsTab : IToggleableTab
     /// The silent no-match gap behind "my name doesn't trigger anything" reports: player
     /// mentions are on, but the logged-in character was never added (registration is
     /// manual-only) or its entry is inactive — then neither highlight nor sound can fire.
-    /// Same name comparison as ChatListener.BuildMentionRules.
+    /// Same name comparison as MentionRulesFactory.
     /// </summary>
     private void DrawCurrentCharacterInactiveWarning()
     {

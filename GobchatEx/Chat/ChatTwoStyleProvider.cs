@@ -11,7 +11,7 @@ using GobchatEx.Core;
 namespace GobchatEx.Chat;
 
 /// <summary>
-/// Production consumer of Chat 2's message styling IPC (Milestone 3.5): renders per-group message
+/// Production consumer of Chat 2's message styling IPC: renders per-group message
 /// backgrounds and true per-message range fade/hide inside Chat 2, on top of the native log's
 /// "lite" behavior (sender recoloring, darkened-step dimming), which keeps working without Chat 2.
 /// Registers the provider gate when <c>ChatTwo.StyleVersion</c> reports a supported version,
@@ -30,16 +30,8 @@ namespace GobchatEx.Chat;
 /// </summary>
 internal sealed class ChatTwoStyleProvider : IDisposable
 {
-    internal const string ProviderGateName = "GobchatEx.MessageStyle";
+    private const string ProviderGateName = "GobchatEx.MessageStyle";
     private const int SupportedStyleVersion = 1;
-
-    /// <summary>Chat 2's plugin internal name as Dalamud reports it (InstalledPlugins, ActivePluginsChanged).</summary>
-    internal const string ChatTwoInternalName = "ChatTwo";
-
-    // Per-tab suppress-flags understood by ChatTwo.SetTabStylePolicies (see the IPC contract).
-    internal const int SuppressBackground = 1;
-    internal const int SuppressFade = 2;
-    internal const int SuppressHide = 4;
 
     /// <summary>
     /// Refresh cadence of the distance snapshot. Chat fading doesn't need frame-exact positions
@@ -94,7 +86,7 @@ internal sealed class ChatTwoStyleProvider : IDisposable
     // handshake — reliable regardless of whether Chat 2 has the custom fork PRs at all, since it
     // only asks Dalamud "is a plugin named ChatTwo currently loaded", nothing Chat 2-specific.
     internal static bool IsChatTwoLoaded()
-        => Plugin.PluginInterface.InstalledPlugins.Any(p => p.InternalName == ChatTwoInternalName && p.IsLoaded);
+        => Plugin.PluginInterface.InstalledPlugins.Any(p => p.InternalName == ChatTwoIpc.InternalName && p.IsLoaded);
 
     /// <summary>Chat 2's tabs (persistent id → name), from GetTabs/TabsChanged. Read by the settings UI.</summary>
     internal Dictionary<Guid, string> KnownTabs { get; private set; } = [];
@@ -105,15 +97,14 @@ internal sealed class ChatTwoStyleProvider : IDisposable
         _committer = committer;
         _friendGroups = friendGroups;
 
-        _styleVersion = Plugin.PluginInterface.GetIpcSubscriber<int>("ChatTwo.StyleVersion");
-        _setProvider = Plugin.PluginInterface.GetIpcSubscriber<string, object?>("ChatTwo.SetMessageStyleProvider");
-        _available = Plugin.PluginInterface.GetIpcSubscriber<object?>("ChatTwo.Available");
-        _getTabs = Plugin.PluginInterface.GetIpcSubscriber<Dictionary<Guid, string>>("ChatTwo.GetTabs");
-        _tabsChanged = Plugin.PluginInterface.GetIpcSubscriber<Dictionary<Guid, string>, object?>("ChatTwo.TabsChanged");
-        _setTabPolicies = Plugin.PluginInterface.GetIpcSubscriber<Dictionary<Guid, int>, object?>("ChatTwo.SetTabStylePolicies");
+        _styleVersion = ChatTwoIpc.StyleVersion();
+        _setProvider = ChatTwoIpc.SetMessageStyleProvider();
+        _available = ChatTwoIpc.Available();
+        _getTabs = ChatTwoIpc.GetTabs();
+        _tabsChanged = ChatTwoIpc.TabsChanged();
+        _setTabPolicies = ChatTwoIpc.SetTabStylePolicies();
 
-        _provider = Plugin.PluginInterface
-            .GetIpcProvider<string, string, ulong, ushort, string, string, (uint, float)>(ProviderGateName);
+        _provider = ChatTwoIpc.StyleProvider(ProviderGateName);
         _provider.RegisterFunc(Evaluate);
 
         _available.Subscribe(OnAvailable);
@@ -235,7 +226,7 @@ internal sealed class ChatTwoStyleProvider : IDisposable
     /// </summary>
     private void OnActivePluginsChanged(IActivePluginsChangedEventArgs args)
     {
-        if (IsConnected && args.AffectedInternalNames.Contains(ChatTwoInternalName))
+        if (IsConnected && args.AffectedInternalNames.Contains(ChatTwoIpc.InternalName))
             TryConnect();
     }
 
@@ -318,7 +309,7 @@ internal sealed class ChatTwoStyleProvider : IDisposable
     /// Probes Chat 2's styling IPC and (re-)registers the provider. Safe to call any time; a
     /// missing Chat 2 or an unsupported version just leaves <see cref="IsConnected"/> false.
     /// </summary>
-    internal void TryConnect()
+    private void TryConnect()
     {
         try
         {
@@ -375,13 +366,13 @@ internal sealed class ChatTwoStyleProvider : IDisposable
         // Rule ordering (the precedence invariant) lives in GroupRuleBuilder, shared with the
         // native pass; snapshotMembers because Evaluate reads these on Chat 2's thread while
         // GroupMembershipActions mutates the live lists on the framework thread.
-        var rules = new List<GroupRule>();
+        List<GroupRule> rules = [];
         var backgrounds = new Dictionary<string, uint>();
 
         if (_config.Groups.GroupsEnabled)
         {
             rules = GroupRuleBuilder.Build(_config.Groups, snapshotMembers: true);
-            foreach (var group in _config.Groups.Groups.Concat(_config.Groups.FriendGroups))
+            foreach (var group in _config.Groups.AllGroups)
                 backgrounds[group.Id] = group.ChatTwoBackground;
         }
 
@@ -401,7 +392,7 @@ internal sealed class ChatTwoStyleProvider : IDisposable
             GroupRules: rules,
             GroupBackgrounds: backgrounds,
             MentionSegmenter: wantMentions
-                ? new MessageSegmenter((IReadOnlyList<TokenRule>)[], ChatListener.BuildMentionRules(_config.Mentions))
+                ? new MessageSegmenter((IReadOnlyList<TokenRule>)[], MentionRulesFactory.Build(_config.Mentions))
                 : null,
             LocalName: loaded ? Plugin.PlayerState.CharacterName : string.Empty,
             LocalHomeWorld: loaded ? Plugin.PlayerState.HomeWorld.ValueNullable?.Name.ExtractText() : null,
@@ -440,31 +431,18 @@ internal sealed class ChatTwoStyleProvider : IDisposable
         if (snapshot == null)
             return (0, 1f);
 
-        // Same identity completion as ChatListener.ResolveWorldlessSender, via the shared
-        // SelfSender heuristic (incl. its TellOutgoing/Echo channel rule, mapped through
-        // ChatListener.IsSelfChannel): senderName/-World come from the sender's PlayerPayload
-        // and are empty for the local player's own posts (no payload; senderRaw may carry a
-        // party-number prefix). Other world-less senders stand on the current world.
-        var name = senderName;
-        var world = senderWorld.Length > 0 ? senderWorld : null;
-        if (name.Length == 0)
-        {
-            if (snapshot.LocalName.Length > 0
-                && SelfSender.IsSelf(ChatListener.IsSelfChannel((XivChatType)chatType), senderRaw, snapshot.LocalName))
-            {
-                name = snapshot.LocalName;
-                world ??= snapshot.LocalHomeWorld;
-            }
-            else
-            {
-                name = senderRaw;
-            }
-        }
-
-        world ??= snapshot.LocalCurrentWorld;
+        // senderName/-World come from the sender's PlayerPayload and are empty for the local
+        // player's own posts (no payload; senderRaw may carry a party-number prefix). Same
+        // completion as the native pass.
+        var isSelf = senderName.Length == 0
+            && SelfSender.IsSelf(ChatChannels.IsSelfChannel((XivChatType)chatType), senderRaw, snapshot.LocalName);
+        var (name, world) = SenderCompletion.Complete(
+            senderName.Length > 0 ? senderName : senderRaw,
+            senderWorld.Length > 0 ? senderWorld : null,
+            isSelf, snapshot.LocalName, snapshot.LocalHomeWorld, snapshot.LocalCurrentWorld);
 
         var background = 0u;
-        if (name.Length > 0 && ChatListener.GroupingChannels.Contains((XivChatType)chatType))
+        if (name.Length > 0 && ChatChannels.Grouping.Contains((XivChatType)chatType))
         {
             // World-qualified friend lookups never touch IPlayerState; skip when unknown so the
             // lookup's internal current-world fallback can't run off the framework thread.

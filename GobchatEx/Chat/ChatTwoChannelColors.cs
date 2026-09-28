@@ -42,7 +42,7 @@ namespace GobchatEx.Chat;
 /// </summary>
 internal static class ChatTwoChannelColors
 {
-    private const string ChatTwoConfigFileName = ChatTwoStyleProvider.ChatTwoInternalName + ".json";
+    private const string ChatTwoConfigFileName = ChatTwoIpc.InternalName + ".json";
 
     internal static Dictionary<XivChatType, uint> Read()
     {

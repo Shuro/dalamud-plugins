@@ -341,9 +341,9 @@ internal sealed class DebugTab : ISettingsTab
             using var pushId = ImRaii.PushId(id.ToString());
 
             var flags = tester.PolicyDraft.GetValueOrDefault(id);
-            var noBackground = (flags & ChatTwoStyleIpcTester.SuppressBackground) != 0;
-            var noFade = (flags & ChatTwoStyleIpcTester.SuppressFade) != 0;
-            var noHide = (flags & ChatTwoStyleIpcTester.SuppressHide) != 0;
+            var noBackground = (flags & ChatTwoIpc.SuppressBackground) != 0;
+            var noFade = (flags & ChatTwoIpc.SuppressFade) != 0;
+            var noHide = (flags & ChatTwoIpc.SuppressHide) != 0;
 
             var changed = ImGui.Checkbox("no bg", ref noBackground);
             ImGui.SameLine();
@@ -361,9 +361,9 @@ internal sealed class DebugTab : ISettingsTab
             if (!changed)
                 continue;
 
-            var newFlags = (noBackground ? ChatTwoStyleIpcTester.SuppressBackground : 0)
-                           | (noFade ? ChatTwoStyleIpcTester.SuppressFade : 0)
-                           | (noHide ? ChatTwoStyleIpcTester.SuppressHide : 0);
+            var newFlags = (noBackground ? ChatTwoIpc.SuppressBackground : 0)
+                           | (noFade ? ChatTwoIpc.SuppressFade : 0)
+                           | (noHide ? ChatTwoIpc.SuppressHide : 0);
             if (newFlags == 0)
                 tester.PolicyDraft.Remove(id);
             else

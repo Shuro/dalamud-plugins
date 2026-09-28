@@ -53,9 +53,9 @@ internal static class PayloadRewriter
     }
 
     /// <summary>
-    /// Builds the rewritten string for a run set that all shares one color, e.g. a sender name (one
-    /// color for the whole name, not the multiple <see cref="SegmentType"/>s <see cref="Rewrite"/>
-    /// handles). Each text payload is wrapped as a whole; payloads outside the run set (e.g. a
+    /// Builds the rewritten string for a run set that all shares one (non-empty) color, e.g. a
+    /// sender name (one color for the whole name, not the multiple <see cref="SegmentType"/>s
+    /// <see cref="Rewrite"/> handles). Each text payload is wrapped as a whole; payloads outside the run set (e.g. a
     /// cross-world icon payload between name runs) pass through untouched, exactly like
     /// <see cref="Rewrite"/>.
     /// </summary>
@@ -71,10 +71,7 @@ internal static class PayloadRewriter
         {
             if (payload.Type == ReadOnlySePayloadType.Text && payload.Body.Length > 0)
             {
-                if (style.Foreground == 0 && style.Glow == 0)
-                    builder.Append(payload);
-                else
-                    AppendColored(builder, runTexts[run], style, fadeStep);
+                AppendColored(builder, runTexts[run], style, fadeStep);
                 ++run;
             }
             else

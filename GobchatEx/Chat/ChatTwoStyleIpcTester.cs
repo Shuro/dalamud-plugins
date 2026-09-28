@@ -24,12 +24,6 @@ internal sealed class ChatTwoStyleIpcTester : IDisposable
 {
     internal const string ProviderGateName = "GobchatEx.DebugMessageStyle";
 
-    // Suppress-flags understood by ChatTwo.SetTabStylePolicies — canonical values live on the
-    // production provider; aliased here so the Debug tab keeps reading them off the tester.
-    internal const int SuppressBackground = ChatTwoStyleProvider.SuppressBackground;
-    internal const int SuppressFade = ChatTwoStyleProvider.SuppressFade;
-    internal const int SuppressHide = ChatTwoStyleProvider.SuppressHide;
-
     private const int MaxLoggedInvocations = 30;
 
     internal sealed record Invocation(
@@ -75,15 +69,14 @@ internal sealed class ChatTwoStyleIpcTester : IDisposable
 
     public ChatTwoStyleIpcTester()
     {
-        styleVersion = Plugin.PluginInterface.GetIpcSubscriber<int>("ChatTwo.StyleVersion");
-        setProvider = Plugin.PluginInterface.GetIpcSubscriber<string, object?>("ChatTwo.SetMessageStyleProvider");
-        available = Plugin.PluginInterface.GetIpcSubscriber<object?>("ChatTwo.Available");
-        getTabs = Plugin.PluginInterface.GetIpcSubscriber<Dictionary<Guid, string>>("ChatTwo.GetTabs");
-        tabsChanged = Plugin.PluginInterface.GetIpcSubscriber<Dictionary<Guid, string>, object?>("ChatTwo.TabsChanged");
-        setTabPolicies = Plugin.PluginInterface.GetIpcSubscriber<Dictionary<Guid, int>, object?>("ChatTwo.SetTabStylePolicies");
+        styleVersion = ChatTwoIpc.StyleVersion();
+        setProvider = ChatTwoIpc.SetMessageStyleProvider();
+        available = ChatTwoIpc.Available();
+        getTabs = ChatTwoIpc.GetTabs();
+        tabsChanged = ChatTwoIpc.TabsChanged();
+        setTabPolicies = ChatTwoIpc.SetTabStylePolicies();
 
-        provider = Plugin.PluginInterface
-            .GetIpcProvider<string, string, ulong, ushort, string, string, (uint, float)>(ProviderGateName);
+        provider = ChatTwoIpc.StyleProvider(ProviderGateName);
         provider.RegisterFunc(GetStyle);
 
         available.Subscribe(OnAvailable);

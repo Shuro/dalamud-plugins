@@ -158,14 +158,5 @@ internal sealed class ChatLogTab : ISettingsTab
         ImGuiComponents.HelpMarker(Loc.Get("ChatLog_CharacterFolders_Tooltip"));
     }
 
-    private void DrawChannels()
-    {
-        SettingsUi.ChannelGrid("##chatlog-main", FormattingTab.MainChannels, config.LogChannels);
-
-        if (ImGui.CollapsingHeader(Loc.Get("Formatting_Channels_Linkshells")))
-            SettingsUi.ChannelGrid("##chatlog-ls", FormattingTab.LinkshellChannels, config.LogChannels);
-
-        if (ImGui.CollapsingHeader(Loc.Get("Formatting_Channels_CrossworldLinkshells")))
-            SettingsUi.ChannelGrid("##chatlog-cwls", FormattingTab.CrossworldLinkshellChannels, config.LogChannels);
-    }
+    private void DrawChannels() => SettingsUi.ConversationalChannelGrids("chatlog", config.LogChannels);
 }

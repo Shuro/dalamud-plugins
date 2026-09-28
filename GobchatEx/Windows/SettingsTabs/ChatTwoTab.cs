@@ -74,13 +74,13 @@ internal sealed class ChatTwoTab : ISettingsTab
             var changed = false;
 
             ImGui.TableNextColumn();
-            changed |= DrawAllowedCheckbox("##bg", ChatTwoStyleProvider.SuppressBackground, ref flags);
+            changed |= DrawAllowedCheckbox("##bg", ChatTwoIpc.SuppressBackground, ref flags);
 
             ImGui.TableNextColumn();
-            changed |= DrawAllowedCheckbox("##fade", ChatTwoStyleProvider.SuppressFade, ref flags);
+            changed |= DrawAllowedCheckbox("##fade", ChatTwoIpc.SuppressFade, ref flags);
 
             ImGui.TableNextColumn();
-            changed |= DrawAllowedCheckbox("##hide", ChatTwoStyleProvider.SuppressHide, ref flags);
+            changed |= DrawAllowedCheckbox("##hide", ChatTwoIpc.SuppressHide, ref flags);
 
             if (!changed)
                 continue;
